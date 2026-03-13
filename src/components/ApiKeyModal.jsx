@@ -27,7 +27,7 @@ export default function ApiKeyModal({ apiKey, onSave, onClose }) {
           </button>
           <button
             onClick={() => onSave(value.trim())}
-            className="text-sm px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="text-sm px-4 py-2 bg-vimpl text-black rounded-md hover:bg-vimpl-dark hover:text-white transition-colors"
           >
             Save
           </button>

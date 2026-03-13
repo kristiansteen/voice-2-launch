@@ -104,7 +104,7 @@ export default function VimplExportModal({ projectPlan, processName, selectedImp
           <button
             onClick={handleExport}
             disabled={!token || !baseUrl || exporting}
-            className="flex-1 bg-orange-500 text-white text-sm font-medium py-2 rounded hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="flex-1 bg-vimpl text-black text-sm font-medium py-2 rounded hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {exporting ? (
               <>
