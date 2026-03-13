@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Birthstone&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── vimpl brand tokens ─────────────────────────────────────────── */
+:root {
+  --vimpl-primary:       #65c434;
+  --vimpl-primary-dark:  #3d7a1f;
+  --vimpl-primary-light: #a3e085;
+  --vimpl-secondary:     #0ea5e9;
+  --vimpl-accent:        #f59e0b;
+  --vimpl-dark:          #1e293b;
+  --vimpl-gray-100:      #f1f5f9;
+  --vimpl-gray-200:      #e2e8f0;
+  --vimpl-gray-400:      #94a3b8;
+  --vimpl-gray-500:      #64748b;
+
+  /* Post-it colours */
+  --vimpl-postit-yellow: #fff59d;
+  --vimpl-postit-green:  #a5d6a7;
+  --vimpl-postit-blue:   #90caf9;
+  --vimpl-postit-pink:   #ef9a9a;
+  --vimpl-postit-orange: #ffcc80;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── AILEAN badge (header) ──────────────────────────────────────── */
+.ailean-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 3px 10px;
+  border-radius: 50px;
+  transition: all 0.2s ease;
+}
+
+.ailean-badge:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(101, 196, 52, 0.5);
+}
+
+.ailean-badge span:first-child {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Inter', sans-serif;
+}
+
+.ailean-logo {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--vimpl-primary) 0%, var(--vimpl-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── vimpl-style accents for panel UI ──────────────────────────── */
+.vimpl-btn-primary {
+  background: var(--vimpl-primary);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.vimpl-btn-primary:hover {
+  background: var(--vimpl-primary-dark);
+}
+
+.bpmn-container .djs-container {
+  background: #fafafa;
+}

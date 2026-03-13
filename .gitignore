@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Python
+*.egg-info/
+.pytest_cache/
+
+# Prisma
+prisma/*.db
+
+# TypeScript
+*.tsbuildinfo
