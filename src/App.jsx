@@ -537,7 +537,14 @@ export default function App() {
         {/* Panel 3 — Diagram */}
         <div ref={p3Ref} style={getPanelStyle(3)} className="overflow-hidden">
           <PanelShell num="3" label={t.panel3} collapsed={collapsed[3]} onToggle={() => togglePanel(3)}>
-            <DiagramPanel xml={xml} onXmlChange={setXml} bpmnLoading={bpmnParsing} processName={parsed?.process_name} />
+            <DiagramPanel
+              xml={xml}
+              onXmlChange={setXml}
+              bpmnLoading={bpmnParsing}
+              processName={parsed?.process_name}
+              parsed={parsed}
+              processDescription={processDescription}
+            />
           </PanelShell>
         </div>
 

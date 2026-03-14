@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
 import BpmnErrorBoundary from './BpmnErrorBoundary.jsx';
+import StepCurtain from './StepCurtain.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import {
   saveDiagram,
@@ -9,9 +10,12 @@ import {
   deleteDiagram,
 } from '../services/diagramService.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName }) {
+export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription }) {
   const { t } = useLang();
   const viewerRef = useRef(null);
+
+  // Step curtain
+  const [curtainElement, setCurtainElement] = useState(null);
 
   // XML preview modal
   const [showXmlModal, setShowXmlModal] = useState(false);
@@ -188,8 +192,22 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
       {/* ── Diagram canvas + zoom controls ─────────────────────────── */}
       <div className="flex-1 overflow-hidden relative">
         <BpmnErrorBoundary>
-          <BpmnViewer ref={viewerRef} xml={xml} onXmlChange={onXmlChange} />
+          <BpmnViewer
+            ref={viewerRef}
+            xml={xml}
+            onXmlChange={onXmlChange}
+            onElementDblClick={setCurtainElement}
+          />
         </BpmnErrorBoundary>
+
+        {curtainElement && (
+          <StepCurtain
+            element={curtainElement}
+            parsed={parsed}
+            processDescription={processDescription}
+            onClose={() => setCurtainElement(null)}
+          />
+        )}
 
         {/* Zoom controls — floating bottom-right */}
         <div className="bpmn-zoom-controls">

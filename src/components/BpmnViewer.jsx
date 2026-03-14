@@ -8,7 +8,7 @@ const PALETTE_REMOVE = [
   'create.participant',
 ];
 
-const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange }, ref) {
+const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementDblClick }, ref) {
   const containerRef = useRef(null);
   const modelerRef = useRef(null);
   const lastXmlRef = useRef(null);
@@ -57,6 +57,14 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange }, ref) {
         palette.close();
         palette.open();
       } catch { /* CSS fallback handles it */ }
+
+      // Double-click on an element opens the step curtain
+      modeler.get('eventBus').on('element.dblclick', (event) => {
+        const { element } = event;
+        // Skip root process / canvas background
+        if (element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration') return;
+        onElementDblClick?.(element);
+      });
 
       // Sync user edits back to parent without triggering re-import
       modeler.on('commandStack.changed', async () => {
