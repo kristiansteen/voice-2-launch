@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
-// Palette entries to hide — keeps the palette clean and BPMN-focused
 const PALETTE_REMOVE = [
   'create.subprocess-expanded',
   'create.data-object',
@@ -9,12 +8,30 @@ const PALETTE_REMOVE = [
   'create.participant',
 ];
 
-export default function BpmnViewer({ xml, onXmlChange }) {
+const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange }, ref) {
   const containerRef = useRef(null);
   const modelerRef = useRef(null);
-  // Tracks the last XML we either imported or exported — prevents round-trip re-imports
   const lastXmlRef = useRef(null);
   const [error, setError] = useState(null);
+
+  // Expose canvas controls to parent via ref
+  useImperativeHandle(ref, () => ({
+    fitViewport() {
+      try { modelerRef.current?.get('canvas').zoom('fit-viewport'); } catch { /* not ready */ }
+    },
+    zoomIn() {
+      try {
+        const canvas = modelerRef.current?.get('canvas');
+        if (canvas) canvas.zoom(Math.min(canvas.zoom() * 1.25, 4));
+      } catch { /* not ready */ }
+    },
+    zoomOut() {
+      try {
+        const canvas = modelerRef.current?.get('canvas');
+        if (canvas) canvas.zoom(Math.max(canvas.zoom() / 1.25, 0.2));
+      } catch { /* not ready */ }
+    },
+  }), []);
 
   // ── Create modeler once on mount ─────────────────────────────────
   useEffect(() => {
@@ -27,7 +44,7 @@ export default function BpmnViewer({ xml, onXmlChange }) {
       const modeler = new BpmnModeler({ container: containerRef.current });
       modelerRef.current = modeler;
 
-      // Strip unwanted palette entries after modeler boots
+      // Strip unwanted palette entries
       try {
         const pp = modeler.get('paletteProvider');
         const origGet = pp.getPaletteEntries.bind(pp);
@@ -36,11 +53,10 @@ export default function BpmnViewer({ xml, onXmlChange }) {
           PALETTE_REMOVE.forEach(k => delete entries[k]);
           return entries;
         };
-        // Force palette to re-render with filtered entries
         const palette = modeler.get('palette');
         palette.close();
         palette.open();
-      } catch { /* palette API unavailable — CSS fallback handles it */ }
+      } catch { /* CSS fallback handles it */ }
 
       // Sync user edits back to parent without triggering re-import
       modeler.on('commandStack.changed', async () => {
@@ -53,7 +69,7 @@ export default function BpmnViewer({ xml, onXmlChange }) {
         }
       });
 
-      // If xml prop arrived before the modeler was ready, import it now
+      // Import any xml that arrived before the modeler was ready
       const pending = lastXmlRef.current;
       if (pending && !cancelled) {
         try {
@@ -79,7 +95,7 @@ export default function BpmnViewer({ xml, onXmlChange }) {
     lastXmlRef.current = xml;
 
     const modeler = modelerRef.current;
-    if (!modeler) return; // modeler not ready yet — init effect will handle it
+    if (!modeler) return; // not ready yet — init effect handles it
 
     modeler.importXML(xml)
       .then(({ warnings }) => {
@@ -109,11 +125,7 @@ export default function BpmnViewer({ xml, onXmlChange }) {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div
-        ref={containerRef}
-        className="bpmn-container"
-        style={{ width: '100%', height: '100%' }}
-      />
+      <div ref={containerRef} className="bpmn-container" style={{ width: '100%', height: '100%' }} />
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 text-sm p-4 text-center">
           Diagram render error: {error}
@@ -121,4 +133,6 @@ export default function BpmnViewer({ xml, onXmlChange }) {
       )}
     </div>
   );
-}
+});
+
+export default BpmnViewer;
