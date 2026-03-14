@@ -409,6 +409,11 @@ export default function App() {
     setSelectedImprovementIds([]);
   }
 
+  function handleAddImprovement(idea) {
+    setImprovements(prev => [...(prev || []), idea]);
+    setSelectedImprovementIds(prev => [...prev, idea.id]);
+  }
+
   function handleToggleSelect(id) {
     setSelectedImprovementIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -528,6 +533,7 @@ export default function App() {
               apiKey={apiKey}
               improvements={improvements}
               onGetImprovements={handleGetImprovements}
+              onAddImprovement={handleAddImprovement}
               selectedIds={selectedImprovementIds}
               onToggleSelect={handleToggleSelect}
               projectPlan={projectPlan}

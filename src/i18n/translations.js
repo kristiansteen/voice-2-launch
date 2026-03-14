@@ -67,13 +67,18 @@ export const translations = {
     approveToGenerate:   'Approve description to generate diagram',
     generatingDiagram:   'Generating diagram...',
 
-    // ── ImprovePanel (Project) ────────────────────────────────────
+    // ── ImprovePanel (Plan) ───────────────────────────────────────
     getImprovements:  'Get Improvements →',
     analysing:        'Analysing...',
     selected:         'selected',
     generatePlan:     'Generate Project Plan →',
     generatingPlan:   'Generating plan...',
     planReady:        '✓ Plan generated — see Launch panel',
+    addOwnIdea:       '＋ Add your own idea',
+    ideaTitlePh:      'Improvement title...',
+    ideaDescPh:       'What would this improve? (optional)',
+    addIdeaBtn:       'Add',
+    yourIdea:         'Your idea',
     effort:           'effort',
     effortLabel:      'Effort:',
     impactLabel:      'Impact:',
@@ -165,13 +170,18 @@ export const translations = {
     approveToGenerate:   'Godkend beskrivelse for at generere diagram',
     generatingDiagram:   'Genererer diagram...',
 
-    // ── ImprovePanel (Projekt) ────────────────────────────────────
+    // ── ImprovePanel (Planlæg) ────────────────────────────────────
     getImprovements:  'Hent forbedringer →',
     analysing:        'Analyserer...',
     selected:         'valgt',
     generatePlan:     'Generér projektplan →',
     generatingPlan:   'Genererer plan...',
     planReady:        '✓ Plan genereret — se Lancering-panel',
+    addOwnIdea:       '＋ Tilføj din egen idé',
+    ideaTitlePh:      'Forbedringstitel...',
+    ideaDescPh:       'Hvad ville dette forbedre? (valgfrit)',
+    addIdeaBtn:       'Tilføj',
+    yourIdea:         'Din idé',
     effort:           'indsats',
     effortLabel:      'Indsats:',
     impactLabel:      'Effekt:',
