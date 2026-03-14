@@ -27,6 +27,16 @@ export const translations = {
     parsingVoice:        'Parsing voice...',
     enterTranscript:     'Enter a transcript to continue.',
     setApiKeyFirst:      'Set your API key first.',
+    startRecording:      'Start Recording',
+    stopRecording:       'Stop Recording',
+    recordError:         'Microphone error',
+    recordNotSupported:  'Voice recording is not supported in this browser. Try Chrome or Edge.',
+    recordingInterim:    'Hearing',
+    guideTitle:          'Interview Guide',
+    guideAsked:          'asked',
+    guideRecordingHint:  'Recording — tap questions as you ask them',
+    guideToggle:         'Guide',
+    guideToggleTitle:    'Toggle interview guide',
 
     // ── DescriptionPanel ──────────────────────────────────────────
     processName:    'Process Name',
@@ -140,6 +150,16 @@ export const translations = {
     parsingVoice:        'Analyserer stemme...',
     enterTranscript:     'Indtast et transskript for at fortsætte.',
     setApiKeyFirst:      'Angiv din API-nøgle først.',
+    startRecording:      'Start optagelse',
+    stopRecording:       'Stop optagelse',
+    recordError:         'Mikrofonfejl',
+    recordNotSupported:  'Stemmeoptagelse understøttes ikke i denne browser. Prøv Chrome eller Edge.',
+    recordingInterim:    'Hører',
+    guideTitle:          'Interviewguide',
+    guideAsked:          'stillet',
+    guideRecordingHint:  'Optager — tryk på spørgsmål, efterhånden som du stiller dem',
+    guideToggle:         'Guide',
+    guideToggleTitle:    'Slå interviewguide til/fra',
 
     // ── DescriptionPanel ──────────────────────────────────────────
     processName:    'Procesnavn',
