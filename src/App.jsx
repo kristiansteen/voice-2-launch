@@ -261,14 +261,16 @@ export default function App() {
   const p6Ref = useRef(null);
   const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref, 6: p6Ref };
 
-  // Open panels with no explicit width share space equally via flex:1 (~20% each
-  // when 5 are open). Panels with a stored pixel width use flex:none so dragged
-  // sizes persist across renders without leaking a stale flex shorthand.
+  // Map panel (3) always fills remaining space via flex:1.
+  // All other panels use a fixed default width so any space freed by collapsing
+  // goes entirely to the Map panel rather than being split equally.
+  const DEFAULT_PANEL_W = 220;
   function getPanelStyle(n) {
     if (collapsed[n]) return { width: 36, flexShrink: 0, flexGrow: 0 };
     const w = panelWidths[n];
     if (w != null) return { flex: 'none', width: w };
-    return { flex: 1, minWidth: 0 };
+    if (n === 3) return { flex: 1, minWidth: 200 };
+    return { flex: '0 0 ' + DEFAULT_PANEL_W + 'px', minWidth: 0 };
   }
 
   function handleDragEnd(aKey, newA, bKey, newB) {
@@ -282,6 +284,7 @@ export default function App() {
     [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref, p6Ref].forEach(r => {
       if (r.current) r.current.style.cssText = '';
     });
+    // Reset stored widths so panels revert to defaults (Map fills remainder)
     setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
     setCollapsed(prev => ({ ...prev, [n]: !prev[n] }));
   }
