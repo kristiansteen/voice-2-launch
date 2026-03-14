@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
 import BpmnErrorBoundary from './BpmnErrorBoundary.jsx';
+import { useLang } from '../i18n/LangContext.jsx';
 import {
   saveDiagram,
   updateDiagram,
@@ -9,6 +10,7 @@ import {
 } from '../services/diagramService.js';
 
 export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName }) {
+  const { t } = useLang();
   const viewerRef = useRef(null);
 
   // XML preview modal
@@ -41,7 +43,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
   }
 
   function openSavePanel() {
-    setSaveName(processName || 'BPMN Diagram');
+    setSaveName(processName || t.panel3);
     setSaveMsg('');
     setSaveError('');
     setShowSavePanel(v => !v);
@@ -59,7 +61,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         result = await saveDiagram(saveName.trim(), xml, processName);
         setSavedId(result.id);
       }
-      setSaveMsg(`Saved: ${result.name}`);
+      setSaveMsg(`${t.savedMsg} ${result.name}`);
       setTimeout(() => setSaveMsg(''), 3000);
     } catch (err) {
       setSaveError(err.message);
@@ -121,7 +123,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400 text-sm gap-2">
         <span className="inline-block w-4 h-4 border-2 border-gray-300 border-t-teal-500 rounded-full animate-spin" />
-        Generating diagram...
+        {t.generatingDiagram}
       </div>
     );
   }
@@ -129,7 +131,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
   if (!xml) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-300 text-sm">
-        Approve description to generate diagram
+        {t.approveToGenerate}
       </div>
     );
   }
@@ -140,18 +142,17 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
       {/* ── Toolbar ─────────────────────────────────────────────────── */}
       <div className="bpmn-toolbar px-3 py-2 flex items-center gap-2 shrink-0">
         {/* Left: save/load actions */}
-        <button onClick={openSavePanel} className="bpmn-toolbar-btn" title="Save to vimpl-saas">
-          {savedId ? '☁ Saved' : '☁ Save'}
+        <button onClick={openSavePanel} className="bpmn-toolbar-btn">
+          {savedId ? t.savedCloud : t.save}
         </button>
-        <button onClick={openLoadModal} className="bpmn-toolbar-btn" title="Load a diagram">
-          ⬆ Load
+        <button onClick={openLoadModal} className="bpmn-toolbar-btn">
+          {t.loadDiagramBtn}
         </button>
         <div className="flex-1" />
-        {/* Right: secondary actions */}
-        <button onClick={() => setShowXmlModal(true)} className="bpmn-toolbar-btn" title="View BPMN XML">
-          XML
+        <button onClick={() => setShowXmlModal(true)} className="bpmn-toolbar-btn">
+          {t.bpmnXml}
         </button>
-        <button onClick={handleDownload} className="bpmn-toolbar-btn" title="Download XML file">
+        <button onClick={handleDownload} className="bpmn-toolbar-btn">
           ⬇
         </button>
       </div>
@@ -163,7 +164,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
             value={saveName}
             onChange={e => setSaveName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSave()}
-            placeholder="Diagram name..."
+            placeholder={t.diagramNamePlaceholder}
             className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-green-400 bg-white"
           />
           <button
@@ -171,7 +172,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
             disabled={!saveName.trim() || saving}
             className="text-xs font-medium bg-green-500 text-white rounded-lg px-4 py-1.5 hover:bg-green-600 disabled:opacity-40 transition-colors"
           >
-            {saving ? 'Saving…' : savedId ? 'Update' : 'Save'}
+            {saving ? t.saving : savedId ? t.update : t.saveBtn}
           </button>
           <button
             onClick={() => { setShowSavePanel(false); setSaveError(''); setSaveMsg(''); }}
@@ -209,11 +210,11 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-2xl shadow-2xl w-[700px] max-h-[80vh] flex flex-col mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <span className="font-semibold text-sm text-gray-800">BPMN XML</span>
+              <span className="font-semibold text-sm text-gray-800">{t.bpmnXml}</span>
               <div className="flex gap-2">
                 <button onClick={handleDownload}
                   className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
-                  ⬇ Download
+                  {t.download}
                 </button>
                 <button onClick={() => setShowXmlModal(false)}
                   className="text-gray-400 hover:text-gray-700 text-sm px-1">
@@ -233,7 +234,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-2xl shadow-2xl w-[520px] max-h-[70vh] flex flex-col mx-4">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <span className="font-semibold text-sm text-gray-800">Load Diagram</span>
+              <span className="font-semibold text-sm text-gray-800">{t.loadDiagramTitle}</span>
               <button onClick={() => setShowLoadModal(false)}
                 className="text-gray-400 hover:text-gray-700 text-sm px-1">✕</button>
             </div>
@@ -249,7 +250,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
                 </div>
               )}
               {!loadListBusy && !loadListError && loadList.length === 0 && (
-                <div className="text-sm text-gray-400 text-center py-8">No saved diagrams yet</div>
+                <div className="text-sm text-gray-400 text-center py-8">{t.noSavedDiagrams}</div>
               )}
               {loadList.map(d => (
                 <div key={d.id}
@@ -266,7 +267,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
                       onClick={() => handleLoad(d)}
                       className="text-xs font-medium text-green-600 hover:text-green-800 border border-green-200 rounded-lg px-3 py-1 hover:bg-green-50 transition-colors"
                     >
-                      Load
+                      {t.loadBtn}
                     </button>
                     <button
                       onClick={() => handleDelete(d.id)}

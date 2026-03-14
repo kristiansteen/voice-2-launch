@@ -1,4 +1,5 @@
 import ApqcSelector from './ApqcSelector.jsx';
+import { useLang } from '../i18n/LangContext.jsx';
 
 const EXAMPLE_TRANSCRIPT = `Interviewer: Can you walk me through the invoice approval process?
 
@@ -10,6 +11,8 @@ export default function VoicePanel({
   onLoadDemo,
   processContext, onProcessContextChange,
 }) {
+  const { t } = useLang();
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
@@ -17,15 +20,15 @@ export default function VoicePanel({
         <button
           onClick={onLoadDemo}
           className="text-xs font-medium text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-0.5 hover:border-green-400 transition-colors"
-          title="Load pre-parsed demo — no API key needed"
+          title={t.loadDemoTitle}
         >
-          ⚡ Load demo
+          {t.loadDemo}
         </button>
         <button
           onClick={() => setTranscript(EXAMPLE_TRANSCRIPT)}
           className="text-xs text-blue-500 hover:text-blue-700"
         >
-          Load example text
+          {t.loadExample}
         </button>
       </div>
 
@@ -33,7 +36,7 @@ export default function VoicePanel({
       <textarea
         value={transcript}
         onChange={e => setTranscript(e.target.value)}
-        placeholder="Paste or type your process interview transcript here..."
+        placeholder={t.transcriptPlaceholder}
         className="flex-1 p-4 text-sm text-gray-700 resize-none focus:outline-none min-h-32"
       />
 
@@ -53,15 +56,15 @@ export default function VoicePanel({
           {loading ? (
             <>
               <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Parsing voice...
+              {t.parsingVoice}
             </>
           ) : (
-            'Parse Voice →'
+            t.parseVoice
           )}
         </button>
         {!canParse && !loading && (
           <p className="text-xs text-gray-400 mt-1 text-center">
-            {!transcript.trim() ? 'Enter a transcript to continue.' : 'Set your API key first.'}
+            {!transcript.trim() ? t.enterTranscript : t.setApiKeyFirst}
           </p>
         )}
       </div>

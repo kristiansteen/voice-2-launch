@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ApiKeyModal from './components/ApiKeyModal.jsx';
+import LangSwitcher from './components/LangSwitcher.jsx';
+import { useLang } from './i18n/LangContext.jsx';
 import VoicePanel from './components/VoicePanel.jsx';
 import DescriptionPanel from './components/DescriptionPanel.jsx';
 import DiagramPanel from './components/DiagramPanel.jsx';
@@ -179,6 +181,7 @@ function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
 }
 
 function PanelShell({ num, label, action, collapsed, onToggle, children }) {
+  const { t } = useLang();
   if (collapsed) {
     return (
       <div
@@ -213,7 +216,7 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
           {action}
           <button
             onClick={onToggle}
-            title="Collapse panel"
+            title={t.collapsePanel}
             className="text-gray-500 hover:text-white transition-colors text-xs px-1"
           >
             ‹
@@ -230,6 +233,7 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
 const DRAFT_KEY = 'voice2bpmn_draft';
 
 export default function App() {
+  const { t } = useLang();
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: true });
@@ -427,7 +431,7 @@ export default function App() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 border-b border-gray-700 shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-white tracking-wide">Voice to BPMN</h1>
+          <h1 className="text-sm font-semibold text-white tracking-wide">{t.appTitle}</h1>
           <a
             href="https://www.ailean.dk"
             target="_blank"
@@ -440,22 +444,23 @@ export default function App() {
         </div>
         <div className="flex items-center gap-2">
           {draftRestored && (
-            <span className="text-xs text-green-400 animate-pulse">Draft restored</span>
+            <span className="text-xs text-green-400 animate-pulse">{t.draftRestored}</span>
           )}
           {(transcript || xml) && (
             <button
               onClick={handleClearDraft}
               className="text-xs text-gray-500 hover:text-red-400 transition-colors"
-              title="Clear all data and draft"
+              title={t.clearTitle}
             >
-              Clear
+              {t.clear}
             </button>
           )}
+          <LangSwitcher />
           <button
             onClick={() => setShowApiKeyModal(true)}
             className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
           >
-            {apiKey ? '⚙ API Key ✓' : '⚙ Set API Key'}
+            {apiKey ? t.apiKeySet : t.setApiKey}
           </button>
         </div>
       </header>
@@ -465,7 +470,7 @@ export default function App() {
 
         {/* Panel 1 — Voice */}
         <div ref={p1Ref} style={getPanelStyle(1)} className="overflow-hidden">
-          <PanelShell num="1" label="Voice" collapsed={collapsed[1]} onToggle={() => togglePanel(1)}>
+          <PanelShell num="1" label={t.panel1} collapsed={collapsed[1]} onToggle={() => togglePanel(1)}>
             {voiceError && (
               <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-xs shrink-0">
                 {voiceError}
@@ -489,7 +494,7 @@ export default function App() {
 
         {/* Panel 2 — Description */}
         <div ref={p2Ref} style={getPanelStyle(2)} className="overflow-hidden">
-          <PanelShell num="2" label="Description" collapsed={collapsed[2]} onToggle={() => togglePanel(2)}>
+          <PanelShell num="2" label={t.panel2} collapsed={collapsed[2]} onToggle={() => togglePanel(2)}>
             <DescriptionPanel
               description={processDescription}
               onDescriptionChange={setProcessDescription}
@@ -505,7 +510,7 @@ export default function App() {
 
         {/* Panel 3 — Diagram */}
         <div ref={p3Ref} style={getPanelStyle(3)} className="overflow-hidden">
-          <PanelShell num="3" label="Diagram" collapsed={collapsed[3]} onToggle={() => togglePanel(3)}>
+          <PanelShell num="3" label={t.panel3} collapsed={collapsed[3]} onToggle={() => togglePanel(3)}>
             <DiagramPanel xml={xml} onXmlChange={setXml} bpmnLoading={bpmnParsing} processName={parsed?.process_name} />
           </PanelShell>
         </div>
@@ -515,7 +520,7 @@ export default function App() {
 
         {/* Panel 4 — Improve */}
         <div ref={p4Ref} style={getPanelStyle(4)} className="overflow-hidden">
-          <PanelShell num="4" label="Improve" collapsed={collapsed[4]} onToggle={() => togglePanel(4)}>
+          <PanelShell num="4" label={t.panel4} collapsed={collapsed[4]} onToggle={() => togglePanel(4)}>
             <ImprovePanel
               parsed={parsed}
               apiKey={apiKey}
@@ -535,7 +540,7 @@ export default function App() {
 
         {/* Panel 5 — Taxonomy DB */}
         <div ref={p5Ref} style={getPanelStyle(5)} className="overflow-hidden border-r-0">
-          <PanelShell num="5" label="Taxonomy DB" collapsed={collapsed[5]} onToggle={() => togglePanel(5)}>
+          <PanelShell num="5" label={t.panel5} collapsed={collapsed[5]} onToggle={() => togglePanel(5)}>
             <TaxonomyPanel parsed={parsed} processContext={processContext} />
           </PanelShell>
         </div>

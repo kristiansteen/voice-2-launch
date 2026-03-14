@@ -1,17 +1,12 @@
 import { useState } from 'react';
+import { useLang } from '../i18n/LangContext.jsx';
 
-function EditableList({ items, onChange, placeholder }) {
-  function update(i, val) {
-    const next = [...items];
-    next[i] = val;
-    onChange(next);
-  }
-  function remove(i) {
-    onChange(items.filter((_, idx) => idx !== i));
-  }
-  function add() {
-    onChange([...items, '']);
-  }
+function EditableList({ items, onChange, itemKey }) {
+  const { t } = useLang();
+  const placeholder = t[itemKey] || itemKey;
+  function update(i, val) { const n = [...items]; n[i] = val; onChange(n); }
+  function remove(i) { onChange(items.filter((_, idx) => idx !== i)); }
+  function add() { onChange([...items, '']); }
   return (
     <div className="space-y-1">
       {items.map((item, i) => (
@@ -24,17 +19,16 @@ function EditableList({ items, onChange, placeholder }) {
           <button onClick={() => remove(i)} className="text-gray-300 hover:text-red-400 text-xs px-1">✕</button>
         </div>
       ))}
-      <button onClick={add} className="text-xs text-blue-500 hover:text-blue-700 mt-1">＋ Add {placeholder}</button>
+      <button onClick={add} className="text-xs text-blue-500 hover:text-blue-700 mt-1">
+        {t.addItem} {placeholder}
+      </button>
     </div>
   );
 }
 
 function RolesList({ roles, onChange }) {
-  function update(i, field, val) {
-    const next = [...roles];
-    next[i] = { ...next[i], [field]: val };
-    onChange(next);
-  }
+  const { t } = useLang();
+  function update(i, field, val) { const n = [...roles]; n[i] = { ...n[i], [field]: val }; onChange(n); }
   function remove(i) { onChange(roles.filter((_, idx) => idx !== i)); }
   function add() { onChange([...roles, { name: '', responsibilities: '' }]); }
   return (
@@ -45,7 +39,7 @@ function RolesList({ roles, onChange }) {
             <input
               value={role.name}
               onChange={e => update(i, 'name', e.target.value)}
-              placeholder="Role name"
+              placeholder={t.roleName}
               className="flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400 font-medium"
             />
             <button onClick={() => remove(i)} className="text-gray-300 hover:text-red-400 text-xs px-1">✕</button>
@@ -53,23 +47,20 @@ function RolesList({ roles, onChange }) {
           <textarea
             value={role.responsibilities}
             onChange={e => update(i, 'responsibilities', e.target.value)}
-            placeholder="Responsibilities..."
+            placeholder={t.responsibilities}
             rows={2}
             className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400 resize-none"
           />
         </div>
       ))}
-      <button onClick={add} className="text-xs text-blue-500 hover:text-blue-700">＋ Add role</button>
+      <button onClick={add} className="text-xs text-blue-500 hover:text-blue-700">{t.addRole}</button>
     </div>
   );
 }
 
 function StepsList({ steps, onChange }) {
-  function update(i, field, val) {
-    const next = [...steps];
-    next[i] = { ...next[i], [field]: val };
-    onChange(next);
-  }
+  const { t } = useLang();
+  function update(i, field, val) { const n = [...steps]; n[i] = { ...n[i], [field]: val }; onChange(n); }
   function remove(i) { onChange(steps.filter((_, idx) => idx !== i)); }
   function add() {
     const order = steps.length ? Math.max(...steps.map(s => s.order)) + 1 : 1;
@@ -84,7 +75,7 @@ function StepsList({ steps, onChange }) {
             <input
               value={step.name}
               onChange={e => update(i, 'name', e.target.value)}
-              placeholder="Step name"
+              placeholder={t.stepName}
               className="flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400 font-medium"
             />
             <button onClick={() => remove(i)} className="text-gray-300 hover:text-red-400 text-xs px-1">✕</button>
@@ -92,44 +83,39 @@ function StepsList({ steps, onChange }) {
           <input
             value={step.performer}
             onChange={e => update(i, 'performer', e.target.value)}
-            placeholder="Performer"
+            placeholder={t.performer}
             className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400 text-gray-500"
           />
           <textarea
             value={step.description}
             onChange={e => update(i, 'description', e.target.value)}
-            placeholder="Description..."
+            placeholder={t.stepDesc}
             rows={2}
             className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400 resize-none"
           />
         </div>
       ))}
-      <button onClick={add} className="text-xs text-blue-500 hover:text-blue-700">＋ Add step</button>
+      <button onClick={add} className="text-xs text-blue-500 hover:text-blue-700">{t.addStep}</button>
     </div>
   );
 }
 
 export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove }) {
+  const { t } = useLang();
   const [approvingBpmn, setApprovingBpmn] = useState(false);
 
-  function set(field, val) {
-    onDescriptionChange({ ...description, [field]: val });
-  }
+  function set(field, val) { onDescriptionChange({ ...description, [field]: val }); }
 
   async function handleApprove() {
     setApprovingBpmn(true);
-    try {
-      await onApprove();
-    } finally {
-      setApprovingBpmn(false);
-    }
+    try { await onApprove(); } finally { setApprovingBpmn(false); }
   }
 
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400 text-sm gap-2">
         <span className="inline-block w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-        Parsing voice...
+        {t.parsingVoiceDot}
       </div>
     );
   }
@@ -138,14 +124,11 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
     return (
       <div className="flex-1 flex flex-col">
         <div className="flex-1 flex items-center justify-center text-gray-300 text-sm">
-          Parse voice to generate description
+          {t.parseVoiceFirst}
         </div>
         <div className="px-4 py-3 border-t border-gray-100 shrink-0">
-          <button
-            disabled
-            className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md opacity-40 cursor-not-allowed"
-          >
-            Approve &amp; Parse BPMN →
+          <button disabled className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md opacity-40 cursor-not-allowed">
+            {t.approveBpmn}
           </button>
         </div>
       </div>
@@ -155,80 +138,50 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Process Name */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Process Name</label>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.processName}</label>
           <input
             value={description.process_name || ''}
             onChange={e => set('process_name', e.target.value)}
             className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 font-medium"
           />
         </div>
-
-        {/* Overview */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Overview</label>
-          <textarea
-            value={description.overview || ''}
-            onChange={e => set('overview', e.target.value)}
-            rows={3}
-            className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 resize-none"
-          />
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.overview}</label>
+          <textarea value={description.overview || ''} onChange={e => set('overview', e.target.value)} rows={3}
+            className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 resize-none" />
         </div>
-
-        {/* Scope */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Scope</label>
-          <textarea
-            value={description.scope || ''}
-            onChange={e => set('scope', e.target.value)}
-            rows={2}
-            className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 resize-none"
-          />
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.scope}</label>
+          <textarea value={description.scope || ''} onChange={e => set('scope', e.target.value)} rows={2}
+            className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 resize-none" />
         </div>
-
-        {/* Roles */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Roles</label>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.roles}</label>
           <div className="mt-1">
             <RolesList roles={description.roles || []} onChange={val => set('roles', val)} />
           </div>
         </div>
-
-        {/* Steps */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Steps</label>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.steps}</label>
           <div className="mt-1">
             <StepsList steps={description.steps || []} onChange={val => set('steps', val)} />
           </div>
         </div>
-
-        {/* Exceptions */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Exceptions</label>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.exceptions}</label>
           <div className="mt-1">
-            <EditableList
-              items={description.exceptions || []}
-              onChange={val => set('exceptions', val)}
-              placeholder="exception"
-            />
+            <EditableList items={description.exceptions || []} onChange={val => set('exceptions', val)} itemKey="exceptionItem" />
           </div>
         </div>
-
-        {/* Known Issues */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Known Issues</label>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.knownIssues}</label>
           <div className="mt-1">
-            <EditableList
-              items={description.known_issues || []}
-              onChange={val => set('known_issues', val)}
-              placeholder="known issue"
-            />
+            <EditableList items={description.known_issues || []} onChange={val => set('known_issues', val)} itemKey="knownIssueItem" />
           </div>
         </div>
       </div>
 
-      {/* Footer */}
       <div className="px-4 py-3 border-t border-gray-100 shrink-0">
         <button
           onClick={handleApprove}
@@ -238,10 +191,10 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
           {approvingBpmn ? (
             <>
               <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Parsing BPMN...
+              {t.parsingBpmn}
             </>
           ) : (
-            'Approve & Parse BPMN →'
+            t.approveBpmn
           )}
         </button>
       </div>

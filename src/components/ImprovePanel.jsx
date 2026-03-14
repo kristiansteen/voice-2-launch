@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import VimplExportModal from './VimplExportModal.jsx';
+import { useLang } from '../i18n/LangContext.jsx';
 
 const CATEGORY_COLOURS = {
   automation: 'bg-blue-100 text-blue-700',
@@ -15,11 +16,11 @@ const EFFORT_COLOURS = {
   high: 'bg-red-50 text-red-600',
 };
 
-function riskLevel(p, c) {
+function riskLevel(p, c, t) {
   const score = p * c;
-  if (score >= 5000) return { label: 'High', colour: 'text-red-600' };
-  if (score >= 2000) return { label: 'Medium', colour: 'text-orange-500' };
-  return { label: 'Low', colour: 'text-green-600' };
+  if (score >= 5000) return { label: t.high, colour: 'text-red-600' };
+  if (score >= 2000) return { label: t.medium, colour: 'text-orange-500' };
+  return { label: t.low, colour: 'text-green-600' };
 }
 
 export default function ImprovePanel({
@@ -28,6 +29,7 @@ export default function ImprovePanel({
   selectedIds, onToggleSelect,
   projectPlan, onGeneratePlan, planLoading,
 }) {
+  const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
   const [impError, setImpError] = useState(null);
   const [impLoading, setImpLoading] = useState(false);
@@ -58,10 +60,10 @@ export default function ImprovePanel({
             {impLoading ? (
               <>
                 <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Analysing...
+                {t.analysing}
               </>
             ) : (
-              'Get Improvements →'
+              t.getImprovements
             )}
           </button>
           {impError && <p className="text-xs text-red-500 mt-2">{impError}</p>}
@@ -69,7 +71,7 @@ export default function ImprovePanel({
 
         {improvements && (
           <div className="px-4 pb-2 space-y-2">
-            <p className="text-xs text-gray-500">{selectedIds.length} selected</p>
+            <p className="text-xs text-gray-500">{selectedIds.length} {t.selected}</p>
             {improvements.map(imp => (
               <div
                 key={imp.id}
@@ -82,12 +84,7 @@ export default function ImprovePanel({
                 ].join(' ')}
               >
                 <div className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    readOnly
-                    checked={selectedIds.includes(imp.id)}
-                    className="mt-0.5 accent-purple-600"
-                  />
+                  <input type="checkbox" readOnly checked={selectedIds.includes(imp.id)} className="mt-0.5 accent-purple-600" />
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap gap-1 mb-1">
                       <span className="font-medium text-sm text-gray-800">{imp.title}</span>
@@ -97,21 +94,21 @@ export default function ImprovePanel({
                         {imp.category}
                       </span>
                       <span className={`text-xs rounded px-1.5 py-0.5 ${EFFORT_COLOURS[imp.effort] || 'bg-gray-100 text-gray-600'}`}>
-                        {imp.effort} effort
+                        {imp.effort} {t.effort}
                       </span>
                       {imp.effort_score !== undefined && (
                         <span className="text-xs rounded px-1.5 py-0.5 bg-gray-100 text-gray-600">
-                          Effort: {imp.effort_score}/100
+                          {t.effortLabel} {imp.effort_score}/100
                         </span>
                       )}
                       {imp.impact_score !== undefined && (
                         <span className="text-xs rounded px-1.5 py-0.5 bg-indigo-50 text-indigo-600">
-                          Impact: {imp.impact_score}/100
+                          {t.impactLabel} {imp.impact_score}/100
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-gray-600">{imp.description}</p>
-                    <p className="text-xs text-gray-400 mt-1 italic">Benefit: {imp.benefit}</p>
+                    <p className="text-xs text-gray-400 mt-1 italic">{t.benefit} {imp.benefit}</p>
                   </div>
                 </div>
               </div>
@@ -130,20 +127,21 @@ export default function ImprovePanel({
               {planLoading ? (
                 <>
                   <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Generating plan...
+                  {t.generatingPlan}
                 </>
               ) : (
-                'Generate Project Plan →'
+                t.generatePlan
               )}
             </button>
 
             {projectPlan && (
               <div className="mt-3 space-y-3">
-                <p className="text-xs font-semibold text-gray-700">{projectPlan.plan_name} — {projectPlan.duration_weeks} weeks</p>
+                <p className="text-xs font-semibold text-gray-700">
+                  {projectPlan.plan_name} — {projectPlan.duration_weeks} {t.weeks}
+                </p>
 
-                {/* Tasks grouped by track */}
                 {(projectPlan.tracks || []).map(track => {
-                  const tasks = (projectPlan.tasks || []).filter(t => t.track_id === track.id);
+                  const tasks = (projectPlan.tasks || []).filter(t2 => t2.track_id === track.id);
                   if (!tasks.length) return null;
                   return (
                     <div key={track.id}>
@@ -152,7 +150,7 @@ export default function ImprovePanel({
                         <div key={task.id} className="flex items-center gap-2 py-1 ml-2">
                           <span className="text-gray-400 text-xs">■</span>
                           <span className="text-xs text-gray-700 flex-1">{task.title}</span>
-                          <span className="text-xs text-gray-400">Wk {task.week_start}–{task.week_end}</span>
+                          <span className="text-xs text-gray-400">{t.week} {task.week_start}–{task.week_end}</span>
                           {task.owner && <span className="text-xs text-gray-400">{task.owner}</span>}
                         </div>
                       ))}
@@ -160,12 +158,11 @@ export default function ImprovePanel({
                   );
                 })}
 
-                {/* Risks */}
                 {(projectPlan.risks || []).length > 0 && (
                   <div className="border-t border-gray-100 pt-2">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Risks</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t.risks}</p>
                     {projectPlan.risks.map(risk => {
-                      const { label, colour } = riskLevel(risk.probability, risk.consequence);
+                      const { label, colour } = riskLevel(risk.probability, risk.consequence, t);
                       return (
                         <div key={risk.id} className="py-1.5 border-b border-gray-50 last:border-0">
                           <div className="flex items-center gap-2">
@@ -174,7 +171,7 @@ export default function ImprovePanel({
                             <span className="text-xs text-gray-400">P:{risk.probability} C:{risk.consequence}</span>
                             <span className={`text-xs font-semibold ${colour}`}>{label}</span>
                           </div>
-                          <p className="text-xs text-gray-500 ml-5">Mitigation: {risk.mitigation}</p>
+                          <p className="text-xs text-gray-500 ml-5">{t.mitigation} {risk.mitigation}</p>
                         </div>
                       );
                     })}
@@ -192,7 +189,7 @@ export default function ImprovePanel({
               onClick={() => setShowExport(true)}
               className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white transition-colors"
             >
-              Export to vimpl-saas →
+              {t.exportToVimpl}
             </button>
           </div>
         )}
