@@ -107,6 +107,13 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
 
   function set(field, val) { onDescriptionChange({ ...description, [field]: val }); }
 
+  function handleProcessContextChange(newCtx) {
+    onProcessContextChange(newCtx);
+    if (newCtx.apqcNodeName && description && !description.process_name) {
+      set('process_name', newCtx.apqcNodeName);
+    }
+  }
+
   async function handleApprove() {
     setApprovingBpmn(true);
     try { await onApprove(); } finally { setApprovingBpmn(false); }
@@ -144,7 +151,7 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
         <div className="border border-gray-100 rounded-lg overflow-hidden">
           <ApqcSelector
             processContext={processContext}
-            onChange={onProcessContextChange}
+            onChange={handleProcessContextChange}
           />
         </div>
 
