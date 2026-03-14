@@ -1,27 +1,19 @@
 import { useState } from 'react';
-import VimplExportModal from './VimplExportModal.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 
 const CATEGORY_COLOURS = {
   automation: 'bg-blue-100 text-blue-700',
   governance: 'bg-purple-100 text-purple-700',
-  clarity: 'bg-yellow-100 text-yellow-700',
+  clarity:    'bg-yellow-100 text-yellow-700',
   efficiency: 'bg-green-100 text-green-700',
-  risk: 'bg-red-100 text-red-700',
+  risk:       'bg-red-100 text-red-700',
 };
 
 const EFFORT_COLOURS = {
-  low: 'bg-green-50 text-green-600',
+  low:    'bg-green-50 text-green-600',
   medium: 'bg-yellow-50 text-yellow-700',
-  high: 'bg-red-50 text-red-600',
+  high:   'bg-red-50 text-red-600',
 };
-
-function riskLevel(p, c, t) {
-  const score = p * c;
-  if (score >= 5000) return { label: t.high, colour: 'text-red-600' };
-  if (score >= 2000) return { label: t.medium, colour: 'text-orange-500' };
-  return { label: t.low, colour: 'text-green-600' };
-}
 
 export default function ImprovePanel({
   parsed, apiKey,
@@ -30,7 +22,6 @@ export default function ImprovePanel({
   projectPlan, onGeneratePlan, planLoading,
 }) {
   const { t } = useLang();
-  const [showExport, setShowExport] = useState(false);
   const [impError, setImpError] = useState(null);
   const [impLoading, setImpLoading] = useState(false);
 
@@ -50,7 +41,7 @@ export default function ImprovePanel({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto">
 
-        {/* Section A — Improvements */}
+        {/* ── Get improvements ─────────────────────────────────────── */}
         <div className="px-4 pt-4 pb-2">
           <button
             onClick={handleGetImprovements}
@@ -69,6 +60,7 @@ export default function ImprovePanel({
           {impError && <p className="text-xs text-red-500 mt-2">{impError}</p>}
         </div>
 
+        {/* ── Improvements list ─────────────────────────────────────── */}
         {improvements && (
           <div className="px-4 pb-2 space-y-2">
             <p className="text-xs text-gray-500">{selectedIds.length} {t.selected}</p>
@@ -116,9 +108,9 @@ export default function ImprovePanel({
           </div>
         )}
 
-        {/* Section B — Project Plan */}
+        {/* ── Generate plan ────────────────────────────────────────── */}
         {improvements && (
-          <div className="px-4 pb-2 border-t border-gray-100 pt-3">
+          <div className="px-4 pb-4 border-t border-gray-100 pt-3">
             <button
               onClick={onGeneratePlan}
               disabled={selectedIds.length === 0 || planLoading}
@@ -135,74 +127,13 @@ export default function ImprovePanel({
             </button>
 
             {projectPlan && (
-              <div className="mt-3 space-y-3">
-                <p className="text-xs font-semibold text-gray-700">
-                  {projectPlan.plan_name} — {projectPlan.duration_weeks} {t.weeks}
-                </p>
-
-                {(projectPlan.tracks || []).map(track => {
-                  const tasks = (projectPlan.tasks || []).filter(t2 => t2.track_id === track.id);
-                  if (!tasks.length) return null;
-                  return (
-                    <div key={track.id}>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{track.name}</p>
-                      {tasks.map(task => (
-                        <div key={task.id} className="flex items-center gap-2 py-1 ml-2">
-                          <span className="text-gray-400 text-xs">■</span>
-                          <span className="text-xs text-gray-700 flex-1">{task.title}</span>
-                          <span className="text-xs text-gray-400">{t.week} {task.week_start}–{task.week_end}</span>
-                          {task.owner && <span className="text-xs text-gray-400">{task.owner}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-
-                {(projectPlan.risks || []).length > 0 && (
-                  <div className="border-t border-gray-100 pt-2">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t.risks}</p>
-                    {projectPlan.risks.map(risk => {
-                      const { label, colour } = riskLevel(risk.probability, risk.consequence, t);
-                      return (
-                        <div key={risk.id} className="py-1.5 border-b border-gray-50 last:border-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-orange-400 text-xs">⚠</span>
-                            <span className="text-xs font-medium text-gray-700 flex-1">{risk.title}</span>
-                            <span className="text-xs text-gray-400">P:{risk.probability} C:{risk.consequence}</span>
-                            <span className={`text-xs font-semibold ${colour}`}>{label}</span>
-                          </div>
-                          <p className="text-xs text-gray-500 ml-5">{t.mitigation} {risk.mitigation}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              <p className="text-xs text-green-600 text-center mt-2">
+                {t.planReady}
+              </p>
             )}
           </div>
         )}
-
-        {/* Section C — Export */}
-        {projectPlan && (
-          <div className="px-4 pb-4 pt-2 border-t border-gray-100">
-            <button
-              onClick={() => setShowExport(true)}
-              className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white transition-colors"
-            >
-              {t.exportToVimpl}
-            </button>
-          </div>
-        )}
       </div>
-
-      {showExport && projectPlan && (
-        <VimplExportModal
-          projectPlan={projectPlan}
-          processName={parsed?.process_name || 'Process Plan'}
-          selectedImprovements={(improvements || []).filter(i => selectedIds.includes(i.id))}
-          onClose={() => setShowExport(false)}
-        />
-      )}
     </div>
   );
 }

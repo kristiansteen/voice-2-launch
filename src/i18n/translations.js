@@ -14,8 +14,9 @@ export const translations = {
     panel1: 'Voice',
     panel2: 'Description',
     panel3: 'Diagram',
-    panel4: 'Improve',
-    panel5: 'Taxonomy DB',
+    panel4: 'Project',
+    panel5: 'Launch',
+    panel6: 'Taxonomy DB',
 
     // ── VoicePanel ────────────────────────────────────────────────
     loadDemo:            '⚡ Load demo',
@@ -66,22 +67,27 @@ export const translations = {
     approveToGenerate:   'Approve description to generate diagram',
     generatingDiagram:   'Generating diagram...',
 
-    // ── ImprovePanel ──────────────────────────────────────────────
+    // ── ImprovePanel (Project) ────────────────────────────────────
     getImprovements:  'Get Improvements →',
     analysing:        'Analysing...',
     selected:         'selected',
     generatePlan:     'Generate Project Plan →',
     generatingPlan:   'Generating plan...',
-    exportToVimpl:    'Export to vimpl-saas →',
+    planReady:        '✓ Plan generated — see Launch panel',
+    effort:           'effort',
+    effortLabel:      'Effort:',
+    impactLabel:      'Impact:',
+    benefit:          'Benefit:',
+
+    // ── LaunchPanel ───────────────────────────────────────────────
+    launchEmpty:      'No plan yet',
+    launchEmptyDesc:  'Generate a project plan in the Project panel to see results here.',
+    exportToVimpl:    'Export to vimpl →',
     risks:            'Risks',
     high:             'High',
     medium:           'Medium',
     low:              'Low',
-    benefit:          'Benefit:',
     mitigation:       'Mitigation:',
-    effortLabel:      'Effort:',
-    impactLabel:      'Impact:',
-    effort:           'effort',
     weeks:            'weeks',
     week:             'Wk',
 
@@ -106,8 +112,9 @@ export const translations = {
     panel1: 'Stemme',
     panel2: 'Beskrivelse',
     panel3: 'Diagram',
-    panel4: 'Forbedr',
-    panel5: 'Taksonomi DB',
+    panel4: 'Projekt',
+    panel5: 'Lancering',
+    panel6: 'Taksonomi DB',
 
     // ── VoicePanel ────────────────────────────────────────────────
     loadDemo:            '⚡ Indlæs demo',
@@ -158,22 +165,27 @@ export const translations = {
     approveToGenerate:   'Godkend beskrivelse for at generere diagram',
     generatingDiagram:   'Genererer diagram...',
 
-    // ── ImprovePanel ──────────────────────────────────────────────
+    // ── ImprovePanel (Projekt) ────────────────────────────────────
     getImprovements:  'Hent forbedringer →',
     analysing:        'Analyserer...',
     selected:         'valgt',
     generatePlan:     'Generér projektplan →',
     generatingPlan:   'Genererer plan...',
-    exportToVimpl:    'Eksportér til vimpl-saas →',
+    planReady:        '✓ Plan genereret — se Lancering-panel',
+    effort:           'indsats',
+    effortLabel:      'Indsats:',
+    impactLabel:      'Effekt:',
+    benefit:          'Fordel:',
+
+    // ── LaunchPanel ───────────────────────────────────────────────
+    launchEmpty:      'Ingen plan endnu',
+    launchEmptyDesc:  'Generér en projektplan i Projekt-panelet for at se resultater her.',
+    exportToVimpl:    'Eksportér til vimpl →',
     risks:            'Risici',
     high:             'Høj',
     medium:           'Middel',
     low:              'Lav',
-    benefit:          'Fordel:',
     mitigation:       'Afbødning:',
-    effortLabel:      'Indsats:',
-    impactLabel:      'Effekt:',
-    effort:           'indsats',
     weeks:            'uger',
     week:             'Uge',
 

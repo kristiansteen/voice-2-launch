@@ -6,6 +6,7 @@ import VoicePanel from './components/VoicePanel.jsx';
 import DescriptionPanel from './components/DescriptionPanel.jsx';
 import DiagramPanel from './components/DiagramPanel.jsx';
 import ImprovePanel from './components/ImprovePanel.jsx';
+import LaunchPanel from './components/LaunchPanel.jsx';
 import TaxonomyPanel from './components/TaxonomyPanel.jsx';
 import {
   parseVoiceToDescription,
@@ -236,8 +237,8 @@ export default function App() {
   const { t } = useLang();
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: true });
-  const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null });
+  const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
+  const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
   const [draftRestored, setDraftRestored] = useState(false);
 
   const p1Ref = useRef(null);
@@ -245,7 +246,8 @@ export default function App() {
   const p3Ref = useRef(null);
   const p4Ref = useRef(null);
   const p5Ref = useRef(null);
-  const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref };
+  const p6Ref = useRef(null);
+  const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref, 6: p6Ref };
 
   function getPanelStyle(n) {
     if (collapsed[n]) return { width: 36, flexShrink: 0, flexGrow: 0 };
@@ -259,11 +261,11 @@ export default function App() {
   }
 
   function togglePanel(n) {
-    [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref].forEach(r => {
+    [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref, p6Ref].forEach(r => {
       if (!r.current) return;
       r.current.style.cssText = '';
     });
-    setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null });
+    setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
     setCollapsed(prev => ({ ...prev, [n]: !prev[n] }));
   }
 
@@ -518,7 +520,7 @@ export default function App() {
         <ResizeHandle aRef={pRefs[3]} bRef={pRefs[4]} disabled={collapsed[3] || collapsed[4]}
           aKey={3} bKey={4} {...handleProps} />
 
-        {/* Panel 4 — Improve */}
+        {/* Panel 4 — Project */}
         <div ref={p4Ref} style={getPanelStyle(4)} className="overflow-hidden">
           <PanelShell num="4" label={t.panel4} collapsed={collapsed[4]} onToggle={() => togglePanel(4)}>
             <ImprovePanel
@@ -538,9 +540,24 @@ export default function App() {
         <ResizeHandle aRef={pRefs[4]} bRef={pRefs[5]} disabled={collapsed[4] || collapsed[5]}
           aKey={4} bKey={5} {...handleProps} />
 
-        {/* Panel 5 — Taxonomy DB */}
-        <div ref={p5Ref} style={getPanelStyle(5)} className="overflow-hidden border-r-0">
+        {/* Panel 5 — Launch */}
+        <div ref={p5Ref} style={getPanelStyle(5)} className="overflow-hidden">
           <PanelShell num="5" label={t.panel5} collapsed={collapsed[5]} onToggle={() => togglePanel(5)}>
+            <LaunchPanel
+              projectPlan={projectPlan}
+              parsed={parsed}
+              improvements={improvements}
+              selectedIds={selectedImprovementIds}
+            />
+          </PanelShell>
+        </div>
+
+        <ResizeHandle aRef={pRefs[5]} bRef={pRefs[6]} disabled={collapsed[5] || collapsed[6]}
+          aKey={5} bKey={6} {...handleProps} />
+
+        {/* Panel 6 — Taxonomy DB */}
+        <div ref={p6Ref} style={getPanelStyle(6)} className="overflow-hidden border-r-0">
+          <PanelShell num="6" label={t.panel6} collapsed={collapsed[6]} onToggle={() => togglePanel(6)}>
             <TaxonomyPanel parsed={parsed} processContext={processContext} />
           </PanelShell>
         </div>
