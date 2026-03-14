@@ -166,7 +166,7 @@ function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
   }
 
   if (disabled) {
-    return <div className="shrink-0 border-r border-gray-700" style={{ width: 1 }} />;
+    return <div className="shrink-0 border-r border-gray-700" style={{ width: 0 }} />;
   }
 
   return (
@@ -238,6 +238,8 @@ export default function App() {
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
+  // Widths stored as fractions (0–1) of the flex container so redistribution is
+  // always proportional and never dependent on a measured pixel value.
   const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
   const [draftRestored, setDraftRestored] = useState(false);
 
@@ -249,10 +251,13 @@ export default function App() {
   const p6Ref = useRef(null);
   const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref, 6: p6Ref };
 
+  // Open panels with no explicit width share space equally via flex:1 (~20% each
+  // when 5 are open). Panels with a stored pixel width use flex:none so dragged
+  // sizes persist across renders without leaking a stale flex shorthand.
   function getPanelStyle(n) {
     if (collapsed[n]) return { width: 36, flexShrink: 0, flexGrow: 0 };
     const w = panelWidths[n];
-    if (w != null) return { width: w, flexShrink: 0, flexGrow: 0 };
+    if (w != null) return { flex: 'none', width: w };
     return { flex: 1, minWidth: 0 };
   }
 
@@ -260,10 +265,12 @@ export default function App() {
     setPanelWidths(prev => ({ ...prev, [aKey]: newA, [bKey]: newB }));
   }
 
+  // When any panel is toggled, reset all to equal widths so the open panels
+  // collectively fill 100% of the available space. Clears both React-managed
+  // and ResizeHandle DOM-direct inline styles.
   function togglePanel(n) {
     [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref, p6Ref].forEach(r => {
-      if (!r.current) return;
-      r.current.style.cssText = '';
+      if (r.current) r.current.style.cssText = '';
     });
     setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
     setCollapsed(prev => ({ ...prev, [n]: !prev[n] }));
