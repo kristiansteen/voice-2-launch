@@ -261,32 +261,44 @@ export default function App() {
   const p6Ref = useRef(null);
   const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref, 6: p6Ref };
 
-  // Map panel (3) always fills remaining space via flex:1.
-  // All other panels use a fixed default width so any space freed by collapsing
-  // goes entirely to the Map panel rather than being split equally.
-  const DEFAULT_PANEL_W = 220;
+  // All panels share space equally (flex:1) when all are open.
+  // When any panel collapses, non-Map panels are frozen at their current pixel
+  // width and Map (panel 3) flexes to fill all freed space.
   function getPanelStyle(n) {
     if (collapsed[n]) return { width: 36, flexShrink: 0, flexGrow: 0 };
     const w = panelWidths[n];
     if (w != null) return { flex: 'none', width: w };
-    if (n === 3) return { flex: 1, minWidth: 200 };
-    return { flex: '0 0 ' + DEFAULT_PANEL_W + 'px', minWidth: 0 };
+    return { flex: 1, minWidth: 0 };
   }
 
   function handleDragEnd(aKey, newA, bKey, newB) {
     setPanelWidths(prev => ({ ...prev, [aKey]: newA, [bKey]: newB }));
   }
 
-  // When any panel is toggled, reset all to equal widths so the open panels
-  // collectively fill 100% of the available space. Clears both React-managed
-  // and ResizeHandle DOM-direct inline styles.
   function togglePanel(n) {
+    const nextCollapsed = { ...collapsed, [n]: !collapsed[n] };
+    const anyCollapsed = Object.values(nextCollapsed).some(Boolean);
+
     [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref, p6Ref].forEach(r => {
       if (r.current) r.current.style.cssText = '';
     });
-    // Reset stored widths so panels revert to defaults (Map fills remainder)
-    setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
-    setCollapsed(prev => ({ ...prev, [n]: !prev[n] }));
+
+    if (anyCollapsed) {
+      // Freeze non-Map panels at their current rendered width; Map fills the rest
+      const newWidths = { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
+      [1, 2, 4, 5, 6].forEach(p => {
+        if (!nextCollapsed[p] && pRefs[p].current) {
+          newWidths[p] = pRefs[p].current.offsetWidth;
+        }
+      });
+      // panel 3 (Map) stays null → flex:1 → fills remainder
+      setPanelWidths(newWidths);
+    } else {
+      // All open → reset to equal widths
+      setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
+    }
+
+    setCollapsed(nextCollapsed);
   }
 
   // Process context
