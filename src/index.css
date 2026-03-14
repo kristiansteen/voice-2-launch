@@ -249,14 +249,23 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* White text on colored elements (activities act_, gateways gw_) */
+/* Activity labels — dark blue text, no border residual */
 [data-element-id^="act_"] .djs-label text,
-[data-element-id^="act_"] .djs-label tspan,
+[data-element-id^="act_"] .djs-label tspan {
+  fill: #1d4ed8 !important;
+  font-weight: 600 !important;
+}
+
+/* Strip any visible stroke from activity shapes */
+[data-element-id^="act_"] .djs-visual > rect {
+  stroke-width: 0 !important;
+}
+
+/* Gateway labels — amber text */
 [data-element-id^="gw_"] .djs-label text,
 [data-element-id^="gw_"] .djs-label tspan {
-  fill: #ffffff !important;
+  fill: #92400e !important;
   font-weight: 600 !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 /* ── Swimlane pools & lanes ──────────────────────────────────────── */
