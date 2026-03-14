@@ -360,8 +360,8 @@ export default function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function loginWithGoogle() {
-    const returnTo = window.location.href.split('?')[0];
-    const state = btoa(JSON.stringify({ returnTo }));
+    // Backend decodes state as plain base64 URL, then redirects to ${state}/callback.html?token=...
+    const state = btoa(window.location.origin);
     window.location.href = `${BACKEND_URL}/api/v1/auth/google?state=${encodeURIComponent(state)}`;
   }
 
