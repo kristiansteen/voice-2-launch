@@ -87,6 +87,37 @@ const DEMO_DESCRIPTION = {
   ],
 };
 
+const DEMO_IMPROVEMENTS = [
+  { id: 'imp_1', title: 'Automate PO Matching', category: 'automation', effort: 'medium', effort_score: 45, impact_score: 85, description: 'Implement automated 3-way matching between invoice, PO, and goods receipt.', benefit: 'Reduces manual checking time by ~70% and eliminates matching errors.' },
+  { id: 'imp_2', title: 'Digital Approval Workflow', category: 'efficiency', effort: 'low', effort_score: 25, impact_score: 75, description: 'Replace email-based approvals with an in-system approval queue with auto-escalation.', benefit: 'Cuts approval cycle time from days to hours; provides full audit trail.' },
+  { id: 'imp_3', title: 'Supplier Self-Service Portal', category: 'clarity', effort: 'high', effort_score: 75, impact_score: 70, description: 'Allow suppliers to submit invoices digitally and track payment status.', benefit: 'Reduces inbound queries by ~50% and improves supplier relationships.' },
+];
+
+const DEMO_PROJECT_PLAN = {
+  plan_name: 'Invoice Approval Improvement Plan',
+  process_name: 'Invoice Approval Process',
+  duration_weeks: 12,
+  tracks: [
+    { id: 'track_1', name: 'Technology' },
+    { id: 'track_2', name: 'Process' },
+    { id: 'track_3', name: 'Change Management' },
+  ],
+  tasks: [
+    { id: 'task_1', title: 'Requirements & vendor selection', track_id: 'track_1', week_start: 1, week_end: 3, owner: 'IT Lead', improvement_id: 'imp_1' },
+    { id: 'task_2', title: 'Configure PO matching rules', track_id: 'track_1', week_start: 3, week_end: 6, owner: 'IT Lead', improvement_id: 'imp_1' },
+    { id: 'task_3', title: 'Design approval workflow', track_id: 'track_2', week_start: 1, week_end: 2, owner: 'Finance Manager', improvement_id: 'imp_2' },
+    { id: 'task_4', title: 'Deploy digital approval system', track_id: 'track_1', week_start: 4, week_end: 7, owner: 'IT Lead', improvement_id: 'imp_2' },
+    { id: 'task_5', title: 'Update SOP documentation', track_id: 'track_2', week_start: 6, week_end: 8, owner: 'AP Manager', improvement_id: 'imp_2' },
+    { id: 'task_6', title: 'UAT and parallel run', track_id: 'track_1', week_start: 8, week_end: 10, owner: 'IT + Finance', improvement_id: 'imp_1' },
+    { id: 'task_7', title: 'Staff training', track_id: 'track_3', week_start: 9, week_end: 11, owner: 'HR + Finance', improvement_id: 'imp_2' },
+    { id: 'task_8', title: 'Go-live and hypercare', track_id: 'track_1', week_start: 11, week_end: 12, owner: 'IT Lead', improvement_id: 'imp_1' },
+  ],
+  risks: [
+    { id: 'risk_1', title: 'ERP integration delays', probability: 60, consequence: 70, mitigation: 'Engage vendor early; agree integration spec by week 2.' },
+    { id: 'risk_2', title: 'Low user adoption', probability: 40, consequence: 60, mitigation: 'Run change champion programme; mandatory training sign-off.' },
+  ],
+};
+
 // Draggable divider between two panel wrappers.
 function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
   const [active, setActive] = useState(false);
@@ -260,9 +291,9 @@ export default function App() {
     setProcessContext({ apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null });
     setXml(null);
     setVoiceError(null);
-    setImprovements(null);
-    setSelectedImprovementIds([]);
-    setProjectPlan(null);
+    setImprovements(DEMO_IMPROVEMENTS);
+    setSelectedImprovementIds(DEMO_IMPROVEMENTS.map(i => i.id));
+    setProjectPlan(DEMO_PROJECT_PLAN);
   }
 
   async function handleParseVoice() {

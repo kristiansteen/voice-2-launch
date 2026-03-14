@@ -4,7 +4,7 @@ import { exportToVimpl } from '../services/vimplService.js';
 const STORAGE_KEY = 'voice2bpmn_vimpl_config';
 
 export default function VimplExportModal({ projectPlan, processName, selectedImprovements = [], onClose }) {
-  const [baseUrl, setBaseUrl] = useState('http://localhost:3001');
+  const [baseUrl, setBaseUrl] = useState('https://backend-eight-rho-46.vercel.app');
   const [token, setToken] = useState('');
   const [exporting, setExporting] = useState(false);
   const [result, setResult] = useState(null);
