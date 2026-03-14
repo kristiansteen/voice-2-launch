@@ -590,13 +590,6 @@ export default function App() {
           )}
           <LangSwitcher />
           <button
-            onClick={() => setShowHelp(true)}
-            className="w-6 h-6 rounded-full border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 transition-colors text-xs font-semibold flex items-center justify-center"
-            title="How to get started"
-          >
-            ?
-          </button>
-          <button
             onClick={() => setShowBurger(true)}
             className="flex flex-col gap-1 items-center justify-center w-8 h-8 rounded hover:bg-gray-700 transition-colors"
             title="Settings"
