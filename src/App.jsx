@@ -267,8 +267,8 @@ export default function App() {
   function getPanelStyle(n) {
     if (collapsed[n]) return { width: 36, flexShrink: 0, flexGrow: 0 };
     const w = panelWidths[n];
-    if (w != null) return { flex: 'none', width: w };
-    return { flex: 1, minWidth: 0 };
+    if (w != null) return { flex: 'none', width: w, minWidth: '20%' };
+    return { flex: 1, minWidth: '20%' };
   }
 
   function handleDragEnd(aKey, newA, bKey, newB) {
