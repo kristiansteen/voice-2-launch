@@ -12,9 +12,9 @@ export const translations = {
 
     // Panel labels
     panel1: 'Voice',
-    panel2: 'Description',
-    panel3: 'Diagram',
-    panel4: 'Project',
+    panel2: 'Identify',
+    panel3: 'Map',
+    panel4: 'Plan',
     panel5: 'Launch',
     panel6: 'Taxonomy DB',
 
@@ -110,9 +110,9 @@ export const translations = {
     collapsePanel:  'Skjul panel',
 
     panel1: 'Stemme',
-    panel2: 'Beskrivelse',
-    panel3: 'Diagram',
-    panel4: 'Projekt',
+    panel2: 'Identificér',
+    panel3: 'Kortlæg',
+    panel4: 'Planlæg',
     panel5: 'Lancering',
     panel6: 'Taksonomi DB',
 
