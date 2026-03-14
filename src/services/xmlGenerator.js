@@ -71,6 +71,29 @@ function elementType(el, events, activities, gateways) {
   return 'event';
 }
 
+function getElementSizeById(id, events, activities, gateways) {
+  if (activities.find(a => a.id === id)) return getShapeSize('activity');
+  if (gateways.find(g => g.id === id)) return getShapeSize('gateway');
+  return getShapeSize('event');
+}
+
+// Returns waypoints for an orthogonal (90-degree) connection between two shapes.
+// Entry/exit at the horizontal edges; mid-column bend when Y differs.
+function orthogonalWaypoints(x1, y1, w1, x2, y2, w2) {
+  const exitX = x1 + w1 / 2;
+  const entryX = x2 - w2 / 2;
+  const midX = Math.round((exitX + entryX) / 2);
+
+  if (y1 === y2) {
+    return [[exitX, y1], [entryX, y2]];
+  }
+  return [[exitX, y1], [midX, y1], [midX, y2], [entryX, y2]];
+}
+
+function waypointsXml(points) {
+  return points.map(([x, y]) => `        <di:waypoint x="${Math.round(x)}" y="${Math.round(y)}" />`).join('\n');
+}
+
 function flowsXml(sequence_flows) {
   return sequence_flows.map(f => {
     const cond = f.condition
@@ -116,9 +139,11 @@ function generateFlatXml(parsed) {
   const edgesXml = sequence_flows.map(f => {
     const fp = positions[f.from] || { x: 100, y: 300 };
     const tp = positions[f.to] || { x: 280, y: 300 };
+    const { w: fw } = getElementSizeById(f.from, events, activities, gateways);
+    const { w: tw } = getElementSizeById(f.to, events, activities, gateways);
+    const pts = orthogonalWaypoints(fp.x, fp.y, fw, tp.x, tp.y, tw);
     return `      <bpmndi:BPMNEdge id="${f.id}_di" bpmnElement="${f.id}">
-        <di:waypoint x="${fp.x}" y="${fp.y}" />
-        <di:waypoint x="${tp.x}" y="${tp.y}" />
+${waypointsXml(pts)}
       </bpmndi:BPMNEdge>`;
   }).join('\n');
 
@@ -230,9 +255,11 @@ ${refs}
   }).join('\n');
 
   const edgesXml = sequence_flows.map(f => {
+    const { w: fw } = getElementSizeById(f.from, events, activities, gateways);
+    const { w: tw } = getElementSizeById(f.to, events, activities, gateways);
+    const pts = orthogonalWaypoints(elX(f.from), elY(f.from), fw, elX(f.to), elY(f.to), tw);
     return `      <bpmndi:BPMNEdge id="${f.id}_di" bpmnElement="${f.id}">
-        <di:waypoint x="${elX(f.from)}" y="${elY(f.from)}" />
-        <di:waypoint x="${elX(f.to)}" y="${elY(f.to)}" />
+${waypointsXml(pts)}
       </bpmndi:BPMNEdge>`;
   }).join('\n');
 
