@@ -287,6 +287,27 @@ export default function App() {
   const [projectPlan, setProjectPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
 
+  // ── Auto-login from vimpl URL hash (set by the board burger menu) ──
+  useEffect(() => {
+    try {
+      const hash = window.location.hash.slice(1); // strip leading #
+      if (!hash) return;
+      const params = new URLSearchParams(hash);
+      const token = params.get('token');
+      const baseUrl = params.get('baseUrl');
+      if (token) {
+        const existing = JSON.parse(localStorage.getItem('voice2bpmn_vimpl_config') || '{}');
+        localStorage.setItem('voice2bpmn_vimpl_config', JSON.stringify({
+          ...existing,
+          token,
+          ...(baseUrl ? { baseUrl } : {}),
+        }));
+        // Clean the token out of the URL without reloading
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Restore draft from localStorage on mount ──────────────────────
   useEffect(() => {
     try {
