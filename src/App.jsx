@@ -239,6 +239,14 @@ export default function App() {
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+
+  // ── vimpl login state ──────────────────────────────────────────────
+  const VIMPL_STORAGE_KEY = 'voice2bpmn_vimpl_config';
+  const VIMPL_LOGIN_URL = 'https://frontend-puce-ten-18.vercel.app/login.html';
+  const [vimplToken, setVimplToken] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}').token || null; }
+    catch { return null; }
+  });
   const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
   // Widths stored as fractions (0–1) of the flex container so redistribution is
   // always proportional and never dependent on a measured pixel value.
@@ -303,26 +311,40 @@ export default function App() {
   const [projectPlan, setProjectPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
 
-  // ── Auto-login from vimpl URL hash (set by the board burger menu) ──
+  // ── Auto-login: read token from ?token= (vimpl SSO callback) or #token= (board deep-link) ──
   useEffect(() => {
     try {
-      const hash = window.location.hash.slice(1); // strip leading #
-      if (!hash) return;
-      const params = new URLSearchParams(hash);
-      const token = params.get('token');
-      const baseUrl = params.get('baseUrl');
+      // Query param — set by vimpl login callback
+      const qParams = new URLSearchParams(window.location.search);
+      const qToken = qParams.get('token');
+      // Hash param — set by vimpl board burger menu
+      const hParams = new URLSearchParams(window.location.hash.slice(1));
+      const hToken = hParams.get('token');
+      const hBaseUrl = hParams.get('baseUrl');
+      const token = qToken || hToken;
       if (token) {
-        const existing = JSON.parse(localStorage.getItem('voice2bpmn_vimpl_config') || '{}');
-        localStorage.setItem('voice2bpmn_vimpl_config', JSON.stringify({
+        const existing = JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}');
+        localStorage.setItem(VIMPL_STORAGE_KEY, JSON.stringify({
           ...existing,
           token,
-          ...(baseUrl ? { baseUrl } : {}),
+          ...(hBaseUrl ? { baseUrl: hBaseUrl } : {}),
         }));
-        // Clean the token out of the URL without reloading
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        setVimplToken(token);
+        // Clean token from URL
+        window.history.replaceState(null, '', window.location.pathname);
       }
     } catch { /* ignore */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function loginWithVimpl() {
+    const returnTo = window.location.href.split('?')[0];
+    window.location.href = `${VIMPL_LOGIN_URL}?returnTo=${encodeURIComponent(returnTo)}`;
+  }
+
+  function logoutVimpl() {
+    localStorage.removeItem(VIMPL_STORAGE_KEY);
+    setVimplToken(null);
+  }
 
   // ── Restore draft from localStorage on mount ──────────────────────
   useEffect(() => {
@@ -498,6 +520,22 @@ export default function App() {
           >
             ?
           </button>
+          {vimplToken ? (
+            <button
+              onClick={logoutVimpl}
+              className="flex items-center gap-2 text-xs text-green-400 hover:text-red-400 border border-green-700 hover:border-red-600 rounded px-3 py-1.5 transition-colors"
+              title="Logged in to vimpl — click to log out"
+            >
+              vimpl ✓
+            </button>
+          ) : (
+            <button
+              onClick={loginWithVimpl}
+              className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
+            >
+              Log in to vimpl
+            </button>
+          )}
           <button
             onClick={() => setShowApiKeyModal(true)}
             className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
