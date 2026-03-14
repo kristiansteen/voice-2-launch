@@ -15,7 +15,7 @@ export default function VoicePanel({
   processContext, onProcessContextChange,
 }) {
   const { t, lang } = useLang();
-  const [showGuide, setShowGuide] = useState(true);
+  const [showGuide, setShowGuide] = useState(false);
 
   const { isRecording, interimText, error, supported, start, stop } =
     useVoiceRecorder({
@@ -52,93 +52,88 @@ export default function VoicePanel({
           </button>
         </div>
 
-        {/* Guide toggle */}
-        <button
-          onClick={() => setShowGuide(v => !v)}
-          className={[
-            'text-xs rounded px-2 py-0.5 border transition-colors',
-            showGuide
-              ? 'text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100'
-              : 'text-gray-400 border-gray-200 hover:border-gray-300 hover:text-gray-600',
-          ].join(' ')}
-          title={t.guideToggleTitle}
-        >
-          {t.guideToggle}
-        </button>
       </div>
 
-      {/* ── Main area: transcript + optional guide ────────────────── */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      {/* ── Main area: transcript ─────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
 
-        {/* Left: transcript */}
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-
-          {/* Record button */}
-          <div className="px-3 pt-3 pb-1 shrink-0">
-            {!supported ? (
-              <p className="text-xs text-orange-500 bg-orange-50 border border-orange-200 rounded px-3 py-2">
-                {t.recordNotSupported}
-              </p>
-            ) : (
-              <button
-                onClick={handleRecord}
-                className={[
-                  'w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg border transition-all',
-                  isRecording
-                    ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 animate-pulse'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50',
-                ].join(' ')}
-              >
-                {isRecording ? (
-                  <>
-                    <span className="w-2.5 h-2.5 rounded-sm bg-white shrink-0" />
-                    {t.stopRecording}
-                  </>
-                ) : (
-                  <>
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-                    {t.startRecording}
-                  </>
-                )}
-              </button>
-            )}
-            {error && (
-              <p className="text-xs text-red-500 mt-1">{t.recordError}: {error}</p>
-            )}
-          </div>
-
-          {/* Transcript textarea */}
-          <div className="flex-1 relative overflow-hidden">
-            <textarea
-              value={transcript + (interimText ? ' ' + interimText : '')}
-              onChange={e => {
-                // Only allow manual edits when not recording (interim mixed in)
-                if (!isRecording) setTranscript(e.target.value);
-              }}
-              readOnly={isRecording}
-              placeholder={t.transcriptPlaceholder}
+        {/* Record button */}
+        <div className="px-3 pt-3 pb-1 shrink-0">
+          {!supported ? (
+            <p className="text-xs text-orange-500 bg-orange-50 border border-orange-200 rounded px-3 py-2">
+              {t.recordNotSupported}
+            </p>
+          ) : (
+            <button
+              onClick={handleRecord}
               className={[
-                'absolute inset-0 w-full h-full p-3 text-sm text-gray-700 resize-none focus:outline-none',
-                isRecording ? 'bg-red-50/30 cursor-default' : 'bg-white',
+                'w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg border transition-all',
+                isRecording
+                  ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 animate-pulse'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50',
               ].join(' ')}
-            />
-            {/* Interim text overlay indicator */}
-            {isRecording && interimText && (
-              <div className="absolute bottom-2 left-3 right-3 pointer-events-none">
-                <span className="text-xs text-gray-400 italic">
-                  {t.recordingInterim}: {interimText}
-                </span>
-              </div>
-            )}
-          </div>
+            >
+              {isRecording ? (
+                <>
+                  <span className="w-2.5 h-2.5 rounded-sm bg-white shrink-0" />
+                  {t.stopRecording}
+                </>
+              ) : (
+                <>
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                  {t.startRecording}
+                </>
+              )}
+            </button>
+          )}
+          {error && (
+            <p className="text-xs text-red-500 mt-1">{t.recordError}: {error}</p>
+          )}
         </div>
 
-        {/* Right: interview guide */}
-        {showGuide && (
-          <div className="w-52 shrink-0 border-l border-gray-100 flex flex-col overflow-hidden">
-            <InterviewGuide isRecording={isRecording} />
-          </div>
-        )}
+        {/* Transcript textarea */}
+        <div className="flex-1 relative overflow-hidden">
+          <textarea
+            value={transcript + (interimText ? ' ' + interimText : '')}
+            onChange={e => {
+              if (!isRecording) setTranscript(e.target.value);
+            }}
+            readOnly={isRecording}
+            placeholder={t.transcriptPlaceholder}
+            className={[
+              'absolute inset-0 w-full h-full p-3 text-sm text-gray-700 resize-none focus:outline-none',
+              isRecording ? 'bg-red-50/30 cursor-default' : 'bg-white',
+            ].join(' ')}
+          />
+          {isRecording && interimText && (
+            <div className="absolute bottom-2 left-3 right-3 pointer-events-none">
+              <span className="text-xs text-gray-400 italic">
+                {t.recordingInterim}: {interimText}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Interview guide — collapsed accordion at bottom ────── */}
+        <div className="shrink-0 border-t border-gray-100">
+          <button
+            onClick={() => setShowGuide(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 transition-colors"
+          >
+            <span className={[
+              'text-xs font-medium transition-colors',
+              showGuide ? 'text-purple-600' : 'text-gray-500',
+            ].join(' ')}>
+              {t.guideToggle}
+            </span>
+            <span className="text-gray-400 text-xs">{showGuide ? '▾' : '▸'}</span>
+          </button>
+          {showGuide && (
+            <div className="border-t border-gray-100 overflow-y-auto" style={{ maxHeight: '40vh' }}>
+              <InterviewGuide isRecording={isRecording} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── APQC context selector ─────────────────────────────────── */}
