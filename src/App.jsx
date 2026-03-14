@@ -287,9 +287,10 @@ export default function App() {
   const [parsed, setParsed] = useState(null);
   const [xml, setXml] = useState(null);
 
-  // Panel 4 — Improve
+  // Panel 4 — Plan
   const [improvements, setImprovements] = useState(null);
   const [selectedImprovementIds, setSelectedImprovementIds] = useState([]);
+  const [customRisks, setCustomRisks] = useState([]);
   const [projectPlan, setProjectPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
 
@@ -325,6 +326,7 @@ export default function App() {
       if (saved.xml) setXml(saved.xml);
       if (saved.improvements) setImprovements(saved.improvements);
       if (saved.selectedImprovementIds) setSelectedImprovementIds(saved.selectedImprovementIds);
+      if (saved.customRisks) setCustomRisks(saved.customRisks);
       if (saved.projectPlan) setProjectPlan(saved.projectPlan);
       if (saved.processContext) setProcessContext(saved.processContext);
       setDraftRestored(true);
@@ -338,10 +340,10 @@ export default function App() {
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
         transcript, processDescription, parsed, xml,
-        improvements, selectedImprovementIds, projectPlan, processContext,
+        improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
       }));
     } catch { /* storage full or unavailable */ }
-  }, [transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, projectPlan, processContext]);
+  }, [transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext]);
 
   function handleClearDraft() {
     localStorage.removeItem(DRAFT_KEY);
@@ -351,6 +353,7 @@ export default function App() {
     setXml(null);
     setImprovements(null);
     setSelectedImprovementIds([]);
+    setCustomRisks([]);
     setProjectPlan(null);
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
   }
@@ -414,6 +417,22 @@ export default function App() {
     setSelectedImprovementIds(prev => [...prev, idea.id]);
   }
 
+  function handleUpdateImprovement(updated) {
+    setImprovements(prev => prev.map(i => i.id === updated.id ? updated : i));
+  }
+
+  function handleAddRisk(risk) {
+    setCustomRisks(prev => [...prev, risk]);
+  }
+
+  function handleUpdateRisk(updated) {
+    setCustomRisks(prev => prev.map(r => r.id === updated.id ? updated : r));
+  }
+
+  function handleRemoveRisk(id) {
+    setCustomRisks(prev => prev.filter(r => r.id !== id));
+  }
+
   function handleToggleSelect(id) {
     setSelectedImprovementIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -424,7 +443,7 @@ export default function App() {
     setPlanLoading(true);
     try {
       const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
-      const plan = await generateProjectPlan(parsed, selected, apiKey);
+      const plan = await generateProjectPlan(parsed, selected, apiKey, customRisks);
       setProjectPlan(plan);
     } finally {
       setPlanLoading(false);
@@ -534,8 +553,13 @@ export default function App() {
               improvements={improvements}
               onGetImprovements={handleGetImprovements}
               onAddImprovement={handleAddImprovement}
+              onUpdateImprovement={handleUpdateImprovement}
               selectedIds={selectedImprovementIds}
               onToggleSelect={handleToggleSelect}
+              customRisks={customRisks}
+              onAddRisk={handleAddRisk}
+              onUpdateRisk={handleUpdateRisk}
+              onRemoveRisk={handleRemoveRisk}
               projectPlan={projectPlan}
               onGeneratePlan={handleGeneratePlan}
               planLoading={planLoading}

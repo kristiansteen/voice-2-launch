@@ -80,7 +80,8 @@ Rules:
 - Each selected improvement should have at least one task
 - Group related tasks into 2-4 tracks (e.g., "Technology", "Process", "People", "Governance")
 - Each risk must reference a task_id
-- Include 3-6 risks`;
+- Include 3-6 risks total
+- If known_risks are provided in the input, include ALL of them verbatim in the output risks array (preserving their title, probability, consequence, mitigation), then add additional AI-generated risks as needed`;
 
 const SYSTEM_PROMPT = `You are a BPMN process modelling expert.
 Analyse the following interview transcript and extract all BPMN 2.0 elements.
@@ -250,12 +251,13 @@ export async function getStructuredImprovements(parsed, apiKey) {
   }
 }
 
-export async function generateProjectPlan(parsed, selectedImprovements, apiKey) {
+export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = []) {
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
   const input = {
     process: parsed,
     selected_improvements: selectedImprovements,
+    ...(knownRisks.length > 0 ? { known_risks: knownRisks } : {}),
   };
 
   const message = await client.messages.create({
