@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ApiKeyModal from './components/ApiKeyModal.jsx';
 import VoicePanel from './components/VoicePanel.jsx';
 import DescriptionPanel from './components/DescriptionPanel.jsx';
@@ -227,11 +227,14 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
   );
 }
 
+const DRAFT_KEY = 'voice2bpmn_draft';
+
 export default function App() {
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: true });
   const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null });
+  const [draftRestored, setDraftRestored] = useState(false);
 
   const p1Ref = useRef(null);
   const p2Ref = useRef(null);
@@ -283,6 +286,47 @@ export default function App() {
   const [selectedImprovementIds, setSelectedImprovementIds] = useState([]);
   const [projectPlan, setProjectPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
+
+  // ── Restore draft from localStorage on mount ──────────────────────
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+      if (!saved) return;
+      if (saved.transcript) setTranscript(saved.transcript);
+      if (saved.processDescription) setProcessDescription(saved.processDescription);
+      if (saved.parsed) setParsed(saved.parsed);
+      if (saved.xml) setXml(saved.xml);
+      if (saved.improvements) setImprovements(saved.improvements);
+      if (saved.selectedImprovementIds) setSelectedImprovementIds(saved.selectedImprovementIds);
+      if (saved.projectPlan) setProjectPlan(saved.projectPlan);
+      if (saved.processContext) setProcessContext(saved.processContext);
+      setDraftRestored(true);
+      setTimeout(() => setDraftRestored(false), 3000);
+    } catch { /* ignore corrupt drafts */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Auto-save draft whenever key state changes ────────────────────
+  useEffect(() => {
+    if (!transcript && !xml && !parsed) return; // nothing worth saving yet
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        transcript, processDescription, parsed, xml,
+        improvements, selectedImprovementIds, projectPlan, processContext,
+      }));
+    } catch { /* storage full or unavailable */ }
+  }, [transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, projectPlan, processContext]);
+
+  function handleClearDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    setTranscript('');
+    setProcessDescription(null);
+    setParsed(null);
+    setXml(null);
+    setImprovements(null);
+    setSelectedImprovementIds([]);
+    setProjectPlan(null);
+    setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
+  }
 
   function handleLoadDemo() {
     setTranscript(DEMO_TRANSCRIPT);
@@ -373,12 +417,26 @@ export default function App() {
             <span className="ailean-logo">AILEAN</span>
           </a>
         </div>
-        <button
-          onClick={() => setShowApiKeyModal(true)}
-          className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
-        >
-          {apiKey ? '⚙ API Key ✓' : '⚙ Set API Key'}
-        </button>
+        <div className="flex items-center gap-2">
+          {draftRestored && (
+            <span className="text-xs text-green-400 animate-pulse">Draft restored</span>
+          )}
+          {(transcript || xml) && (
+            <button
+              onClick={handleClearDraft}
+              className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+              title="Clear all data and draft"
+            >
+              Clear
+            </button>
+          )}
+          <button
+            onClick={() => setShowApiKeyModal(true)}
+            className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
+          >
+            {apiKey ? '⚙ API Key ✓' : '⚙ Set API Key'}
+          </button>
+        </div>
       </header>
 
       {/* 5-panel layout */}

@@ -83,6 +83,99 @@ body {
   background: var(--vimpl-primary-dark);
 }
 
+/* ── Modern bpmn-js overrides ──────────────────────────────────────── */
+
+/* Canvas — subtle dot grid */
 .bpmn-container .djs-container {
-  background: #fafafa;
+  background-color: #f8fafc;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Remove Camunda watermark */
+.bjs-powered-by { display: none !important; }
+
+/* ── Palette (left toolbar) ──────────────────────────────────────── */
+.djs-palette {
+  border: none !important;
+  border-radius: 0 14px 14px 0 !important;
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.08) !important;
+  background: #ffffff !important;
+  padding: 8px 4px !important;
+  top: 20px !important;
+}
+
+.djs-palette .entry {
+  border-radius: 8px !important;
+  margin: 2px 4px !important;
+  color: #475569 !important;
+  transition: background 0.15s, color 0.15s !important;
+}
+
+.djs-palette .entry:hover {
+  background: #f0fdf4 !important;
+  color: #15803d !important;
+  box-shadow: none !important;
+}
+
+.djs-palette .entry.active {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+}
+
+.djs-palette .separator {
+  background: #e2e8f0 !important;
+  margin: 6px 8px !important;
+}
+
+/* Hide entries that clutter the palette for process modelling */
+.djs-palette [data-action="create.subprocess-expanded"],
+.djs-palette [data-action="create.data-object"],
+.djs-palette [data-action="create.data-store"],
+.djs-palette [data-action="create.group"],
+.djs-palette [data-action="create.participant"] {
+  display: none !important;
+}
+
+/* ── Context pad (element popup) ─────────────────────────────────── */
+.djs-context-pad {
+  border-radius: 10px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06) !important;
+  border: 1px solid #e2e8f0 !important;
+  background: white !important;
+  padding: 4px !important;
+}
+
+.djs-context-pad .entry {
+  border-radius: 6px !important;
+  margin: 1px !important;
+  transition: background 0.12s !important;
+}
+
+.djs-context-pad .entry:hover {
+  background: #f0fdf4 !important;
+}
+
+/* Hide text-annotation shortcut — rarely used */
+.djs-context-pad [data-action="append.text-annotation"] {
+  display: none !important;
+}
+
+/* ── Shape labels ────────────────────────────────────────────────── */
+.djs-label .djs-label {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11px !important;
+}
+
+/* ── Selection highlight ─────────────────────────────────────────── */
+.djs-element.selected .djs-outline {
+  stroke: var(--vimpl-primary) !important;
+  stroke-width: 2px !important;
+}
+
+/* ── Hover outline ───────────────────────────────────────────────── */
+.djs-element:not(.selected):hover .djs-outline {
+  stroke: var(--vimpl-secondary) !important;
+  stroke-width: 1.5px !important;
+  opacity: 0.6 !important;
 }

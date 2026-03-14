@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
+import BpmnErrorBoundary from './BpmnErrorBoundary.jsx';
 
 export default function DiagramPanel({ xml, onXmlChange, bpmnLoading }) {
   const [showXmlModal, setShowXmlModal] = useState(false);
@@ -46,7 +47,9 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading }) {
 
       {/* Diagram */}
       <div className="flex-1 overflow-hidden">
-        <BpmnViewer xml={xml} onXmlChange={onXmlChange} />
+        <BpmnErrorBoundary>
+          <BpmnViewer xml={xml} onXmlChange={onXmlChange} />
+        </BpmnErrorBoundary>
       </div>
 
       {/* XML modal */}
