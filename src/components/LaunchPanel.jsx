@@ -9,7 +9,7 @@ function riskLevel(p, c, t) {
   return { label: t.low, colour: 'text-green-600' };
 }
 
-export default function LaunchPanel({ projectPlan, parsed, improvements, selectedIds }) {
+export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds }) {
   const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
 
@@ -93,6 +93,7 @@ export default function LaunchPanel({ projectPlan, parsed, improvements, selecte
           projectPlan={projectPlan}
           processName={parsed?.process_name || 'Process Plan'}
           selectedImprovements={(improvements || []).filter(i => selectedIds.includes(i.id))}
+          processDescription={processDescription}
           onClose={() => setShowExport(false)}
         />
       )}

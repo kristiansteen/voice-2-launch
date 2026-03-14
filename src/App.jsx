@@ -583,6 +583,7 @@ export default function App() {
             <LaunchPanel
               projectPlan={projectPlan}
               parsed={parsed}
+              processDescription={processDescription}
               improvements={improvements}
               selectedIds={selectedImprovementIds}
             />
