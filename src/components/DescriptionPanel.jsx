@@ -101,7 +101,7 @@ function StepsList({ steps, onChange }) {
   );
 }
 
-export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange }) {
+export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange, taxonomyNodes }) {
   const { t } = useLang();
   const [approvingBpmn, setApprovingBpmn] = useState(false);
 
@@ -152,6 +152,7 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
           <ApqcSelector
             processContext={processContext}
             onChange={handleProcessContextChange}
+            nodes={taxonomyNodes}
           />
         </div>
 

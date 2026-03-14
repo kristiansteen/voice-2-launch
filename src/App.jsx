@@ -1,14 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import ApiKeyModal from './components/ApiKeyModal.jsx';
 import HelpModal from './components/HelpModal.jsx';
 import LangSwitcher from './components/LangSwitcher.jsx';
+import BurgerMenu from './components/BurgerMenu.jsx';
 import { useLang } from './i18n/LangContext.jsx';
 import VoicePanel from './components/VoicePanel.jsx';
 import DescriptionPanel from './components/DescriptionPanel.jsx';
 import DiagramPanel from './components/DiagramPanel.jsx';
 import ImprovePanel from './components/ImprovePanel.jsx';
 import LaunchPanel from './components/LaunchPanel.jsx';
-import TaxonomyPanel from './components/TaxonomyPanel.jsx';
 import {
   parseVoiceToDescription,
   parseToBpmn,
@@ -237,8 +236,16 @@ const DRAFT_KEY = 'voice2bpmn_draft';
 export default function App() {
   const { t } = useLang();
   const [apiKey, setApiKey] = useState('');
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showBurger, setShowBurger] = useState(false);
+
+  // ── Custom taxonomy (overrides APQC in ApqcSelector) ──────────────
+  const [customTaxonomyNodes, setCustomTaxonomyNodes] = useState(() => {
+    try {
+      const s = localStorage.getItem('voice2bpmn_custom_taxonomy');
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
 
   // ── vimpl login state ──────────────────────────────────────────────
   const VIMPL_STORAGE_KEY = 'voice2bpmn_vimpl_config';
@@ -559,27 +566,14 @@ export default function App() {
           >
             ?
           </button>
-          {vimplToken ? (
-            <button
-              onClick={logoutVimpl}
-              className="flex items-center gap-2 text-xs text-green-400 hover:text-red-400 border border-green-700 hover:border-red-600 rounded px-3 py-1.5 transition-colors"
-              title="Logged in to vimpl — click to log out"
-            >
-              vimpl ✓
-            </button>
-          ) : (
-            <button
-              onClick={loginWithVimpl}
-              className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
-            >
-              Log in to vimpl
-            </button>
-          )}
           <button
-            onClick={() => setShowApiKeyModal(true)}
-            className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
+            onClick={() => setShowBurger(true)}
+            className="flex flex-col gap-1 items-center justify-center w-8 h-8 rounded hover:bg-gray-700 transition-colors"
+            title="Settings"
           >
-            {apiKey ? t.apiKeySet : t.setApiKey}
+            <span className="w-4 h-0.5 bg-gray-300 rounded" />
+            <span className="w-4 h-0.5 bg-gray-300 rounded" />
+            <span className="w-4 h-0.5 bg-gray-300 rounded" />
           </button>
         </div>
       </header>
@@ -620,6 +614,7 @@ export default function App() {
               canApprove={!!processDescription && !!apiKey && !bpmnParsing}
               processContext={processContext}
               onProcessContextChange={setProcessContext}
+              taxonomyNodes={customTaxonomyNodes}
             />
           </PanelShell>
         </div>
@@ -685,24 +680,21 @@ export default function App() {
           </PanelShell>
         </div>
 
-        <ResizeHandle aRef={pRefs[5]} bRef={pRefs[6]} disabled={collapsed[5] || collapsed[6]}
-          aKey={5} bKey={6} {...handleProps} />
-
-        {/* Panel 6 — Taxonomy DB */}
-        <div ref={p6Ref} style={getPanelStyle(6)} className="overflow-hidden border-r-0">
-          <PanelShell num="6" label={t.panel6} collapsed={collapsed[6]} onToggle={() => togglePanel(6)}>
-            <TaxonomyPanel parsed={parsed} processContext={processContext} />
-          </PanelShell>
-        </div>
       </div>
 
-      {showApiKeyModal && (
-        <ApiKeyModal
-          apiKey={apiKey}
-          onSave={(key) => { setApiKey(key); setShowApiKeyModal(false); }}
-          onClose={() => setShowApiKeyModal(false)}
-        />
-      )}
+      <BurgerMenu
+        open={showBurger}
+        onClose={() => setShowBurger(false)}
+        apiKey={apiKey}
+        onApiKeyChange={key => { setApiKey(key); }}
+        vimplToken={vimplToken}
+        onLogin={loginWithVimpl}
+        onLogout={logoutVimpl}
+        parsed={parsed}
+        processContext={processContext}
+        customTaxonomyNodes={customTaxonomyNodes}
+        onTaxonomyChange={setCustomTaxonomyNodes}
+      />
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
