@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import ApqcSelector from './ApqcSelector.jsx';
 import InterviewGuide from './InterviewGuide.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder.js';
@@ -12,7 +11,6 @@ export default function VoicePanel({
   transcript, setTranscript,
   onParse, loading, canParse,
   onLoadDemo,
-  processContext, onProcessContextChange,
 }) {
   const { t, lang } = useLang();
   const [showGuide, setShowGuide] = useState(false);
@@ -135,12 +133,6 @@ export default function VoicePanel({
           )}
         </div>
       </div>
-
-      {/* ── APQC context selector ─────────────────────────────────── */}
-      <ApqcSelector
-        processContext={processContext}
-        onChange={onProcessContextChange}
-      />
 
       {/* ── Parse footer ──────────────────────────────────────────── */}
       <div className="px-4 py-3 border-t border-gray-100 shrink-0">

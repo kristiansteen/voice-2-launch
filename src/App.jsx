@@ -525,8 +525,6 @@ export default function App() {
               loading={descParsing}
               canParse={!!transcript.trim() && !!apiKey}
               onLoadDemo={handleLoadDemo}
-              processContext={processContext}
-              onProcessContextChange={setProcessContext}
             />
           </PanelShell>
         </div>
@@ -543,6 +541,8 @@ export default function App() {
               onApprove={handleApproveToBpmn}
               loading={descParsing}
               canApprove={!!processDescription && !!apiKey && !bpmnParsing}
+              processContext={processContext}
+              onProcessContextChange={setProcessContext}
             />
           </PanelShell>
         </div>

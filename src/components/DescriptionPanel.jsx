@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
+import ApqcSelector from './ApqcSelector.jsx';
 
 function EditableList({ items, onChange, itemKey }) {
   const { t } = useLang();
@@ -100,7 +101,7 @@ function StepsList({ steps, onChange }) {
   );
 }
 
-export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove }) {
+export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange }) {
   const { t } = useLang();
   const [approvingBpmn, setApprovingBpmn] = useState(false);
 
@@ -138,13 +139,39 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+        {/* ── APQC preselector ──────────────────────────────────── */}
+        <div className="border border-gray-100 rounded-lg overflow-hidden">
+          <ApqcSelector
+            processContext={processContext}
+            onChange={onProcessContextChange}
+          />
+        </div>
+
+        {/* ── Process name with optional APQC mapping ───────────── */}
         <div>
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.processName}</label>
-          <input
-            value={description.process_name || ''}
-            onChange={e => set('process_name', e.target.value)}
-            className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 font-medium"
-          />
+          <div className="mt-1 flex gap-1.5 items-stretch">
+            <input
+              value={description.process_name || ''}
+              onChange={e => set('process_name', e.target.value)}
+              className="flex-1 text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 font-medium"
+            />
+            {processContext?.apqcNodeName && (
+              <button
+                onClick={() => set('process_name', processContext.apqcNodeName)}
+                title={`Use APQC name: ${processContext.apqcNodeName}`}
+                className="shrink-0 text-[10px] font-medium px-2 py-1 rounded border border-green-300 text-green-700 bg-green-50 hover:bg-green-100 transition-colors leading-tight"
+              >
+                ← Use APQC
+              </button>
+            )}
+          </div>
+          {processContext?.apqcNodeName && (
+            <p className="mt-1 text-[10px] text-gray-400 truncate">
+              <span className="font-mono">{processContext.apqcNodeId}</span> — {processContext.apqcNodeName}
+            </p>
+          )}
         </div>
         <div>
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.overview}</label>
