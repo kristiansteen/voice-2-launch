@@ -146,23 +146,6 @@ export default function ImprovePanel({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto">
 
-        {/* ── Get improvements (AI) ────────────────────────────────── */}
-        <div className="px-4 pt-4 pb-2">
-          <button
-            onClick={handleGetImprovements}
-            disabled={!parsed || !apiKey || impLoading}
-            className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-          >
-            {impLoading ? (
-              <>
-                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                {t.analysing}
-              </>
-            ) : t.getImprovements}
-          </button>
-          {impError && <p className="text-xs text-red-500 mt-2">{impError}</p>}
-        </div>
-
         {/* ── Add your own idea ────────────────────────────────────── */}
         <div className="px-4 pb-3">
           {showAddIdea ? (

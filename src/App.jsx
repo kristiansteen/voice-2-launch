@@ -560,6 +560,8 @@ export default function App() {
               processName={parsed?.process_name}
               parsed={parsed}
               processDescription={processDescription}
+              onGetImprovements={handleGetImprovements}
+              apiKey={apiKey}
             />
           </PanelShell>
         </div>

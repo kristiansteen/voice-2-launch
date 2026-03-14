@@ -10,9 +10,19 @@ import {
   deleteDiagram,
 } from '../services/diagramService.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription }) {
+export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey }) {
   const { t } = useLang();
   const viewerRef = useRef(null);
+  const [impLoading, setImpLoading] = useState(false);
+  const [impError, setImpError] = useState(null);
+
+  async function handleGetImprovements() {
+    setImpError(null);
+    setImpLoading(true);
+    try { await onGetImprovements(); }
+    catch (err) { setImpError(err.message || 'Failed to get improvements.'); }
+    finally { setImpLoading(false); }
+  }
 
   // Step curtain
   const [curtainElement, setCurtainElement] = useState(null);
@@ -246,6 +256,23 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
           </div>
         </div>
       )}
+
+      {/* ── Get improvements footer ────────────────────────────────── */}
+      <div className="px-4 py-3 border-t border-gray-100 shrink-0">
+        <button
+          onClick={handleGetImprovements}
+          disabled={!parsed || !apiKey || impLoading}
+          className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        >
+          {impLoading ? (
+            <>
+              <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              {t.analysing}
+            </>
+          ) : t.getImprovements}
+        </button>
+        {impError && <p className="text-xs text-red-500 mt-1">{impError}</p>}
+      </div>
 
       {/* ── Load diagram modal ─────────────────────────────────────── */}
       {showLoadModal && (
