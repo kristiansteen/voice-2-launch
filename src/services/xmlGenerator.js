@@ -130,8 +130,10 @@ function generateFlatXml(parsed) {
 
   const shapesXml = allElements.map(el => {
     const pos = positions[el.id] || { x: 100, y: 300 };
-    const { w, h } = getShapeSize(elementType(el, events, activities, gateways));
-    return `      <bpmndi:BPMNShape id="${el.id}_di" bpmnElement="${el.id}">
+    const elTyp = elementType(el, events, activities, gateways);
+    const { w, h } = getShapeSize(elTyp);
+    const colorAttrs = elTyp === 'activity' ? ' bioc:stroke="#1d4ed8" bioc:fill="#dbeafe"' : '';
+    return `      <bpmndi:BPMNShape id="${el.id}_di" bpmnElement="${el.id}"${colorAttrs}>
         <dc:Bounds x="${pos.x - w / 2}" y="${pos.y - h / 2}" width="${w}" height="${h}" />
       </bpmndi:BPMNShape>`;
   }).join('\n');
@@ -153,6 +155,7 @@ ${waypointsXml(pts)}
              xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
              xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
              xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
              targetNamespace="http://bpmn.io/schema/bpmn">
   <process id="Process_1" name="${escapeXml(process_name)}" isExecutable="false">
 ${processElements}
@@ -248,8 +251,10 @@ ${refs}
 
   const elementShapes = allElements.map(el => {
     const cx = elX(el.id), cy = elY(el.id);
-    const { w, h } = getShapeSize(elementType(el, events, activities, gateways));
-    return `      <bpmndi:BPMNShape id="${el.id}_di" bpmnElement="${el.id}">
+    const elTyp = elementType(el, events, activities, gateways);
+    const { w, h } = getShapeSize(elTyp);
+    const colorAttrs = elTyp === 'activity' ? ' bioc:stroke="#1d4ed8" bioc:fill="#dbeafe"' : '';
+    return `      <bpmndi:BPMNShape id="${el.id}_di" bpmnElement="${el.id}"${colorAttrs}>
         <dc:Bounds x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" />
       </bpmndi:BPMNShape>`;
   }).join('\n');
@@ -269,6 +274,7 @@ ${waypointsXml(pts)}
              xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
              xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
              xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
              targetNamespace="http://bpmn.io/schema/bpmn">
   <collaboration id="Collaboration_1">
     <participant id="Participant_1" name="${escapeXml(process_name)}" processRef="Process_1" />
