@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import ApiKeyModal from './components/ApiKeyModal.jsx';
+import HelpModal from './components/HelpModal.jsx';
 import LangSwitcher from './components/LangSwitcher.jsx';
 import { useLang } from './i18n/LangContext.jsx';
 import VoicePanel from './components/VoicePanel.jsx';
@@ -237,6 +238,7 @@ export default function App() {
   const { t } = useLang();
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
   // Widths stored as fractions (0–1) of the flex container so redistribution is
   // always proportional and never dependent on a measured pixel value.
@@ -490,6 +492,13 @@ export default function App() {
           )}
           <LangSwitcher />
           <button
+            onClick={() => setShowHelp(true)}
+            className="w-6 h-6 rounded-full border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 transition-colors text-xs font-semibold flex items-center justify-center"
+            title="How to get started"
+          >
+            ?
+          </button>
+          <button
             onClick={() => setShowApiKeyModal(true)}
             className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
           >
@@ -615,6 +624,8 @@ export default function App() {
           onClose={() => setShowApiKeyModal(false)}
         />
       )}
+
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }
