@@ -1,9 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ApiKeyModal from './components/ApiKeyModal.jsx';
+import HelpModal from './components/HelpModal.jsx';
+import LangSwitcher from './components/LangSwitcher.jsx';
+import { useLang } from './i18n/LangContext.jsx';
 import VoicePanel from './components/VoicePanel.jsx';
 import DescriptionPanel from './components/DescriptionPanel.jsx';
 import DiagramPanel from './components/DiagramPanel.jsx';
 import ImprovePanel from './components/ImprovePanel.jsx';
+import LaunchPanel from './components/LaunchPanel.jsx';
 import TaxonomyPanel from './components/TaxonomyPanel.jsx';
 import {
   parseVoiceToDescription,
@@ -87,6 +91,37 @@ const DEMO_DESCRIPTION = {
   ],
 };
 
+const DEMO_IMPROVEMENTS = [
+  { id: 'imp_1', title: 'Automate PO Matching', category: 'automation', effort: 'medium', effort_score: 45, impact_score: 85, description: 'Implement automated 3-way matching between invoice, PO, and goods receipt.', benefit: 'Reduces manual checking time by ~70% and eliminates matching errors.' },
+  { id: 'imp_2', title: 'Digital Approval Workflow', category: 'efficiency', effort: 'low', effort_score: 25, impact_score: 75, description: 'Replace email-based approvals with an in-system approval queue with auto-escalation.', benefit: 'Cuts approval cycle time from days to hours; provides full audit trail.' },
+  { id: 'imp_3', title: 'Supplier Self-Service Portal', category: 'clarity', effort: 'high', effort_score: 75, impact_score: 70, description: 'Allow suppliers to submit invoices digitally and track payment status.', benefit: 'Reduces inbound queries by ~50% and improves supplier relationships.' },
+];
+
+const DEMO_PROJECT_PLAN = {
+  plan_name: 'Invoice Approval Improvement Plan',
+  process_name: 'Invoice Approval Process',
+  duration_weeks: 12,
+  tracks: [
+    { id: 'track_1', name: 'Technology' },
+    { id: 'track_2', name: 'Process' },
+    { id: 'track_3', name: 'Change Management' },
+  ],
+  tasks: [
+    { id: 'task_1', title: 'Requirements & vendor selection', track_id: 'track_1', week_start: 1, week_end: 3, owner: 'IT Lead', improvement_id: 'imp_1' },
+    { id: 'task_2', title: 'Configure PO matching rules', track_id: 'track_1', week_start: 3, week_end: 6, owner: 'IT Lead', improvement_id: 'imp_1' },
+    { id: 'task_3', title: 'Design approval workflow', track_id: 'track_2', week_start: 1, week_end: 2, owner: 'Finance Manager', improvement_id: 'imp_2' },
+    { id: 'task_4', title: 'Deploy digital approval system', track_id: 'track_1', week_start: 4, week_end: 7, owner: 'IT Lead', improvement_id: 'imp_2' },
+    { id: 'task_5', title: 'Update SOP documentation', track_id: 'track_2', week_start: 6, week_end: 8, owner: 'AP Manager', improvement_id: 'imp_2' },
+    { id: 'task_6', title: 'UAT and parallel run', track_id: 'track_1', week_start: 8, week_end: 10, owner: 'IT + Finance', improvement_id: 'imp_1' },
+    { id: 'task_7', title: 'Staff training', track_id: 'track_3', week_start: 9, week_end: 11, owner: 'HR + Finance', improvement_id: 'imp_2' },
+    { id: 'task_8', title: 'Go-live and hypercare', track_id: 'track_1', week_start: 11, week_end: 12, owner: 'IT Lead', improvement_id: 'imp_1' },
+  ],
+  risks: [
+    { id: 'risk_1', title: 'ERP integration delays', probability: 60, consequence: 70, mitigation: 'Engage vendor early; agree integration spec by week 2.' },
+    { id: 'risk_2', title: 'Low user adoption', probability: 40, consequence: 60, mitigation: 'Run change champion programme; mandatory training sign-off.' },
+  ],
+};
+
 // Draggable divider between two panel wrappers.
 function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
   const [active, setActive] = useState(false);
@@ -132,7 +167,7 @@ function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
   }
 
   if (disabled) {
-    return <div className="shrink-0 border-r border-gray-700" style={{ width: 1 }} />;
+    return <div className="shrink-0 border-r border-gray-700" style={{ width: 0 }} />;
   }
 
   return (
@@ -148,6 +183,7 @@ function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
 }
 
 function PanelShell({ num, label, action, collapsed, onToggle, children }) {
+  const { t } = useLang();
   if (collapsed) {
     return (
       <div
@@ -182,7 +218,7 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
           {action}
           <button
             onClick={onToggle}
-            title="Collapse panel"
+            title={t.collapsePanel}
             className="text-gray-500 hover:text-white transition-colors text-xs px-1"
           >
             ‹
@@ -196,23 +232,34 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
   );
 }
 
+const DRAFT_KEY = 'voice2bpmn_draft';
+
 export default function App() {
+  const { t } = useLang();
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: true });
-  const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null });
+  const [showHelp, setShowHelp] = useState(false);
+  const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
+  // Widths stored as fractions (0–1) of the flex container so redistribution is
+  // always proportional and never dependent on a measured pixel value.
+  const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
+  const [draftRestored, setDraftRestored] = useState(false);
 
   const p1Ref = useRef(null);
   const p2Ref = useRef(null);
   const p3Ref = useRef(null);
   const p4Ref = useRef(null);
   const p5Ref = useRef(null);
-  const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref };
+  const p6Ref = useRef(null);
+  const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref, 6: p6Ref };
 
+  // Open panels with no explicit width share space equally via flex:1 (~20% each
+  // when 5 are open). Panels with a stored pixel width use flex:none so dragged
+  // sizes persist across renders without leaking a stale flex shorthand.
   function getPanelStyle(n) {
     if (collapsed[n]) return { width: 36, flexShrink: 0, flexGrow: 0 };
     const w = panelWidths[n];
-    if (w != null) return { width: w, flexShrink: 0, flexGrow: 0 };
+    if (w != null) return { flex: 'none', width: w };
     return { flex: 1, minWidth: 0 };
   }
 
@@ -220,12 +267,14 @@ export default function App() {
     setPanelWidths(prev => ({ ...prev, [aKey]: newA, [bKey]: newB }));
   }
 
+  // When any panel is toggled, reset all to equal widths so the open panels
+  // collectively fill 100% of the available space. Clears both React-managed
+  // and ResizeHandle DOM-direct inline styles.
   function togglePanel(n) {
-    [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref].forEach(r => {
-      if (!r.current) return;
-      r.current.style.cssText = '';
+    [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref, p6Ref].forEach(r => {
+      if (r.current) r.current.style.cssText = '';
     });
-    setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null });
+    setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
     setCollapsed(prev => ({ ...prev, [n]: !prev[n] }));
   }
 
@@ -247,11 +296,76 @@ export default function App() {
   const [parsed, setParsed] = useState(null);
   const [xml, setXml] = useState(null);
 
-  // Panel 4 — Improve
+  // Panel 4 — Plan
   const [improvements, setImprovements] = useState(null);
   const [selectedImprovementIds, setSelectedImprovementIds] = useState([]);
+  const [customRisks, setCustomRisks] = useState([]);
   const [projectPlan, setProjectPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
+
+  // ── Auto-login from vimpl URL hash (set by the board burger menu) ──
+  useEffect(() => {
+    try {
+      const hash = window.location.hash.slice(1); // strip leading #
+      if (!hash) return;
+      const params = new URLSearchParams(hash);
+      const token = params.get('token');
+      const baseUrl = params.get('baseUrl');
+      if (token) {
+        const existing = JSON.parse(localStorage.getItem('voice2bpmn_vimpl_config') || '{}');
+        localStorage.setItem('voice2bpmn_vimpl_config', JSON.stringify({
+          ...existing,
+          token,
+          ...(baseUrl ? { baseUrl } : {}),
+        }));
+        // Clean the token out of the URL without reloading
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Restore draft from localStorage on mount ──────────────────────
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+      if (!saved) return;
+      if (saved.transcript) setTranscript(saved.transcript);
+      if (saved.processDescription) setProcessDescription(saved.processDescription);
+      if (saved.parsed) setParsed(saved.parsed);
+      if (saved.xml) setXml(saved.xml);
+      if (saved.improvements) setImprovements(saved.improvements);
+      if (saved.selectedImprovementIds) setSelectedImprovementIds(saved.selectedImprovementIds);
+      if (saved.customRisks) setCustomRisks(saved.customRisks);
+      if (saved.projectPlan) setProjectPlan(saved.projectPlan);
+      if (saved.processContext) setProcessContext(saved.processContext);
+      setDraftRestored(true);
+      setTimeout(() => setDraftRestored(false), 3000);
+    } catch { /* ignore corrupt drafts */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Auto-save draft whenever key state changes ────────────────────
+  useEffect(() => {
+    if (!transcript && !xml && !parsed) return; // nothing worth saving yet
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        transcript, processDescription, parsed, xml,
+        improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
+      }));
+    } catch { /* storage full or unavailable */ }
+  }, [transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext]);
+
+  function handleClearDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    setTranscript('');
+    setProcessDescription(null);
+    setParsed(null);
+    setXml(null);
+    setImprovements(null);
+    setSelectedImprovementIds([]);
+    setCustomRisks([]);
+    setProjectPlan(null);
+    setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
+  }
 
   function handleLoadDemo() {
     setTranscript(DEMO_TRANSCRIPT);
@@ -260,9 +374,9 @@ export default function App() {
     setProcessContext({ apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null });
     setXml(null);
     setVoiceError(null);
-    setImprovements(null);
-    setSelectedImprovementIds([]);
-    setProjectPlan(null);
+    setImprovements(DEMO_IMPROVEMENTS);
+    setSelectedImprovementIds(DEMO_IMPROVEMENTS.map(i => i.id));
+    setProjectPlan(DEMO_PROJECT_PLAN);
   }
 
   async function handleParseVoice() {
@@ -307,6 +421,27 @@ export default function App() {
     setSelectedImprovementIds([]);
   }
 
+  function handleAddImprovement(idea) {
+    setImprovements(prev => [...(prev || []), idea]);
+    setSelectedImprovementIds(prev => [...prev, idea.id]);
+  }
+
+  function handleUpdateImprovement(updated) {
+    setImprovements(prev => prev.map(i => i.id === updated.id ? updated : i));
+  }
+
+  function handleAddRisk(risk) {
+    setCustomRisks(prev => [...prev, risk]);
+  }
+
+  function handleUpdateRisk(updated) {
+    setCustomRisks(prev => prev.map(r => r.id === updated.id ? updated : r));
+  }
+
+  function handleRemoveRisk(id) {
+    setCustomRisks(prev => prev.filter(r => r.id !== id));
+  }
+
   function handleToggleSelect(id) {
     setSelectedImprovementIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -317,7 +452,7 @@ export default function App() {
     setPlanLoading(true);
     try {
       const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
-      const plan = await generateProjectPlan(parsed, selected, apiKey);
+      const plan = await generateProjectPlan(parsed, selected, apiKey, customRisks);
       setProjectPlan(plan);
     } finally {
       setPlanLoading(false);
@@ -331,7 +466,7 @@ export default function App() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 border-b border-gray-700 shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-white tracking-wide">Voice to BPMN</h1>
+          <h1 className="text-sm font-semibold text-white tracking-wide">{t.appTitle}</h1>
           <a
             href="https://www.ailean.dk"
             target="_blank"
@@ -342,12 +477,34 @@ export default function App() {
             <span className="ailean-logo">AILEAN</span>
           </a>
         </div>
-        <button
-          onClick={() => setShowApiKeyModal(true)}
-          className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
-        >
-          {apiKey ? '⚙ API Key ✓' : '⚙ Set API Key'}
-        </button>
+        <div className="flex items-center gap-2">
+          {draftRestored && (
+            <span className="text-xs text-green-400 animate-pulse">{t.draftRestored}</span>
+          )}
+          {(transcript || xml) && (
+            <button
+              onClick={handleClearDraft}
+              className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+              title={t.clearTitle}
+            >
+              {t.clear}
+            </button>
+          )}
+          <LangSwitcher />
+          <button
+            onClick={() => setShowHelp(true)}
+            className="w-6 h-6 rounded-full border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 transition-colors text-xs font-semibold flex items-center justify-center"
+            title="How to get started"
+          >
+            ?
+          </button>
+          <button
+            onClick={() => setShowApiKeyModal(true)}
+            className="flex items-center gap-2 text-xs text-gray-300 hover:text-white border border-gray-600 rounded px-3 py-1.5 hover:border-gray-400 transition-colors"
+          >
+            {apiKey ? t.apiKeySet : t.setApiKey}
+          </button>
+        </div>
       </header>
 
       {/* 5-panel layout */}
@@ -355,7 +512,7 @@ export default function App() {
 
         {/* Panel 1 — Voice */}
         <div ref={p1Ref} style={getPanelStyle(1)} className="overflow-hidden">
-          <PanelShell num="1" label="Voice" collapsed={collapsed[1]} onToggle={() => togglePanel(1)}>
+          <PanelShell num="1" label={t.panel1} collapsed={collapsed[1]} onToggle={() => togglePanel(1)}>
             {voiceError && (
               <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-xs shrink-0">
                 {voiceError}
@@ -368,8 +525,6 @@ export default function App() {
               loading={descParsing}
               canParse={!!transcript.trim() && !!apiKey}
               onLoadDemo={handleLoadDemo}
-              processContext={processContext}
-              onProcessContextChange={setProcessContext}
             />
           </PanelShell>
         </div>
@@ -379,13 +534,15 @@ export default function App() {
 
         {/* Panel 2 — Description */}
         <div ref={p2Ref} style={getPanelStyle(2)} className="overflow-hidden">
-          <PanelShell num="2" label="Description" collapsed={collapsed[2]} onToggle={() => togglePanel(2)}>
+          <PanelShell num="2" label={t.panel2} collapsed={collapsed[2]} onToggle={() => togglePanel(2)}>
             <DescriptionPanel
               description={processDescription}
               onDescriptionChange={setProcessDescription}
               onApprove={handleApproveToBpmn}
               loading={descParsing}
               canApprove={!!processDescription && !!apiKey && !bpmnParsing}
+              processContext={processContext}
+              onProcessContextChange={setProcessContext}
             />
           </PanelShell>
         </div>
@@ -395,24 +552,37 @@ export default function App() {
 
         {/* Panel 3 — Diagram */}
         <div ref={p3Ref} style={getPanelStyle(3)} className="overflow-hidden">
-          <PanelShell num="3" label="Diagram" collapsed={collapsed[3]} onToggle={() => togglePanel(3)}>
-            <DiagramPanel xml={xml} onXmlChange={setXml} bpmnLoading={bpmnParsing} />
+          <PanelShell num="3" label={t.panel3} collapsed={collapsed[3]} onToggle={() => togglePanel(3)}>
+            <DiagramPanel
+              xml={xml}
+              onXmlChange={setXml}
+              bpmnLoading={bpmnParsing}
+              processName={parsed?.process_name}
+              parsed={parsed}
+              processDescription={processDescription}
+            />
           </PanelShell>
         </div>
 
         <ResizeHandle aRef={pRefs[3]} bRef={pRefs[4]} disabled={collapsed[3] || collapsed[4]}
           aKey={3} bKey={4} {...handleProps} />
 
-        {/* Panel 4 — Improve */}
+        {/* Panel 4 — Project */}
         <div ref={p4Ref} style={getPanelStyle(4)} className="overflow-hidden">
-          <PanelShell num="4" label="Improve" collapsed={collapsed[4]} onToggle={() => togglePanel(4)}>
+          <PanelShell num="4" label={t.panel4} collapsed={collapsed[4]} onToggle={() => togglePanel(4)}>
             <ImprovePanel
               parsed={parsed}
               apiKey={apiKey}
               improvements={improvements}
               onGetImprovements={handleGetImprovements}
+              onAddImprovement={handleAddImprovement}
+              onUpdateImprovement={handleUpdateImprovement}
               selectedIds={selectedImprovementIds}
               onToggleSelect={handleToggleSelect}
+              customRisks={customRisks}
+              onAddRisk={handleAddRisk}
+              onUpdateRisk={handleUpdateRisk}
+              onRemoveRisk={handleRemoveRisk}
               projectPlan={projectPlan}
               onGeneratePlan={handleGeneratePlan}
               planLoading={planLoading}
@@ -423,9 +593,25 @@ export default function App() {
         <ResizeHandle aRef={pRefs[4]} bRef={pRefs[5]} disabled={collapsed[4] || collapsed[5]}
           aKey={4} bKey={5} {...handleProps} />
 
-        {/* Panel 5 — Taxonomy DB */}
-        <div ref={p5Ref} style={getPanelStyle(5)} className="overflow-hidden border-r-0">
-          <PanelShell num="5" label="Taxonomy DB" collapsed={collapsed[5]} onToggle={() => togglePanel(5)}>
+        {/* Panel 5 — Launch */}
+        <div ref={p5Ref} style={getPanelStyle(5)} className="overflow-hidden">
+          <PanelShell num="5" label={t.panel5} collapsed={collapsed[5]} onToggle={() => togglePanel(5)}>
+            <LaunchPanel
+              projectPlan={projectPlan}
+              parsed={parsed}
+              processDescription={processDescription}
+              improvements={improvements}
+              selectedIds={selectedImprovementIds}
+            />
+          </PanelShell>
+        </div>
+
+        <ResizeHandle aRef={pRefs[5]} bRef={pRefs[6]} disabled={collapsed[5] || collapsed[6]}
+          aKey={5} bKey={6} {...handleProps} />
+
+        {/* Panel 6 — Taxonomy DB */}
+        <div ref={p6Ref} style={getPanelStyle(6)} className="overflow-hidden border-r-0">
+          <PanelShell num="6" label={t.panel6} collapsed={collapsed[6]} onToggle={() => togglePanel(6)}>
             <TaxonomyPanel parsed={parsed} processContext={processContext} />
           </PanelShell>
         </div>
@@ -438,6 +624,8 @@ export default function App() {
           onClose={() => setShowApiKeyModal(false)}
         />
       )}
+
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }
