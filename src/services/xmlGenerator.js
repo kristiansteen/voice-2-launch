@@ -132,7 +132,11 @@ function generateFlatXml(parsed) {
     const pos = positions[el.id] || { x: 100, y: 300 };
     const elTyp = elementType(el, events, activities, gateways);
     const { w, h } = getShapeSize(elTyp);
-    const colorAttrs = elTyp === 'activity' ? ' bioc:stroke="#1d4ed8" bioc:fill="#dbeafe"' : '';
+    const colorAttrs = elTyp === 'activity'
+      ? ' bioc:stroke="#1d4ed8" bioc:fill="#dbeafe"'
+      : elTyp === 'gateway'
+        ? ' bioc:stroke="#ca8a04" bioc:fill="#fef9c3"'
+        : '';
     return `      <bpmndi:BPMNShape id="${el.id}_di" bpmnElement="${el.id}"${colorAttrs}>
         <dc:Bounds x="${pos.x - w / 2}" y="${pos.y - h / 2}" width="${w}" height="${h}" />
       </bpmndi:BPMNShape>`;
@@ -253,7 +257,11 @@ ${refs}
     const cx = elX(el.id), cy = elY(el.id);
     const elTyp = elementType(el, events, activities, gateways);
     const { w, h } = getShapeSize(elTyp);
-    const colorAttrs = elTyp === 'activity' ? ' bioc:stroke="#1d4ed8" bioc:fill="#dbeafe"' : '';
+    const colorAttrs = elTyp === 'activity'
+      ? ' bioc:stroke="#1d4ed8" bioc:fill="#dbeafe"'
+      : elTyp === 'gateway'
+        ? ' bioc:stroke="#ca8a04" bioc:fill="#fef9c3"'
+        : '';
     return `      <bpmndi:BPMNShape id="${el.id}_di" bpmnElement="${el.id}"${colorAttrs}>
         <dc:Bounds x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" />
       </bpmndi:BPMNShape>`;
