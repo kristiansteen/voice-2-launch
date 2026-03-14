@@ -483,6 +483,30 @@ export default function App() {
 
   const handleProps = { onDragEnd: handleDragEnd };
 
+  // ── Login gate ────────────────────────────────────────────────────
+  if (!vimplToken) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-900 gap-6">
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="text-2xl font-semibold text-white tracking-wide">{t.appTitle}</h1>
+          <a href="https://www.ailean.dk" target="_blank" rel="noopener noreferrer" className="ailean-badge">
+            <span>Powered by</span>
+            <span className="ailean-logo">AILEAN</span>
+          </a>
+        </div>
+        <div className="bg-white rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center gap-4 w-80">
+          <p className="text-sm text-gray-500 text-center">Log in with your vimpl account to continue.</p>
+          <button
+            onClick={loginWithVimpl}
+            className="w-full bg-vimpl text-black text-sm font-semibold py-2.5 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors"
+          >
+            Log in with vimpl
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-900">
       {/* Header */}
