@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
 import BpmnErrorBoundary from './BpmnErrorBoundary.jsx';
 import StepCurtain from './StepCurtain.jsx';
@@ -14,6 +14,12 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
   const { t } = useLang();
   const viewerRef = useRef(null);
   const toBeViewerRef = useRef(null);
+  const [activeTab, setActiveTab] = useState('asis'); // 'asis' | 'tobe'
+
+  // Switch to TO-BE tab as soon as it's ready
+  useEffect(() => { if (toBeXml) setActiveTab('tobe'); }, [toBeXml]);
+  // Reset to asis when AS-IS is cleared (new session)
+  useEffect(() => { if (!asIsXml) setActiveTab('asis'); }, [asIsXml]);
   const [impLoading, setImpLoading] = useState(false);
   const [impError, setImpError] = useState(null);
 
@@ -205,75 +211,89 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         </div>
       )}
 
-      {/* ── Diagram canvas ───────────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-
-        {/* AS-IS pane — full height when no TO-BE, half when both */}
-        <div className={`relative overflow-hidden flex flex-col ${asIsXml ? 'flex-1 border-b border-gray-200' : 'flex-1'}`}>
-          {asIsXml && (
-            <div className="shrink-0 flex items-center gap-2 px-3 py-1 bg-gray-50 border-b border-gray-200">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 bg-gray-200 rounded px-1.5 py-0.5">AS-IS</span>
-              <span className="text-xs text-gray-400 truncate">{processName}</span>
-            </div>
-          )}
-          <div className="flex-1 overflow-hidden relative">
-            <BpmnErrorBoundary>
-              <BpmnViewer
-                ref={viewerRef}
-                xml={asIsXml || xml}
-                onXmlChange={asIsXml ? undefined : onXmlChange}
-                onElementDblClick={setCurtainElement}
-              />
-            </BpmnErrorBoundary>
-
-            {curtainElement && (
-              <StepCurtain
-                element={curtainElement}
-                parsed={parsed}
-                processDescription={processDescription}
-                onClose={() => setCurtainElement(null)}
-              />
+      {/* ── Tab bar — only when AS-IS is frozen ─────────────────────── */}
+      {asIsXml && (
+        <div className="shrink-0 flex border-b border-gray-200 bg-gray-50">
+          <button
+            onClick={() => setActiveTab('asis')}
+            className={[
+              'flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors',
+              activeTab === 'asis'
+                ? 'border-gray-500 text-gray-700 bg-white'
+                : 'border-transparent text-gray-400 hover:text-gray-600',
+            ].join(' ')}
+          >
+            <span className="text-[9px] font-bold uppercase tracking-widest bg-gray-200 text-gray-500 rounded px-1 py-0.5">AS-IS</span>
+            <span className="truncate max-w-[100px]">{processName}</span>
+          </button>
+          <button
+            onClick={() => toBeXml && setActiveTab('tobe')}
+            className={[
+              'flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors',
+              activeTab === 'tobe'
+                ? 'border-green-500 text-green-700 bg-white'
+                : toBeXml
+                  ? 'border-transparent text-gray-400 hover:text-green-600'
+                  : 'border-transparent text-gray-300 cursor-default',
+            ].join(' ')}
+          >
+            <span className="text-[9px] font-bold uppercase tracking-widest bg-green-100 text-green-600 rounded px-1 py-0.5">TO-BE</span>
+            {toBeLoading ? (
+              <span className="flex items-center gap-1 text-green-500">
+                <span className="inline-block w-2.5 h-2.5 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
+                Generating…
+              </span>
+            ) : (
+              <span className="truncate max-w-[100px]">{toBeXml ? `${processName} — TO-BE` : 'Pending…'}</span>
             )}
+          </button>
+        </div>
+      )}
 
-            <div className="bpmn-zoom-controls">
-              <button onClick={() => viewerRef.current?.zoomIn()} title="Zoom in" className="bpmn-zoom-btn">+</button>
-              <button onClick={() => viewerRef.current?.fitViewport()} title="Fit" className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
-              <button onClick={() => viewerRef.current?.zoomOut()} title="Zoom out" className="bpmn-zoom-btn">−</button>
-            </div>
+      {/* ── Diagram canvas ───────────────────────────────────────────── */}
+      <div className="flex-1 overflow-hidden relative">
+
+        {/* AS-IS viewer — visible when no tabs or asis tab active */}
+        <div className={`absolute inset-0 ${asIsXml && activeTab !== 'asis' ? 'invisible' : ''}`}>
+          <BpmnErrorBoundary>
+            <BpmnViewer
+              ref={viewerRef}
+              xml={asIsXml || xml}
+              onXmlChange={asIsXml ? undefined : onXmlChange}
+              onElementDblClick={setCurtainElement}
+            />
+          </BpmnErrorBoundary>
+          {curtainElement && (
+            <StepCurtain
+              element={curtainElement}
+              parsed={parsed}
+              processDescription={processDescription}
+              onClose={() => setCurtainElement(null)}
+            />
+          )}
+          <div className="bpmn-zoom-controls">
+            <button onClick={() => viewerRef.current?.zoomIn()} className="bpmn-zoom-btn">+</button>
+            <button onClick={() => viewerRef.current?.fitViewport()} className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
+            <button onClick={() => viewerRef.current?.zoomOut()} className="bpmn-zoom-btn">−</button>
           </div>
         </div>
 
-        {/* TO-BE pane — shown below AS-IS once generated */}
-        {(asIsXml || toBeLoading) && (
-          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-            <div className="shrink-0 flex items-center gap-2 px-3 py-1 bg-green-50 border-b border-green-200">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-green-700 bg-green-200 rounded px-1.5 py-0.5">TO-BE</span>
-              {toBeLoading ? (
-                <span className="flex items-center gap-1.5 text-xs text-green-600">
-                  <span className="inline-block w-3 h-3 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
-                  Generating TO-BE diagram…
-                </span>
-              ) : (
-                <span className="text-xs text-green-600 truncate">{processName} — TO-BE</span>
-              )}
+        {/* TO-BE viewer — visible when tobe tab active */}
+        {toBeXml && (
+          <div className={`absolute inset-0 ${activeTab !== 'tobe' ? 'invisible' : ''}`}>
+            <BpmnErrorBoundary>
+              <BpmnViewer
+                ref={toBeViewerRef}
+                xml={toBeXml}
+                onXmlChange={onToBeXmlChange}
+                onElementDblClick={setCurtainElement}
+              />
+            </BpmnErrorBoundary>
+            <div className="bpmn-zoom-controls">
+              <button onClick={() => toBeViewerRef.current?.zoomIn()} className="bpmn-zoom-btn">+</button>
+              <button onClick={() => toBeViewerRef.current?.fitViewport()} className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
+              <button onClick={() => toBeViewerRef.current?.zoomOut()} className="bpmn-zoom-btn">−</button>
             </div>
-            {toBeXml && !toBeLoading && (
-              <div className="flex-1 overflow-hidden relative">
-                <BpmnErrorBoundary>
-                  <BpmnViewer
-                    ref={toBeViewerRef}
-                    xml={toBeXml}
-                    onXmlChange={onToBeXmlChange}
-                    onElementDblClick={setCurtainElement}
-                  />
-                </BpmnErrorBoundary>
-                <div className="bpmn-zoom-controls">
-                  <button onClick={() => toBeViewerRef.current?.zoomIn()} title="Zoom in" className="bpmn-zoom-btn">+</button>
-                  <button onClick={() => toBeViewerRef.current?.fitViewport()} title="Fit" className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
-                  <button onClick={() => toBeViewerRef.current?.zoomOut()} title="Zoom out" className="bpmn-zoom-btn">−</button>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
