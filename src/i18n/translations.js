@@ -146,7 +146,7 @@ export const translations = {
 
   da: {
     // ── App / header ──────────────────────────────────────────────
-    appTitle:       'Stemme til BPMN',
+    appTitle:       'Voice-to-Launch',
     poweredBy:      'Drevet af',
     draftRestored:  'Kladde gendannet',
     clear:          'Ryd',
