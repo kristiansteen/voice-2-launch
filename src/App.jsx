@@ -234,6 +234,19 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
 
 const DRAFT_KEY = 'voice2bpmn_draft';
 
+// Build a structured "Interviewer / SME" transcript from Ailean conversation turns.
+function buildStructuredTranscript(turns, currentDraft) {
+  const parts = turns.map(turn =>
+    turn.type === 'ailean'
+      ? `Interviewer: ${turn.text}`
+      : `SME: ${turn.text}`
+  );
+  if (currentDraft?.trim()) {
+    parts.push(`SME: ${currentDraft.trim()}`);
+  }
+  return parts.join('\n\n');
+}
+
 export default function App() {
   const { t } = useLang();
   const [apiKey, setApiKey] = useState('');
@@ -435,6 +448,15 @@ export default function App() {
     setProjectPlan(DEMO_PROJECT_PLAN);
   }
 
+  // If Ailean interviewed, build a structured transcript; otherwise use raw text.
+  function getEffectiveTranscript() {
+    if (ailean.enabled && ailean.turns.length > 0) {
+      const currentDraft = transcript.slice(ailean.prevTranscriptLength);
+      return buildStructuredTranscript(ailean.turns, currentDraft);
+    }
+    return transcript;
+  }
+
   async function handleParseVoice() {
     setDescParsing(true);
     setVoiceError(null);
@@ -445,7 +467,7 @@ export default function App() {
     setSelectedImprovementIds([]);
     setProjectPlan(null);
     try {
-      const desc = await parseVoiceToDescription(transcript, apiKey, processContext);
+      const desc = await parseVoiceToDescription(getEffectiveTranscript(), apiKey, processContext);
       setProcessDescription(desc);
     } catch (err) {
       setVoiceError(err.message || 'Failed to parse voice.');
@@ -620,9 +642,10 @@ export default function App() {
             <VoicePanel
               transcript={transcript}
               setTranscript={setTranscript}
+              effectiveTranscript={getEffectiveTranscript()}
               onParse={handleParseVoice}
               loading={descParsing}
-              canParse={!!transcript.trim() && !!apiKey}
+              canParse={!!getEffectiveTranscript().trim() && !!apiKey}
               onLoadDemo={handleLoadDemo}
               ailean={ailean}
               onAileanTurn={() => ailean.askFollowUp(transcript)}

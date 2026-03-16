@@ -17,6 +17,7 @@ SME: Sure. When we receive an invoice from a supplier, the Accounts Payable cler
 
 export default function VoicePanel({
   transcript, setTranscript,
+  effectiveTranscript,
   onParse, loading, canParse,
   onLoadDemo,
   ailean,
@@ -369,8 +370,18 @@ export default function VoicePanel({
         </button>
         {!canParse && !loading && (
           <p className="text-xs text-gray-400 mt-1 text-center">
-            {!transcript.trim() ? t.enterTranscript : t.setApiKeyFirst}
+            {!effectiveTranscript?.trim() ? t.enterTranscript : t.setApiKeyFirst}
           </p>
+        )}
+        {aileanActive && aileanTurns.length > 0 && effectiveTranscript && (
+          <details className="mt-2">
+            <summary className="text-[10px] text-purple-400 hover:text-purple-600 cursor-pointer select-none">
+              Preview structured transcript
+            </summary>
+            <pre className="mt-1 text-[10px] text-gray-600 bg-gray-50 rounded p-2 whitespace-pre-wrap max-h-40 overflow-y-auto border border-gray-100">
+              {effectiveTranscript}
+            </pre>
+          </details>
         )}
       </div>
     </div>
