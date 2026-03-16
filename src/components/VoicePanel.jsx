@@ -25,6 +25,23 @@ export default function VoicePanel({
   const { t, lang } = useLang();
   const [showGuide, setShowGuide] = useState(false);
   const [pasteFlash, setPasteFlash] = useState(false);
+  const textareaRef = useRef(null);
+
+  function handleInjectQuestion(question) {
+    const prefix = transcript.trimEnd()
+      ? transcript.trimEnd() + '\n\n'
+      : '';
+    const injected = `${prefix}Interviewer: ${question}\n\nSME: `;
+    setTranscript(injected);
+    // Open the guide so user sees what was selected, then focus textarea
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.selectionStart = injected.length;
+        textareaRef.current.selectionEnd = injected.length;
+      }
+    }, 0);
+  }
 
   async function handlePaste() {
     const text = await pasteFromClipboard();
@@ -230,6 +247,7 @@ export default function VoicePanel({
           ) : (
             <>
               <textarea
+                ref={textareaRef}
                 value={transcript + (interimText ? ' ' + interimText : '')}
                 onChange={e => {
                   if (!isRecording) setTranscript(e.target.value);
@@ -315,11 +333,19 @@ export default function VoicePanel({
             ].join(' ')}>
               {t.guideToggle}
             </span>
-            <span className="text-gray-400 text-xs">{showGuide ? '▾' : '▸'}</span>
+            <div className="flex items-center gap-2">
+              {!aileanActive && (
+                <span className="text-[10px] text-green-500">click to inject</span>
+              )}
+              <span className="text-gray-400 text-xs">{showGuide ? '▾' : '▸'}</span>
+            </div>
           </button>
           {showGuide && (
             <div className="border-t border-gray-100 overflow-y-auto" style={{ maxHeight: '40vh' }}>
-              <InterviewGuide isRecording={isRecording} />
+              <InterviewGuide
+                isRecording={isRecording}
+                onSelectQuestion={!aileanActive ? handleInjectQuestion : undefined}
+              />
             </div>
           )}
         </div>

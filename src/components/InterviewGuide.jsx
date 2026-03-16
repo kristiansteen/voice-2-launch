@@ -219,7 +219,7 @@ const QUESTION_BANK = {
   ],
 };
 
-export default function InterviewGuide({ isRecording }) {
+export default function InterviewGuide({ isRecording, onSelectQuestion }) {
   const { lang, t } = useLang();
   const [askedIds, setAskedIds] = useState(new Set());
   const [openCategory, setOpenCategory] = useState('start');
@@ -288,10 +288,14 @@ export default function InterviewGuide({ isRecording }) {
                   return (
                     <button
                       key={id}
-                      onClick={() => toggleAsked(id)}
+                      onClick={() => {
+                        toggleAsked(id);
+                        onSelectQuestion?.(item.q);
+                      }}
                       className={[
                         'w-full text-left px-4 py-2.5 border-b border-gray-100 last:border-0 transition-colors group',
                         asked ? 'bg-green-50' : 'hover:bg-white',
+                        onSelectQuestion && !asked ? 'hover:border-l-2 hover:border-l-green-400' : '',
                       ].join(' ')}
                     >
                       <div className="flex items-start gap-2">
