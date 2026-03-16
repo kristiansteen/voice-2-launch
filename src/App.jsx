@@ -195,6 +195,183 @@ const DEMO_IMPROVEMENTS = [
 
 const DEMO_SELECTED_IDS = ['imp_2', 'imp_1', 'imp_3', 'imp_5', 'imp_6'];
 
+const DEMO_TO_BE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_1" name="Accounts Payable Invoice Processing — TO-BE" processRef="Process_1" />
+  </collaboration>
+  <process id="Process_1" isExecutable="false">
+    <laneSet id="LaneSet_1">
+      <lane id="role_1" name="Accounts Payable Clerk">
+        <flowNodeRef>act_3</flowNodeRef>
+        <flowNodeRef>act_4</flowNodeRef>
+        <flowNodeRef>act_15</flowNodeRef>
+        <flowNodeRef>gw_1</flowNodeRef>
+        <flowNodeRef>gw_2</flowNodeRef>
+      </lane>
+      <lane id="role_2" name="Department Manager">
+        <flowNodeRef>act_7</flowNodeRef>
+        <flowNodeRef>gw_5</flowNodeRef>
+      </lane>
+      <lane id="role_3" name="CEO">
+        <flowNodeRef>act_8</flowNodeRef>
+      </lane>
+      <lane id="role_4" name="Payment Team">
+        <flowNodeRef>act_10</flowNodeRef>
+      </lane>
+      <lane id="role_5" name="Head of Payment Team">
+        <flowNodeRef>act_11</flowNodeRef>
+      </lane>
+      <lane id="role_6" name="ERP System">
+        <flowNodeRef>event_2</flowNodeRef>
+        <flowNodeRef>act_2</flowNodeRef>
+        <flowNodeRef>act_6</flowNodeRef>
+        <flowNodeRef>act_9</flowNodeRef>
+        <flowNodeRef>act_12</flowNodeRef>
+        <flowNodeRef>gw_6</flowNodeRef>
+      </lane>
+      <lane id="role_7" name="OCR System">
+        <flowNodeRef>event_1</flowNodeRef>
+        <flowNodeRef>act_1</flowNodeRef>
+        <flowNodeRef>act_5</flowNodeRef>
+      </lane>
+      <lane id="role_8" name="Vendor Portal">
+        <flowNodeRef>event_3</flowNodeRef>
+        <flowNodeRef>act_14</flowNodeRef>
+      </lane>
+      <lane id="role_9" name="Invoice Status Dashboard">
+        <flowNodeRef>act_13</flowNodeRef>
+        <flowNodeRef>gw_3</flowNodeRef>
+        <flowNodeRef>gw_4</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="event_1" name="Vendor invoice received" />
+    <endEvent id="event_2" name="Payment processed and AP cleared" />
+    <endEvent id="event_3" name="Invoice rejected" />
+    <userTask id="act_1" name="Automated Invoice Data Extraction" />
+    <userTask id="act_2" name="Automated Three-Way Matching" />
+    <userTask id="act_3" name="Handle Missing Documents" />
+    <userTask id="act_4" name="Reject Invalid Invoices" />
+    <userTask id="act_5" name="AI-Assisted Invoice Coding" />
+    <userTask id="act_6" name="Route for Approval" />
+    <userTask id="act_7" name="Manager Approval" />
+    <userTask id="act_8" name="CEO Approval" />
+    <userTask id="act_9" name="Post Accounting Entry" />
+    <userTask id="act_10" name="Process Weekly Payments" />
+    <userTask id="act_11" name="Authorize Payment Batch" />
+    <userTask id="act_12" name="Clear AP Records" />
+    <userTask id="act_13" name="Update Invoice Status Dashboard" />
+    <userTask id="act_14" name="Update Vendor Portal Status" />
+    <userTask id="act_15" name="Review Exception Report" />
+    <exclusiveGateway id="gw_1" name="Documents available?" />
+    <exclusiveGateway id="gw_2" name="Invoice valid?" />
+    <exclusiveGateway id="gw_3" name="Approval amount threshold" />
+    <exclusiveGateway id="gw_4" name="CEO approval needed?" />
+    <exclusiveGateway id="gw_5" name="Approved?" />
+    <exclusiveGateway id="gw_6" name="Matching successful?" />
+    <sequenceFlow id="flow_1" sourceRef="event_1" targetRef="act_1"></sequenceFlow>
+    <sequenceFlow id="flow_2" sourceRef="act_1" targetRef="act_2"></sequenceFlow>
+    <sequenceFlow id="flow_3" sourceRef="act_2" targetRef="gw_6"></sequenceFlow>
+    <sequenceFlow id="flow_4" sourceRef="gw_6" targetRef="act_15"><conditionExpression>Exceptions found</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_5" sourceRef="gw_6" targetRef="gw_1"><conditionExpression>Matching successful</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_6" sourceRef="act_15" targetRef="gw_1"></sequenceFlow>
+    <sequenceFlow id="flow_7" sourceRef="gw_1" targetRef="act_3"><conditionExpression>Missing documents</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_8" sourceRef="gw_1" targetRef="gw_2"><conditionExpression>Documents available</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_9" sourceRef="act_3" targetRef="gw_2"></sequenceFlow>
+    <sequenceFlow id="flow_10" sourceRef="gw_2" targetRef="act_4"><conditionExpression>Invalid</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_11" sourceRef="gw_2" targetRef="act_5"><conditionExpression>Valid</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_12" sourceRef="act_4" targetRef="act_14"></sequenceFlow>
+    <sequenceFlow id="flow_13" sourceRef="act_14" targetRef="event_3"></sequenceFlow>
+    <sequenceFlow id="flow_14" sourceRef="act_5" targetRef="act_6"></sequenceFlow>
+    <sequenceFlow id="flow_15" sourceRef="act_6" targetRef="act_13"></sequenceFlow>
+    <sequenceFlow id="flow_16" sourceRef="act_13" targetRef="gw_3"></sequenceFlow>
+    <sequenceFlow id="flow_17" sourceRef="gw_3" targetRef="act_9"><conditionExpression>Under $10,000</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_18" sourceRef="gw_3" targetRef="act_7"><conditionExpression>$10,000-$99,999</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_19" sourceRef="gw_3" targetRef="gw_4"><conditionExpression>$100,000+</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_20" sourceRef="gw_4" targetRef="act_8"><conditionExpression>CEO approval needed</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_21" sourceRef="act_7" targetRef="gw_5"></sequenceFlow>
+    <sequenceFlow id="flow_22" sourceRef="act_8" targetRef="gw_5"></sequenceFlow>
+    <sequenceFlow id="flow_23" sourceRef="gw_5" targetRef="act_9"><conditionExpression>Approved</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_24" sourceRef="gw_5" targetRef="act_14"><conditionExpression>Rejected</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_25" sourceRef="act_9" targetRef="act_10"></sequenceFlow>
+    <sequenceFlow id="flow_26" sourceRef="act_10" targetRef="act_11"></sequenceFlow>
+    <sequenceFlow id="flow_27" sourceRef="act_11" targetRef="act_12"></sequenceFlow>
+    <sequenceFlow id="flow_28" sourceRef="act_12" targetRef="event_2"></sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true"><dc:Bounds x="100" y="80" width="3660" height="1800" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_1_di" bpmnElement="role_1" isHorizontal="true"><dc:Bounds x="130" y="80" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_2_di" bpmnElement="role_2" isHorizontal="true"><dc:Bounds x="130" y="280" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_3_di" bpmnElement="role_3" isHorizontal="true"><dc:Bounds x="130" y="480" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_4_di" bpmnElement="role_4" isHorizontal="true"><dc:Bounds x="130" y="680" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_5_di" bpmnElement="role_5" isHorizontal="true"><dc:Bounds x="130" y="880" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_6_di" bpmnElement="role_6" isHorizontal="true"><dc:Bounds x="130" y="1080" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_7_di" bpmnElement="role_7" isHorizontal="true"><dc:Bounds x="130" y="1280" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_8_di" bpmnElement="role_8" isHorizontal="true"><dc:Bounds x="130" y="1480" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_9_di" bpmnElement="role_9" isHorizontal="true"><dc:Bounds x="130" y="1680" width="3630" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_1_di" bpmnElement="event_1"><dc:Bounds x="302" y="1362" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_2_di" bpmnElement="event_2"><dc:Bounds x="3502" y="1162" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_3_di" bpmnElement="event_3"><dc:Bounds x="2302" y="1562" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_1_di" bpmnElement="act_1"><dc:Bounds x="470" y="1340" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_2_di" bpmnElement="act_2"><dc:Bounds x="670" y="1140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_3_di" bpmnElement="act_3"><dc:Bounds x="1470" y="140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_4_di" bpmnElement="act_4"><dc:Bounds x="1870" y="140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_5_di" bpmnElement="act_5"><dc:Bounds x="1870" y="1340" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_6_di" bpmnElement="act_6"><dc:Bounds x="2070" y="1140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_7_di" bpmnElement="act_7"><dc:Bounds x="2670" y="340" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_8_di" bpmnElement="act_8"><dc:Bounds x="2870" y="540" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_9_di" bpmnElement="act_9"><dc:Bounds x="3070" y="1140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_10_di" bpmnElement="act_10"><dc:Bounds x="2870" y="740" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_11_di" bpmnElement="act_11"><dc:Bounds x="3070" y="940" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_12_di" bpmnElement="act_12"><dc:Bounds x="3270" y="1140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_13_di" bpmnElement="act_13"><dc:Bounds x="2270" y="1740" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_14_di" bpmnElement="act_14"><dc:Bounds x="3070" y="1540" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_15_di" bpmnElement="act_15"><dc:Bounds x="1070" y="140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_1_di" bpmnElement="gw_1"><dc:Bounds x="1295" y="155" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_2_di" bpmnElement="gw_2"><dc:Bounds x="1695" y="155" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_3_di" bpmnElement="gw_3"><dc:Bounds x="2495" y="1755" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_4_di" bpmnElement="gw_4"><dc:Bounds x="2695" y="1755" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_5_di" bpmnElement="gw_5"><dc:Bounds x="3095" y="355" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_6_di" bpmnElement="gw_6"><dc:Bounds x="895" y="1155" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1"><di:waypoint x="338" y="1380" /><di:waypoint x="470" y="1380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2"><di:waypoint x="570" y="1380" /><di:waypoint x="620" y="1380" /><di:waypoint x="620" y="1180" /><di:waypoint x="670" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3"><di:waypoint x="770" y="1180" /><di:waypoint x="895" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4"><di:waypoint x="945" y="1180" /><di:waypoint x="1008" y="1180" /><di:waypoint x="1008" y="180" /><di:waypoint x="1070" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5"><di:waypoint x="945" y="1180" /><di:waypoint x="1120" y="1180" /><di:waypoint x="1120" y="180" /><di:waypoint x="1295" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6"><di:waypoint x="1170" y="180" /><di:waypoint x="1295" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7"><di:waypoint x="1345" y="180" /><di:waypoint x="1470" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_8_di" bpmnElement="flow_8"><di:waypoint x="1345" y="180" /><di:waypoint x="1695" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_9_di" bpmnElement="flow_9"><di:waypoint x="1570" y="180" /><di:waypoint x="1695" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_10_di" bpmnElement="flow_10"><di:waypoint x="1745" y="180" /><di:waypoint x="1870" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_11_di" bpmnElement="flow_11"><di:waypoint x="1745" y="180" /><di:waypoint x="1808" y="180" /><di:waypoint x="1808" y="1380" /><di:waypoint x="1870" y="1380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_12_di" bpmnElement="flow_12"><di:waypoint x="1970" y="180" /><di:waypoint x="2520" y="180" /><di:waypoint x="2520" y="1580" /><di:waypoint x="3070" y="1580" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_13_di" bpmnElement="flow_13"><di:waypoint x="3170" y="1580" /><di:waypoint x="2302" y="1580" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_14_di" bpmnElement="flow_14"><di:waypoint x="1970" y="1380" /><di:waypoint x="2020" y="1380" /><di:waypoint x="2020" y="1180" /><di:waypoint x="2070" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_15_di" bpmnElement="flow_15"><di:waypoint x="2170" y="1180" /><di:waypoint x="2220" y="1180" /><di:waypoint x="2220" y="1780" /><di:waypoint x="2270" y="1780" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_16_di" bpmnElement="flow_16"><di:waypoint x="2370" y="1780" /><di:waypoint x="2495" y="1780" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_17_di" bpmnElement="flow_17"><di:waypoint x="2545" y="1780" /><di:waypoint x="2808" y="1780" /><di:waypoint x="2808" y="1180" /><di:waypoint x="3070" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_18_di" bpmnElement="flow_18"><di:waypoint x="2545" y="1780" /><di:waypoint x="2608" y="1780" /><di:waypoint x="2608" y="380" /><di:waypoint x="2670" y="380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_19_di" bpmnElement="flow_19"><di:waypoint x="2545" y="1780" /><di:waypoint x="2695" y="1780" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_20_di" bpmnElement="flow_20"><di:waypoint x="2745" y="1780" /><di:waypoint x="2808" y="1780" /><di:waypoint x="2808" y="580" /><di:waypoint x="2870" y="580" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_21_di" bpmnElement="flow_21"><di:waypoint x="2770" y="380" /><di:waypoint x="3095" y="380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_22_di" bpmnElement="flow_22"><di:waypoint x="2970" y="580" /><di:waypoint x="3033" y="580" /><di:waypoint x="3033" y="380" /><di:waypoint x="3095" y="380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_23_di" bpmnElement="flow_23"><di:waypoint x="3145" y="380" /><di:waypoint x="3108" y="380" /><di:waypoint x="3108" y="1180" /><di:waypoint x="3070" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_24_di" bpmnElement="flow_24"><di:waypoint x="3145" y="380" /><di:waypoint x="3108" y="380" /><di:waypoint x="3108" y="1580" /><di:waypoint x="3070" y="1580" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_25_di" bpmnElement="flow_25"><di:waypoint x="3170" y="1180" /><di:waypoint x="3020" y="1180" /><di:waypoint x="3020" y="780" /><di:waypoint x="2870" y="780" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_26_di" bpmnElement="flow_26"><di:waypoint x="2970" y="780" /><di:waypoint x="3020" y="780" /><di:waypoint x="3020" y="980" /><di:waypoint x="3070" y="980" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_27_di" bpmnElement="flow_27"><di:waypoint x="3170" y="980" /><di:waypoint x="3220" y="980" /><di:waypoint x="3220" y="1180" /><di:waypoint x="3270" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_28_di" bpmnElement="flow_28"><di:waypoint x="3370" y="1180" /><di:waypoint x="3502" y="1180" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>`;
+
 const DEMO_PROJECT_PLAN = {"plan_name":"Accounts Payable Invoice Processing Transformation","duration_weeks":14,"tracks":[{"id":"track_1","name":"Technology & Automation"},{"id":"track_2","name":"Process Optimization"},{"id":"track_3","name":"Vendor Management"},{"id":"track_4","name":"Monitoring & Control"}],"tasks":[{"id":"task_1","title":"Conduct OCR/AI solution vendor evaluation and selection","track_id":"track_1","week_start":1,"week_end":3,"owner":"IT Manager","improvement_id":"imp_1"},{"id":"task_2","title":"Design and configure OCR data extraction workflows","track_id":"track_1","week_start":4,"week_end":7,"owner":"Technical Lead","improvement_id":"imp_1"},{"id":"task_3","title":"Deploy OCR system and conduct user acceptance testing","track_id":"track_1","week_start":8,"week_end":10,"owner":"Implementation Team","improvement_id":"imp_1"},{"id":"task_4","title":"Configure ERP system for automated three-way matching","track_id":"track_1","week_start":2,"week_end":5,"owner":"ERP Administrator","improvement_id":"imp_3"},{"id":"task_5","title":"Test automated matching rules and exception handling","track_id":"track_1","week_start":6,"week_end":8,"owner":"AP Process Owner","improvement_id":"imp_3"},{"id":"task_6","title":"Analyze current payment cycles and discount opportunities","track_id":"track_2","week_start":1,"week_end":2,"owner":"AP Manager","improvement_id":"imp_5"},{"id":"task_7","title":"Redesign payment scheduling and approval workflows","track_id":"track_2","week_start":3,"week_end":5,"owner":"Process Analyst","improvement_id":"imp_5"},{"id":"task_8","title":"Implement weekly payment runs with automated scheduling","track_id":"track_2","week_start":6,"week_end":8,"owner":"Payment Team Lead","improvement_id":"imp_5"},{"id":"task_9","title":"Evaluate and select vendor portal platform","track_id":"track_3","week_start":1,"week_end":3,"owner":"Vendor Relations Manager","improvement_id":"imp_6"},{"id":"task_10","title":"Configure vendor portal and integration with ERP","track_id":"track_3","week_start":4,"week_end":8,"owner":"IT Solutions Architect","improvement_id":"imp_6"},{"id":"task_11","title":"Onboard priority vendors to self-service portal","track_id":"track_3","week_start":9,"week_end":12,"owner":"Vendor Onboarding Team","improvement_id":"imp_6"},{"id":"task_12","title":"Design real-time dashboard requirements and mockups","track_id":"track_4","week_start":2,"week_end":4,"owner":"Business Analyst","improvement_id":"imp_2"},{"id":"task_13","title":"Develop and deploy invoice status dashboard","track_id":"track_4","week_start":5,"week_end":9,"owner":"Dashboard Developer","improvement_id":"imp_2"},{"id":"task_14","title":"Train all stakeholders on new systems and processes","track_id":"track_4","week_start":10,"week_end":12,"owner":"Training Coordinator","improvement_id":"imp_1"},{"id":"task_15","title":"Monitor performance and optimize system configuration","track_id":"track_4","week_start":13,"week_end":14,"owner":"Process Excellence Team","improvement_id":"imp_2"}],"risks":[{"id":"risk_1","title":"OCR accuracy issues with non-standard invoice formats","probability":70,"consequence":60,"mitigation":"Implement comprehensive testing with diverse invoice samples and establish manual review processes for low-confidence extractions"},{"id":"risk_2","title":"ERP system integration complexity","probability":60,"consequence":75,"mitigation":"Engage ERP vendor support early and conduct phased rollout with parallel processing initially"},{"id":"risk_3","title":"Vendor adoption resistance for self-service portal","probability":65,"consequence":50,"mitigation":"Develop vendor incentive programs and provide dedicated support during transition period"},{"id":"risk_4","title":"Staff resistance to automated processes","probability":55,"consequence":65,"mitigation":"Implement comprehensive change management program with retraining for higher-value activities"},{"id":"risk_5","title":"Dashboard performance issues with large data volumes","probability":45,"consequence":40,"mitigation":"Implement data caching strategies and optimize database queries during development phase"}]};
 
 // Draggable divider between two panel wrappers.
@@ -528,6 +705,9 @@ export default function App() {
     setProcessDescription(DEMO_DESCRIPTION);
     setProcessContext({ apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null });
     setXml(DEMO_XML);
+    setAsIsXml(DEMO_XML);
+    setAsIsParsed(DEMO_PARSED);
+    setToBeXml(DEMO_TO_BE_XML);
     setVoiceError(null);
     setImprovements(DEMO_IMPROVEMENTS);
     setSelectedImprovementIds(DEMO_SELECTED_IDS);
@@ -708,14 +888,6 @@ export default function App() {
         <div className="flex items-center gap-2">
           {draftRestored && (
             <span className="text-xs text-green-400 animate-pulse">{t.draftRestored}</span>
-          )}
-          {toBeXml && (
-            <button
-              onClick={() => navigator.clipboard.writeText(toBeXml).then(() => alert('TO-BE XML copied!'))}
-              className="text-xs bg-yellow-400 text-black px-2 py-1 rounded font-bold"
-            >
-              📋 Copy TO-BE XML
-            </button>
           )}
           {(transcript || xml) && (
             <button
