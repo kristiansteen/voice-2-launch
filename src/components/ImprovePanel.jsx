@@ -19,7 +19,6 @@ const EFFORT_COLOURS = {
 };
 
 const BLANK_IDEA = { title: '', description: '', category: 'efficiency', effort: 'medium' };
-const BLANK_RISK = { title: '', probability: 50, consequence: 50, mitigation: '' };
 
 // ── Inline idea edit form ────────────────────────────────────────────────────
 function IdeaForm({ initial = BLANK_IDEA, onSave, onCancel, saveLabel }) {
@@ -65,59 +64,11 @@ function IdeaForm({ initial = BLANK_IDEA, onSave, onCancel, saveLabel }) {
   );
 }
 
-// ── Inline risk form ─────────────────────────────────────────────────────────
-function RiskForm({ initial = BLANK_RISK, onSave, onCancel, saveLabel }) {
-  const { t } = useLang();
-  const [v, setV] = useState(initial);
-  return (
-    <div className="border border-orange-200 rounded-lg p-3 bg-orange-50/30 space-y-2">
-      <input
-        autoFocus
-        value={v.title}
-        onChange={e => setV(p => ({ ...p, title: e.target.value }))}
-        placeholder={t.riskTitlePh}
-        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:border-orange-400 bg-white"
-      />
-      <div className="flex gap-2">
-        <label className="flex-1 text-xs text-gray-500">
-          {t.riskProbability} <span className="font-semibold text-gray-700">{v.probability}</span>
-          <input type="range" min={0} max={100} value={v.probability}
-            onChange={e => setV(p => ({ ...p, probability: Number(e.target.value) }))}
-            className="w-full mt-1 accent-orange-400" />
-        </label>
-        <label className="flex-1 text-xs text-gray-500">
-          {t.riskConsequence} <span className="font-semibold text-gray-700">{v.consequence}</span>
-          <input type="range" min={0} max={100} value={v.consequence}
-            onChange={e => setV(p => ({ ...p, consequence: Number(e.target.value) }))}
-            className="w-full mt-1 accent-red-400" />
-        </label>
-      </div>
-      <textarea
-        value={v.mitigation}
-        onChange={e => setV(p => ({ ...p, mitigation: e.target.value }))}
-        placeholder={t.riskMitigationPh}
-        rows={2}
-        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:border-orange-400 bg-white resize-none"
-      />
-      <div className="flex gap-2 pt-1">
-        <button onClick={() => v.title.trim() && onSave(v)} disabled={!v.title.trim()}
-          className="flex-1 text-xs bg-orange-500 text-white rounded px-3 py-1.5 hover:bg-orange-600 disabled:opacity-40 transition-colors">
-          {saveLabel}
-        </button>
-        <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 px-2">
-          {t.cancel}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ── Main component ───────────────────────────────────────────────────────────
 export default function ImprovePanel({
   parsed, apiKey,
   improvements, onGetImprovements, onAddImprovement, onUpdateImprovement,
   selectedIds, onToggleSelect,
-  customRisks, onAddRisk, onUpdateRisk, onRemoveRisk,
   projectPlan, onGeneratePlan, planLoading,
 }) {
   const { t } = useLang();
@@ -125,8 +76,6 @@ export default function ImprovePanel({
   const [impLoading, setImpLoading] = useState(false);
   const [showAddIdea, setShowAddIdea] = useState(false);
   const [editingImpId, setEditingImpId] = useState(null);
-  const [showAddRisk, setShowAddRisk]   = useState(false);
-  const [editingRiskId, setEditingRiskId] = useState(null);
 
   async function handleGetImprovements() {
     setImpError(null);
@@ -233,85 +182,6 @@ export default function ImprovePanel({
                 )}
               </div>
             ))}
-          </div>
-        )}
-
-        {/* ── Known Risks ───────────────────────────────────────────── */}
-        {hasImprovements && (
-          <div className="px-4 pb-3 border-t border-gray-100 pt-3">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.knownRisks}</p>
-              {!showAddRisk && (
-                <button
-                  onClick={() => setShowAddRisk(true)}
-                  className="text-xs text-orange-500 hover:text-orange-700 transition-colors"
-                >
-                  {t.addRiskBtn}
-                </button>
-              )}
-            </div>
-
-            {showAddRisk && (
-              <div className="mb-2">
-                <RiskForm
-                  onSave={v => {
-                    onAddRisk({ id: `risk_custom_${Date.now()}`, ...v });
-                    setShowAddRisk(false);
-                  }}
-                  onCancel={() => setShowAddRisk(false)}
-                  saveLabel={t.addIdeaBtn}
-                />
-              </div>
-            )}
-
-            {customRisks.length === 0 && !showAddRisk && (
-              <p className="text-xs text-gray-400 italic">{t.noRisksYet}</p>
-            )}
-
-            <div className="space-y-2">
-              {customRisks.map(risk => (
-                <div key={risk.id}>
-                  {editingRiskId === risk.id ? (
-                    <RiskForm
-                      initial={risk}
-                      onSave={v => { onUpdateRisk({ ...risk, ...v }); setEditingRiskId(null); }}
-                      onCancel={() => setEditingRiskId(null)}
-                      saveLabel={t.saveChanges}
-                    />
-                  ) : (
-                    <div className="border border-orange-100 rounded-lg p-2.5 bg-orange-50/20 group">
-                      <div className="flex items-start gap-2">
-                        <span className="text-orange-400 text-xs mt-0.5 shrink-0">⚠</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-700">{risk.title}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            P:{risk.probability} · C:{risk.consequence}
-                          </p>
-                          {risk.mitigation && (
-                            <p className="text-xs text-gray-500 mt-0.5 italic">{risk.mitigation}</p>
-                          )}
-                        </div>
-                        <div className="opacity-0 group-hover:opacity-100 flex gap-1 shrink-0 transition-opacity">
-                          <button
-                            onClick={() => setEditingRiskId(risk.id)}
-                            className="text-gray-400 hover:text-gray-700 text-xs px-1"
-                            title={t.editIdea}
-                          >
-                            ✎
-                          </button>
-                          <button
-                            onClick={() => onRemoveRisk(risk.id)}
-                            className="text-gray-300 hover:text-red-500 text-xs px-1"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         )}
 

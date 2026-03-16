@@ -9,9 +9,60 @@ function riskLevel(p, c, t) {
   return { label: t.low, colour: 'text-green-600' };
 }
 
-export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds }) {
+const BLANK_RISK = { title: '', probability: 50, consequence: 50, mitigation: '' };
+
+function RiskForm({ initial = BLANK_RISK, onSave, onCancel, saveLabel }) {
+  const { t } = useLang();
+  const [v, setV] = useState(initial);
+  return (
+    <div className="border border-orange-200 rounded-lg p-3 bg-orange-50/40 space-y-2">
+      <input
+        autoFocus
+        value={v.title}
+        onChange={e => setV(p => ({ ...p, title: e.target.value }))}
+        onKeyDown={e => e.key === 'Enter' && v.title.trim() && onSave(v)}
+        placeholder="Risk title…"
+        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:border-orange-400 bg-white"
+      />
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 w-24 shrink-0">Probability {v.probability}%</span>
+          <input type="range" min={0} max={100} value={v.probability}
+            onChange={e => setV(p => ({ ...p, probability: Number(e.target.value) }))}
+            className="flex-1 accent-orange-500" />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 w-24 shrink-0">Consequence {v.consequence}%</span>
+          <input type="range" min={0} max={100} value={v.consequence}
+            onChange={e => setV(p => ({ ...p, consequence: Number(e.target.value) }))}
+            className="flex-1 accent-red-500" />
+        </div>
+      </div>
+      <textarea
+        value={v.mitigation}
+        onChange={e => setV(p => ({ ...p, mitigation: e.target.value }))}
+        placeholder="Mitigation plan…"
+        rows={2}
+        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:border-orange-400 bg-white resize-none"
+      />
+      <div className="flex gap-2 pt-1">
+        <button onClick={() => v.title.trim() && onSave(v)} disabled={!v.title.trim()}
+          className="flex-1 text-xs bg-orange-500 text-white rounded px-3 py-1.5 hover:bg-orange-600 disabled:opacity-40 transition-colors">
+          {saveLabel}
+        </button>
+        <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 px-2">
+          {t.cancel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk }) {
   const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
+  const [showAddRisk, setShowAddRisk] = useState(false);
+  const [editingRiskId, setEditingRiskId] = useState(null);
 
   if (!projectPlan) {
     return (
@@ -57,25 +108,81 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
         })}
 
         {/* ── Risks ────────────────────────────────────────────────── */}
-        {(projectPlan.risks || []).length > 0 && (
-          <div className="px-4 pt-3 pb-2 mt-2 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t.risks}</p>
-            {projectPlan.risks.map(risk => {
-              const { label, colour } = riskLevel(risk.probability, risk.consequence, t);
-              return (
-                <div key={risk.id} className="py-2 border-b border-gray-50 last:border-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-orange-400 text-xs shrink-0">⚠</span>
-                    <span className="text-xs font-medium text-gray-700 flex-1">{risk.title}</span>
-                    <span className="text-xs text-gray-400 shrink-0">P:{risk.probability} C:{risk.consequence}</span>
-                    <span className={`text-xs font-semibold shrink-0 ${colour}`}>{label}</span>
-                  </div>
-                  <p className="text-xs text-gray-500 ml-5 mt-0.5">{t.mitigation} {risk.mitigation}</p>
+        <div className="px-4 pt-3 pb-2 mt-2 border-t border-gray-100">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t.risks}</p>
+
+          {/* AI-generated risks */}
+          {(projectPlan.risks || []).map(risk => {
+            const { label, colour } = riskLevel(risk.probability, risk.consequence, t);
+            return (
+              <div key={risk.id} className="py-2 border-b border-gray-50 last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-orange-400 text-xs shrink-0">⚠</span>
+                  <span className="text-xs font-medium text-gray-700 flex-1">{risk.title}</span>
+                  <span className="text-xs text-gray-400 shrink-0">P:{risk.probability} C:{risk.consequence}</span>
+                  <span className={`text-xs font-semibold shrink-0 ${colour}`}>{label}</span>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                <p className="text-xs text-gray-500 ml-5 mt-0.5">{t.mitigation} {risk.mitigation}</p>
+              </div>
+            );
+          })}
+
+          {/* Custom risks */}
+          {customRisks.map(risk => {
+            const { label, colour } = riskLevel(risk.probability, risk.consequence, t);
+            return (
+              <div key={risk.id} className="py-2 border-b border-gray-50 last:border-0">
+                {editingRiskId === risk.id ? (
+                  <RiskForm
+                    initial={{ title: risk.title, probability: risk.probability, consequence: risk.consequence, mitigation: risk.mitigation || '' }}
+                    onSave={v => { onUpdateRisk?.({ ...risk, ...v }); setEditingRiskId(null); }}
+                    onCancel={() => setEditingRiskId(null)}
+                    saveLabel="Save"
+                  />
+                ) : (
+                  <div className="group">
+                    <div className="flex items-center gap-2">
+                      <span className="text-orange-400 text-xs shrink-0">⚠</span>
+                      <span className="text-xs font-medium text-gray-700 flex-1">{risk.title}</span>
+                      <span className="text-xs bg-amber-100 text-amber-700 rounded px-1.5 py-0.5 shrink-0">custom</span>
+                      <span className="text-xs text-gray-400 shrink-0">P:{risk.probability} C:{risk.consequence}</span>
+                      <span className={`text-xs font-semibold shrink-0 ${colour}`}>{label}</span>
+                      <button
+                        onClick={() => setEditingRiskId(risk.id)}
+                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-700 text-xs px-1 transition-opacity shrink-0"
+                        title="Edit"
+                      >✎</button>
+                      <button
+                        onClick={() => onRemoveRisk?.(risk.id)}
+                        className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-600 text-xs px-1 transition-opacity shrink-0"
+                        title="Remove"
+                      >✕</button>
+                    </div>
+                    {risk.mitigation && <p className="text-xs text-gray-500 ml-5 mt-0.5">{t.mitigation} {risk.mitigation}</p>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add risk */}
+          {showAddRisk ? (
+            <div className="mt-2">
+              <RiskForm
+                onSave={v => { onAddRisk?.({ id: `custom_risk_${Date.now()}`, ...v, _custom: true }); setShowAddRisk(false); }}
+                onCancel={() => setShowAddRisk(false)}
+                saveLabel="Add Risk"
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAddRisk(true)}
+              className="mt-2 w-full border border-dashed border-gray-300 text-gray-400 hover:border-orange-400 hover:text-orange-600 text-xs py-1.5 rounded-md transition-colors"
+            >
+              + Add Risk
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Export CTA ───────────────────────────────────────────────── */}

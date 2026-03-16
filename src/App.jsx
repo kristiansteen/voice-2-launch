@@ -683,10 +683,6 @@ export default function App() {
               onUpdateImprovement={handleUpdateImprovement}
               selectedIds={selectedImprovementIds}
               onToggleSelect={handleToggleSelect}
-              customRisks={customRisks}
-              onAddRisk={handleAddRisk}
-              onUpdateRisk={handleUpdateRisk}
-              onRemoveRisk={handleRemoveRisk}
               projectPlan={projectPlan}
               onGeneratePlan={handleGeneratePlan}
               planLoading={planLoading}
@@ -706,6 +702,10 @@ export default function App() {
               processDescription={processDescription}
               improvements={improvements}
               selectedIds={selectedImprovementIds}
+              customRisks={customRisks}
+              onAddRisk={handleAddRisk}
+              onUpdateRisk={handleUpdateRisk}
+              onRemoveRisk={handleRemoveRisk}
             />
           </PanelShell>
         </div>
