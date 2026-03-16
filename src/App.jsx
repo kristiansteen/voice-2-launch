@@ -615,6 +615,20 @@ export default function App() {
               {t.clear}
             </button>
           )}
+          {/* TEMP: copy current state as demo JSON */}
+          {(parsed || projectPlan) && (
+            <button
+              onClick={() => {
+                const data = { transcript, processDescription, parsed, xml, improvements, selectedImprovementIds: selectedImprovementIds, customRisks, projectPlan, processContext };
+                navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+                alert('State copied to clipboard!');
+              }}
+              className="text-xs text-yellow-400 hover:text-yellow-200 border border-yellow-700 rounded px-2 py-0.5 transition-colors"
+              title="Copy current state as demo JSON"
+            >
+              Copy state
+            </button>
+          )}
           <LangSwitcher />
           <button
             onClick={() => setShowBurger(true)}
