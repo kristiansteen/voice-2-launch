@@ -1,7 +1,7 @@
 export const translations = {
   en: {
     // ── App / header ──────────────────────────────────────────────
-    appTitle:       'Voice to BPMN',
+    appTitle:       'Voice-to-Launch',
     poweredBy:      'Powered by',
     draftRestored:  'Draft restored',
     clear:          'Clear',
