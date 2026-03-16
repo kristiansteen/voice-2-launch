@@ -17,6 +17,7 @@ import {
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
+import { useAuth } from './hooks/useAuth.js';
 
 const DEMO_TRANSCRIPT = `Interviewer: Can you walk me through the accounts payable invoice processing workflow from start to finish?
 
@@ -506,6 +507,44 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showBurger, setShowBurger] = useState(false);
 
+  // ── Auth + free session ────────────────────────────────────────────────────
+  const auth = useAuth();
+  const [keyMode, setKeyMode] = useState(() => sessionStorage.getItem('v2l_keymode') || null);
+  const [sessionNonce, setSessionNonce] = useState(() => sessionStorage.getItem('v2l_nonce') || null);
+  const [sessionStatus, setSessionStatus] = useState('available'); // 'available' | 'active' | 'used'
+
+  // When user logs in, check whether their free session exists / is usable
+  useEffect(() => {
+    if (!auth.user || !auth.session) return;
+    fetch('/api/proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${auth.session.access_token}`,
+        ...(sessionNonce ? { 'x-session-nonce': sessionNonce } : {}),
+      },
+      body: JSON.stringify({ _check: true, model: 'claude-sonnet-4-20250514', system: ' ', messages: [{ role: 'user', content: ' ' }], max_tokens: 1 }),
+    }).then(async r => {
+      if (r.status === 403) { setSessionStatus('used'); return; }
+      const nonce = r.headers.get('x-session-nonce');
+      if (nonce) { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); }
+      if (keyMode === 'free') setSessionStatus('active');
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.user?.id]);
+
+  function getProxyAuth() {
+    if (keyMode !== 'free' || !auth.session) return null;
+    return {
+      token: auth.session.access_token,
+      sessionNonce,
+      onNonce: (nonce) => { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); setSessionStatus('active'); },
+    };
+  }
+
+  const effectiveApiKey = keyMode === 'byok' ? apiKey : null;
+  const hasAccess = keyMode === 'byok' ? !!apiKey : (keyMode === 'free' && sessionStatus !== 'used' && !!auth.session);
+
   // ── Custom taxonomy (overrides APQC in ApqcSelector) ──────────────
   const [customTaxonomyNodes, setCustomTaxonomyNodes] = useState(() => {
     try {
@@ -587,7 +626,7 @@ export default function App() {
   const [voiceError, setVoiceError] = useState(null);
 
   // ── Ailean AI Interviewer ──────────────────────────────────────────
-  const ailean = useAileanInterviewer({ apiKey, elevenLabsKey, processContext });
+  const ailean = useAileanInterviewer({ apiKey: effectiveApiKey, elevenLabsKey, processContext, proxyAuth: getProxyAuth() });
 
   // Panel 2 — Description
   const [processDescription, setProcessDescription] = useState(null);
@@ -734,7 +773,7 @@ export default function App() {
     setSelectedImprovementIds([]);
     setProjectPlan(null);
     try {
-      const desc = await parseVoiceToDescription(getEffectiveTranscript(), apiKey, processContext);
+      const desc = await parseVoiceToDescription(getEffectiveTranscript(), effectiveApiKey, processContext, getProxyAuth());
       setProcessDescription(desc);
     } catch (err) {
       setVoiceError(err.message || 'Failed to parse voice.');
@@ -751,7 +790,7 @@ export default function App() {
     setSelectedImprovementIds([]);
     setProjectPlan(null);
     try {
-      const bpmnJson = await parseToBpmn(processDescription, apiKey, processContext);
+      const bpmnJson = await parseToBpmn(processDescription, effectiveApiKey, processContext, getProxyAuth());
       setParsed(bpmnJson);
       const generatedXml = generateBpmnXml(bpmnJson);
       setXml(generatedXml);
@@ -761,7 +800,7 @@ export default function App() {
   }
 
   async function handleGetImprovements() {
-    const result = await getStructuredImprovements(parsed, apiKey);
+    const result = await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth());
     setImprovements(result);
     setSelectedImprovementIds([]);
   }
@@ -807,8 +846,8 @@ export default function App() {
 
     try {
       const [plan, toBeParsedResult] = await Promise.all([
-        generateProjectPlan(parsed, selected, apiKey, customRisks),
-        generateToBeBpmn(parsed, selected, apiKey),
+        generateProjectPlan(parsed, selected, effectiveApiKey, customRisks, getProxyAuth()),
+        generateToBeBpmn(parsed, selected, effectiveApiKey, getProxyAuth()),
       ]);
       setProjectPlan(plan);
       setToBeParsed(toBeParsedResult);
@@ -928,7 +967,7 @@ export default function App() {
               effectiveTranscript={getEffectiveTranscript()}
               onParse={handleParseVoice}
               loading={descParsing}
-              canParse={!!getEffectiveTranscript().trim() && !!apiKey}
+              canParse={!!getEffectiveTranscript().trim() && hasAccess}
               onLoadDemo={handleLoadDemo}
               ailean={ailean}
               hasElevenLabsKey={!!elevenLabsKey}
@@ -948,7 +987,7 @@ export default function App() {
               onDescriptionChange={setProcessDescription}
               onApprove={handleApproveToBpmn}
               loading={descParsing}
-              canApprove={!!processDescription && !!apiKey && !bpmnParsing}
+              canApprove={!!processDescription && hasAccess && !bpmnParsing}
               processContext={processContext}
               onProcessContextChange={setProcessContext}
               taxonomyNodes={customTaxonomyNodes}
@@ -970,7 +1009,7 @@ export default function App() {
               parsed={parsed}
               processDescription={processDescription}
               onGetImprovements={handleGetImprovements}
-              apiKey={apiKey}
+              apiKey={hasAccess ? (effectiveApiKey || 'granted') : null}
               asIsXml={asIsXml}
               toBeXml={toBeXml}
               onToBeXmlChange={setToBeXml}
@@ -987,7 +1026,7 @@ export default function App() {
           <PanelShell num="4" label={t.panel4} collapsed={collapsed[4]} onToggle={() => togglePanel(4)}>
             <ImprovePanel
               parsed={parsed}
-              apiKey={apiKey}
+              apiKey={hasAccess ? (effectiveApiKey || 'granted') : null}
               improvements={improvements}
               onGetImprovements={handleGetImprovements}
               onAddImprovement={handleAddImprovement}
@@ -1027,8 +1066,13 @@ export default function App() {
         open={showBurger}
         onClose={() => setShowBurger(false)}
         apiKey={apiKey}
-        onApiKeyChange={key => { setApiKey(key); }}
+        onApiKeyChange={key => { setApiKey(key); setKeyMode('byok'); sessionStorage.setItem('v2l_keymode', 'byok'); }}
         elevenLabsKey={elevenLabsKey}
+        authUser={auth.user}
+        sessionStatus={sessionStatus}
+        onGoogleSignIn={auth.signInWithGoogle}
+        onSignOut={auth.signOut}
+        onStartFreeSession={() => { setKeyMode('free'); sessionStorage.setItem('v2l_keymode', 'free'); setSessionStatus('active'); }}
         onElevenLabsKeyChange={key => { setElevenLabsKey(key); }}
         vimplToken={vimplToken}
         onLoginGoogle={loginWithGoogle}

@@ -23,7 +23,7 @@ function speakBrowser(text) {
   });
 }
 
-export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) {
+export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext, proxyAuth = null }) {
   const [enabled, setEnabled]           = useState(false);
   const [thinking, setThinking]         = useState(false);
   const [speaking, setSpeaking]         = useState(false);
@@ -45,7 +45,7 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) 
   }, []);
 
   const askFollowUp = useCallback(async (transcript) => {
-    if (!enabled || !apiKey) return;
+    if (!enabled || (!apiKey && !proxyAuth)) return;
     if (thinking || speaking) return;
     if (!transcript || transcript.trim().length < 40) return;
     // Skip if transcript hasn't grown meaningfully since last call
@@ -64,6 +64,7 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) 
         historyRef.current,
         apiKey,
         processContext,
+        proxyAuth,
       );
 
       setCurrentQuestion(question);
@@ -110,7 +111,7 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) 
     } finally {
       setSpeaking(false);
     }
-  }, [enabled, apiKey, elevenLabsKey, thinking, speaking, processContext]);
+  }, [enabled, apiKey, elevenLabsKey, thinking, speaking, processContext, proxyAuth]);
 
   function toggle() {
     setEnabled(prev => {

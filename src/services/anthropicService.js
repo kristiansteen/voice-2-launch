@@ -1,5 +1,41 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+// ── Client factory ────────────────────────────────────────────────────────────
+// Returns either a real Anthropic client (BYOK) or a proxy shim (free session).
+function makeClient(apiKey, proxyAuth = null) {
+  if (apiKey) return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  // Proxy shim — mirrors the Anthropic SDK's messages.create interface
+  return {
+    messages: {
+      async create(params) {
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${proxyAuth.token}`,
+        };
+        if (proxyAuth.sessionNonce) headers['x-session-nonce'] = proxyAuth.sessionNonce;
+
+        const res = await fetch('/api/proxy', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(params),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const e = new Error(err.error || 'Proxy error');
+          if (err.error === 'free_session_used') e.code = 'FREE_SESSION_USED';
+          throw e;
+        }
+
+        const nonce = res.headers.get('x-session-nonce');
+        if (nonce && proxyAuth.onNonce) proxyAuth.onNonce(nonce);
+        return res.json();
+      },
+    },
+  };
+}
+
 const SUGGESTIONS_PROMPT = `You are a BPMN process improvement expert. Analyse the following BPMN process JSON and provide concise, actionable improvement suggestions.
 
 Focus on:
@@ -115,8 +151,8 @@ Rules:
 - sequence_flows must reference valid element ids
 - If you are uncertain about an element, still include it — mark ambiguous names with a "?" suffix`;
 
-export async function parseTranscript(transcript, apiKey, processContext = {}) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function parseTranscript(transcript, apiKey, processContext = {}, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   let system = SYSTEM_PROMPT;
   if (!processContext.isCustom && processContext.apqcNodeId) {
@@ -152,8 +188,8 @@ export async function parseTranscript(transcript, apiKey, processContext = {}) {
   }
 }
 
-export async function getSuggestions(parsed, apiKey) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function getSuggestions(parsed, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -165,8 +201,8 @@ export async function getSuggestions(parsed, apiKey) {
   return message.content[0].text;
 }
 
-export async function parseVoiceToDescription(transcript, apiKey, processContext = {}) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function parseVoiceToDescription(transcript, apiKey, processContext = {}, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   let system = DESCRIPTION_PROMPT;
   if (!processContext.isCustom && processContext.apqcNodeId) {
@@ -199,8 +235,8 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
   }
 }
 
-export async function parseToBpmn(description, apiKey, processContext = {}) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function parseToBpmn(description, apiKey, processContext = {}, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   let system = SYSTEM_PROMPT;
   if (!processContext.isCustom && processContext.apqcNodeId) {
@@ -229,8 +265,8 @@ export async function parseToBpmn(description, apiKey, processContext = {}) {
   }
 }
 
-export async function getStructuredImprovements(parsed, apiKey) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -251,8 +287,8 @@ export async function getStructuredImprovements(parsed, apiKey) {
   }
 }
 
-export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = []) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   const input = {
     process: parsed,
@@ -296,8 +332,8 @@ Rules:
 - sequence_flows must reference only valid element ids in the output
 - Set process_name to the original name suffixed with " — TO-BE"`;
 
-export async function generateToBeBpmn(asIsParsed, improvements, apiKey) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   const input = {
     as_is_bpmn: asIsParsed,
@@ -325,8 +361,8 @@ export async function generateToBeBpmn(asIsParsed, improvements, apiKey) {
 
 // ── Ailean Interview Follow-up ────────────────────────────────────────────────
 // Returns a single follow-up question as plain text (no JSON).
-export async function getInterviewFollowUp(transcript, conversationHistory, apiKey, processContext) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function getInterviewFollowUp(transcript, conversationHistory, apiKey, processContext, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   let systemPrompt = `You are Ailean, an expert lean consultant and process discovery interviewer with 20+ years of experience. You are conducting a process mapping interview to capture a business process as a BPMN diagram.
 
