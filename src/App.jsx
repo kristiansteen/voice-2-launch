@@ -513,9 +513,13 @@ export default function App() {
   const [sessionNonce, setSessionNonce] = useState(() => sessionStorage.getItem('v2l_nonce') || null);
   const [sessionStatus, setSessionStatus] = useState('available'); // 'available' | 'active' | 'used'
 
-  // When user logs in, check whether their free session exists / is usable
+  // When user logs in, auto-activate free session (unless BYOK is already set)
   useEffect(() => {
     if (!auth.user || !auth.session) return;
+    if (keyMode === 'byok') return; // BYOK takes precedence
+    // Auto-delegate the API key for any signed-in user
+    setKeyMode('free');
+    sessionStorage.setItem('v2l_keymode', 'free');
     fetch('/api/proxy', {
       method: 'POST',
       headers: {
@@ -528,7 +532,7 @@ export default function App() {
       if (r.status === 403) { setSessionStatus('used'); return; }
       const nonce = r.headers.get('x-session-nonce');
       if (nonce) { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); }
-      if (keyMode === 'free') setSessionStatus('active');
+      setSessionStatus('active');
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.user?.id]);
