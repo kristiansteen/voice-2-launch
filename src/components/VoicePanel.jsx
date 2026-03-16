@@ -11,6 +11,8 @@ export default function VoicePanel({
   transcript, setTranscript,
   onParse, loading, canParse,
   onLoadDemo,
+  ailean,
+  onAileanTurn,
 }) {
   const { t, lang } = useLang();
   const [showGuide, setShowGuide] = useState(false);
@@ -24,10 +26,18 @@ export default function VoicePanel({
   function handleRecord() {
     if (isRecording) {
       stop();
+      // Give the final transcript 400ms to commit, then let Ailean respond
+      if (ailean?.enabled) {
+        setTimeout(() => onAileanTurn?.(), 400);
+      }
     } else {
+      ailean?.stopSpeaking(); // stop Ailean when user starts speaking
       start(transcript);
     }
   }
+
+  const aileanActive = ailean?.enabled;
+  const aileanBusy   = ailean?.thinking || ailean?.speaking;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -50,6 +60,32 @@ export default function VoicePanel({
           </button>
         </div>
 
+        {/* Ailean toggle */}
+        {ailean && (
+          <button
+            onClick={ailean.toggle}
+            title={aileanActive ? 'Disable Ailean interview mode' : 'Enable Ailean interview mode — she will ask follow-up questions after you speak'}
+            className={[
+              'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-all',
+              aileanActive
+                ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-purple-400 hover:text-purple-600',
+            ].join(' ')}
+          >
+            {/* Simple waveform icon */}
+            <svg width="13" height="11" viewBox="0 0 13 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0"   y="4"   width="2" height="3"  rx="1" fill="currentColor" opacity="0.6"/>
+              <rect x="2.5" y="2"   width="2" height="7"  rx="1" fill="currentColor" opacity="0.8"/>
+              <rect x="5"   y="0"   width="2" height="11" rx="1" fill="currentColor"/>
+              <rect x="7.5" y="2"   width="2" height="7"  rx="1" fill="currentColor" opacity="0.8"/>
+              <rect x="10"  y="4"   width="2" height="3"  rx="1" fill="currentColor" opacity="0.6"/>
+            </svg>
+            Ailean
+            {aileanActive && aileanBusy && (
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-white animate-pulse ml-0.5" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* ── Main area: transcript ─────────────────────────────────── */}
@@ -111,6 +147,77 @@ export default function VoicePanel({
             </div>
           )}
         </div>
+
+        {/* ── Ailean status + question ────────────────────────────── */}
+        {aileanActive && (
+          <div className="shrink-0 border-t border-purple-100 bg-purple-50/60 px-3 py-2 space-y-1.5">
+            {ailean.thinking && (
+              <div className="flex items-center gap-2 text-xs text-purple-600">
+                <span className="inline-block w-3.5 h-3.5 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin shrink-0" />
+                Ailean is thinking…
+              </div>
+            )}
+            {ailean.speaking && !ailean.thinking && (
+              <div className="flex items-center gap-2 text-xs text-purple-600">
+                {/* animated bars */}
+                <span className="flex items-end gap-0.5 h-3.5 shrink-0">
+                  {[0,1,2,3].map(i => (
+                    <span
+                      key={i}
+                      className="w-0.5 bg-purple-500 rounded-full animate-bounce"
+                      style={{ height: `${[8,12,10,7][i]}px`, animationDelay: `${i * 0.12}s` }}
+                    />
+                  ))}
+                </span>
+                Ailean is speaking…
+                <button
+                  onClick={ailean.stopSpeaking}
+                  className="ml-auto text-[10px] text-purple-400 hover:text-purple-700 underline"
+                >
+                  stop
+                </button>
+              </div>
+            )}
+            {ailean.currentQuestion && !ailean.thinking && (
+              <div className="flex gap-2">
+                <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-white text-[9px] font-bold">A</span>
+                </div>
+                <p className="text-xs text-purple-900 leading-relaxed">
+                  {ailean.currentQuestion}
+                </p>
+              </div>
+            )}
+            {!ailean.thinking && !ailean.speaking && !ailean.currentQuestion && (
+              <p className="text-[10px] text-purple-400 italic">
+                Record your answer — Ailean will ask a follow-up when you stop.
+              </p>
+            )}
+            {ailean.error && (
+              <p className="text-[10px] text-red-500 bg-red-50 border border-red-100 rounded px-2 py-1">
+                {ailean.error}
+              </p>
+            )}
+            {ailean.questions.length > 1 && (
+              <details className="text-[10px] text-purple-400 cursor-pointer">
+                <summary className="hover:text-purple-600">
+                  {ailean.questions.length - 1} previous question{ailean.questions.length > 2 ? 's' : ''}
+                </summary>
+                <ul className="mt-1 space-y-1 pl-2 border-l border-purple-200">
+                  {ailean.questions.slice(0, -1).map((q, i) => (
+                    <li key={i} className="text-purple-500">{q}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            <button
+              onClick={ailean.reset}
+              className="text-[10px] text-purple-300 hover:text-purple-600 transition-colors"
+            >
+              Reset conversation
+            </button>
+          </div>
+        )}
 
         {/* ── Interview guide — collapsed accordion at bottom ────── */}
         <div className="shrink-0 border-t border-gray-100">

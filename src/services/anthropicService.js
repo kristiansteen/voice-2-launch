@@ -278,3 +278,54 @@ export async function generateProjectPlan(parsed, selectedImprovements, apiKey, 
     throw err;
   }
 }
+
+// ── Ailean Interview Follow-up ────────────────────────────────────────────────
+// Returns a single follow-up question as plain text (no JSON).
+export async function getInterviewFollowUp(transcript, conversationHistory, apiKey, processContext) {
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  let systemPrompt = `You are Ailean, an expert lean consultant and process discovery interviewer with 20+ years of experience. You are conducting a process mapping interview to capture a business process as a BPMN diagram.
+
+Your role is to ask targeted follow-up questions that uncover:
+- Missing steps or activities
+- Decision points and gateway conditions
+- Who performs each step (roles/swimlanes)
+- Exceptions, error flows, and edge cases
+- Handovers between departments or systems
+- Inputs, outputs, and triggers
+- Pain points and bottlenecks
+
+Guidelines:
+- Ask ONLY ONE focused question at a time — never multiple questions in one turn
+- Keep it short: 1-2 natural sentences maximum
+- Be warm, curious, and conversational — like a trusted colleague
+- Build on exactly what the person just said
+- Briefly acknowledge their last answer before probing deeper
+- If a step is vague, dig into the specifics
+- If a role is unclear, ask who specifically performs it
+- If there is a decision, ask what conditions determine each path`;
+
+  if (processContext?.apqcNodeName) {
+    systemPrompt += `\n\nThe process being mapped is: ${processContext.apqcNodeName}`;
+  }
+
+  systemPrompt += `\n\nReturn ONLY your follow-up question. No preamble, no explanation, no quotation marks.`;
+
+  const messages = [
+    // Keep the last 3 turns (6 messages) to stay within context
+    ...conversationHistory.slice(-6),
+    {
+      role: 'user',
+      content: `Here is the interview transcript so far:\n\n${transcript}\n\nAsk your next follow-up question.`,
+    },
+  ];
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 120,
+    system: systemPrompt,
+    messages,
+  });
+
+  return response.content[0].text.trim();
+}

@@ -23,12 +23,14 @@ function Section({ title, children, defaultOpen = false }) {
 export default function BurgerMenu({
   open, onClose,
   apiKey, onApiKeyChange,
+  elevenLabsKey, onElevenLabsKeyChange,
   vimplToken, onLoginGoogle, onLoginVimpl, onLogout,
   parsed, processContext,
   customTaxonomyNodes, onTaxonomyChange,
 }) {
   const { t } = useLang();
   const [draftKey, setDraftKey] = useState(apiKey || '');
+  const [draftElKey, setDraftElKey] = useState(elevenLabsKey || '');
   const fileRef = useRef(null);
   const [uploadError, setUploadError] = useState(null);
   const [uploadName, setUploadName] = useState(() => {
@@ -37,6 +39,10 @@ export default function BurgerMenu({
 
   function handleSaveKey() {
     onApiKeyChange(draftKey.trim());
+  }
+
+  function handleSaveElKey() {
+    onElevenLabsKeyChange(draftElKey.trim());
   }
 
   function handleFileUpload(e) {
@@ -95,27 +101,63 @@ export default function BurgerMenu({
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* ── API Key ───────────────────────────────────────────── */}
+          {/* ── API Keys ──────────────────────────────────────────── */}
           <Section title="Bring your own key" defaultOpen={!apiKey}>
-            <div className="space-y-2">
-              <input
-                type="password"
-                value={draftKey}
-                onChange={e => setDraftKey(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSaveKey()}
-                placeholder="sk-ant-..."
-                className="w-full text-xs border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-green-400 font-mono"
-              />
-              <button
-                onClick={handleSaveKey}
-                disabled={!draftKey.trim()}
-                className="w-full text-xs font-medium bg-vimpl text-black py-2 rounded hover:bg-vimpl-dark hover:text-white disabled:opacity-40 transition-colors"
-              >
-                {apiKey ? 'Update key' : 'Save key'}
-              </button>
-              {apiKey && (
-                <p className="text-[10px] text-green-600 text-center">Key set ✓</p>
-              )}
+            <div className="space-y-4">
+
+              {/* Anthropic */}
+              <div className="space-y-2">
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Anthropic (required)</p>
+                <input
+                  type="password"
+                  value={draftKey}
+                  onChange={e => setDraftKey(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveKey()}
+                  placeholder="sk-ant-..."
+                  className="w-full text-xs border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-green-400 font-mono"
+                />
+                <button
+                  onClick={handleSaveKey}
+                  disabled={!draftKey.trim()}
+                  className="w-full text-xs font-medium bg-vimpl text-black py-2 rounded hover:bg-vimpl-dark hover:text-white disabled:opacity-40 transition-colors"
+                >
+                  {apiKey ? 'Update key' : 'Save key'}
+                </button>
+                {apiKey && (
+                  <p className="text-[10px] text-green-600 text-center">Key set ✓</p>
+                )}
+              </div>
+
+              {/* ElevenLabs */}
+              <div className="space-y-2">
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+                  ElevenLabs <span className="normal-case font-normal text-gray-400">(for Ailean's voice)</span>
+                </p>
+                <input
+                  type="password"
+                  value={draftElKey}
+                  onChange={e => setDraftElKey(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveElKey()}
+                  placeholder="sk_..."
+                  className="w-full text-xs border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-purple-400 font-mono"
+                />
+                <button
+                  onClick={handleSaveElKey}
+                  disabled={!draftElKey.trim()}
+                  className="w-full text-xs font-medium bg-purple-600 text-white py-2 rounded hover:bg-purple-700 disabled:opacity-40 transition-colors"
+                >
+                  {elevenLabsKey ? 'Update key' : 'Save key'}
+                </button>
+                {elevenLabsKey && (
+                  <p className="text-[10px] text-purple-600 text-center">Key set ✓</p>
+                )}
+                {!elevenLabsKey && (
+                  <p className="text-[10px] text-gray-400">
+                    Optional — without it Ailean uses your browser's built-in voice.
+                  </p>
+                )}
+              </div>
+
             </div>
           </Section>
 

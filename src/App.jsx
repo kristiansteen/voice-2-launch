@@ -15,6 +15,7 @@ import {
   generateProjectPlan,
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
+import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
 
 const DEMO_TRANSCRIPT = `Interviewer: Can you walk me through the invoice approval process?
 
@@ -236,6 +237,7 @@ const DRAFT_KEY = 'voice2bpmn_draft';
 export default function App() {
   const { t } = useLang();
   const [apiKey, setApiKey] = useState('');
+  const [elevenLabsKey, setElevenLabsKey] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showBurger, setShowBurger] = useState(false);
 
@@ -318,6 +320,9 @@ export default function App() {
   const [transcript, setTranscript] = useState('');
   const [descParsing, setDescParsing] = useState(false);
   const [voiceError, setVoiceError] = useState(null);
+
+  // ── Ailean AI Interviewer ──────────────────────────────────────────
+  const ailean = useAileanInterviewer({ apiKey, elevenLabsKey, processContext });
 
   // Panel 2 — Description
   const [processDescription, setProcessDescription] = useState(null);
@@ -619,6 +624,8 @@ export default function App() {
               loading={descParsing}
               canParse={!!transcript.trim() && !!apiKey}
               onLoadDemo={handleLoadDemo}
+              ailean={ailean}
+              onAileanTurn={() => ailean.askFollowUp(transcript)}
             />
           </PanelShell>
         </div>
@@ -710,6 +717,8 @@ export default function App() {
         onClose={() => setShowBurger(false)}
         apiKey={apiKey}
         onApiKeyChange={key => { setApiKey(key); }}
+        elevenLabsKey={elevenLabsKey}
+        onElevenLabsKeyChange={key => { setElevenLabsKey(key); }}
         vimplToken={vimplToken}
         onLoginGoogle={loginWithGoogle}
         onLoginVimpl={loginWithVimpl}
