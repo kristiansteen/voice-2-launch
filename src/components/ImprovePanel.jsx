@@ -95,27 +95,6 @@ export default function ImprovePanel({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto">
 
-        {/* ── Add your own idea ────────────────────────────────────── */}
-        <div className="px-4 pb-3">
-          {showAddIdea ? (
-            <IdeaForm
-              onSave={v => {
-                onAddImprovement({ id: `custom_${Date.now()}`, ...v, benefit: '', _custom: true });
-                setShowAddIdea(false);
-              }}
-              onCancel={() => setShowAddIdea(false)}
-              saveLabel={t.addIdeaBtn}
-            />
-          ) : (
-            <button
-              onClick={() => setShowAddIdea(true)}
-              className="w-full border border-dashed border-gray-300 text-gray-400 hover:border-green-400 hover:text-green-600 text-xs py-1.5 rounded-md transition-colors"
-            >
-              {t.addOwnIdea}
-            </button>
-          )}
-        </div>
-
         {/* ── Improvements list ─────────────────────────────────────── */}
         {hasImprovements && (
           <div className="px-4 pb-2 space-y-2">
@@ -184,6 +163,27 @@ export default function ImprovePanel({
             ))}
           </div>
         )}
+
+        {/* ── Add your own idea ────────────────────────────────────── */}
+        <div className="px-4 pb-3">
+          {showAddIdea ? (
+            <IdeaForm
+              onSave={v => {
+                onAddImprovement({ id: `custom_${Date.now()}`, ...v, benefit: '', _custom: true });
+                setShowAddIdea(false);
+              }}
+              onCancel={() => setShowAddIdea(false)}
+              saveLabel={t.addIdeaBtn}
+            />
+          ) : (
+            <button
+              onClick={() => setShowAddIdea(true)}
+              className="w-full border border-dashed border-gray-300 text-gray-400 hover:border-green-400 hover:text-green-600 text-xs py-1.5 rounded-md transition-colors"
+            >
+              {t.addOwnIdea}
+            </button>
+          )}
+        </div>
 
         {/* ── Generate plan ────────────────────────────────────────── */}
         {hasImprovements && (
