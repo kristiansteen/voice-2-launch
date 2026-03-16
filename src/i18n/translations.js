@@ -11,11 +11,11 @@ export const translations = {
     collapsePanel:  'Collapse panel',
 
     // Panel labels
-    panel1: 'Snak',
-    panel2: 'Identificér',
+    panel1: 'Voice',
+    panel2: 'Identify',
     panel3: 'Map',
-    panel4: 'Planlæg',
-    panel5: 'Lancér',
+    panel4: 'Plan',
+    panel5: 'Launch',
     panel6: 'Taxonomy DB',
 
     // ── VoicePanel ────────────────────────────────────────────────
