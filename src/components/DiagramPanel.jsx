@@ -171,11 +171,6 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         <button onClick={() => setShowXmlModal(true)} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
           {t.bpmnXml}
         </button>
-        {asIsXml && (
-          <span className="text-[10px] text-green-600 font-medium border border-green-200 rounded px-2 py-0.5 bg-green-50 shrink-0">
-            {toBeXml ? '✓ AS-IS + TO-BE' : toBeLoading ? '⏳ Generating…' : 'AS-IS saved'}
-          </span>
-        )}
       </div>
 
       {/* ── Inline save panel ──────────────────────────────────────── */}
