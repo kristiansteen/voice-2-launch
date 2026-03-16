@@ -107,33 +107,31 @@ export default function VoicePanel({
     <div className="flex-1 flex flex-col overflow-hidden">
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
-      <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between shrink-0 gap-2">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onLoadDemo}
-            className="text-xs font-medium text-green-600 hover:text-green-800 border border-green-200 rounded px-2 py-0.5 hover:border-green-400 transition-colors"
-            title={t.loadDemoTitle}
-          >
-            {t.loadDemo}
-          </button>
+      <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-2 shrink-0">
+        <button
+          onClick={onLoadDemo}
+          className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors"
+          title={t.loadDemoTitle}
+        >
+          {t.loadDemo}
+        </button>
 
-          <button
-            onClick={handlePaste}
-            title="Paste transcript from clipboard"
-            className={[
-              'flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border transition-all',
-              pasteFlash
-                ? 'bg-green-100 text-green-700 border-green-300'
-                : 'text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700',
-            ].join(' ')}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <rect x="9" y="2" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            {pasteFlash ? 'Pasted!' : 'Paste'}
-          </button>
-        </div>
+        <button
+          onClick={handlePaste}
+          title="Paste transcript from clipboard"
+          className={[
+            'flex-1 flex items-center justify-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
+            pasteFlash
+              ? 'bg-green-50 text-green-700 border-green-300'
+              : 'text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-800',
+          ].join(' ')}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <rect x="9" y="2" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          {pasteFlash ? 'Pasted!' : 'Paste'}
+        </button>
 
         {/* Ailean toggle */}
         {ailean && (
@@ -141,13 +139,12 @@ export default function VoicePanel({
             onClick={ailean.toggle}
             title={aileanActive ? 'Disable Ailean interview mode' : 'Enable Ailean interview mode — she will ask follow-up questions after you speak'}
             className={[
-              'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-all',
+              'flex-1 flex items-center justify-center gap-1.5 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
               aileanActive
                 ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-purple-400 hover:text-purple-600',
+                : 'text-gray-600 border-gray-200 hover:border-purple-400 hover:text-purple-600',
             ].join(' ')}
           >
-            {/* Simple waveform icon */}
             <svg width="13" height="11" viewBox="0 0 13 11" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="0"   y="4"   width="2" height="3"  rx="1" fill="currentColor" opacity="0.6"/>
               <rect x="2.5" y="2"   width="2" height="7"  rx="1" fill="currentColor" opacity="0.8"/>
