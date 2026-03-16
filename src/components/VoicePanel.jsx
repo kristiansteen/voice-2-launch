@@ -3,6 +3,14 @@ import InterviewGuide from './InterviewGuide.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder.js';
 
+async function pasteFromClipboard() {
+  try {
+    return await navigator.clipboard.readText();
+  } catch {
+    return null;
+  }
+}
+
 const EXAMPLE_TRANSCRIPT = `Interviewer: Can you walk me through the invoice approval process?
 
 SME: Sure. When we receive an invoice from a supplier, the Accounts Payable clerk first checks if it matches a purchase order. If it matches, they send it to the relevant department manager for approval. The manager either approves or rejects it. If approved, AP processes the payment. If rejected, they notify the supplier and archive the invoice. If there's no matching PO, AP sends it back to procurement to raise one first.`;
@@ -16,6 +24,16 @@ export default function VoicePanel({
 }) {
   const { t, lang } = useLang();
   const [showGuide, setShowGuide] = useState(false);
+  const [pasteFlash, setPasteFlash] = useState(false);
+
+  async function handlePaste() {
+    const text = await pasteFromClipboard();
+    if (text?.trim()) {
+      setTranscript(prev => prev ? prev + '\n\n' + text.trim() : text.trim());
+      setPasteFlash(true);
+      setTimeout(() => setPasteFlash(false), 1500);
+    }
+  }
 
   const { isRecording, interimText, error, supported, start, stop } =
     useVoiceRecorder({
@@ -57,6 +75,22 @@ export default function VoicePanel({
             className="text-xs text-blue-500 hover:text-blue-700"
           >
             {t.loadExample}
+          </button>
+          <button
+            onClick={handlePaste}
+            title="Paste transcript from clipboard"
+            className={[
+              'flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border transition-all',
+              pasteFlash
+                ? 'bg-green-100 text-green-700 border-green-300'
+                : 'text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700',
+            ].join(' ')}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <rect x="9" y="2" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            {pasteFlash ? 'Pasted!' : 'Paste'}
           </button>
         </div>
 
