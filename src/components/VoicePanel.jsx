@@ -78,12 +78,33 @@ export default function VoicePanel({
   // Text the user has spoken since the last Ailean question (current in-progress turn)
   const currentDraft   = aileanActive ? transcript.slice(ailean?.prevTranscriptLength || 0) : '';
 
+  // Parse "Interviewer: / SME:" labelled transcript into display turns
+  function parseTranscriptTurns(text) {
+    if (!text) return null;
+    const blocks = text.split(/\n{2,}/);
+    const turns = blocks.map(block => {
+      const b = block.trim();
+      if (/^Interviewer:/i.test(b))
+        return { type: 'ailean', text: b.replace(/^Interviewer:\s*/i, '') };
+      if (/^SME:/i.test(b))
+        return { type: 'user', text: b.replace(/^SME:\s*/i, '') };
+      return null;
+    }).filter(Boolean);
+    return turns.length >= 2 ? turns : null;
+  }
+
+  // Use Ailean live turns if active, otherwise fall back to parsing the transcript text
+  const displayTurns = aileanActive && aileanTurns.length > 0
+    ? aileanTurns
+    : parseTranscriptTurns(transcript);
+  const isStructured = !!displayTurns;
+
   // Auto-scroll structured conversation to bottom when turns or draft change
   const scrollRef = useRef(null);
   useEffect(() => {
     const el = document.getElementById('ailean-transcript-scroll');
     if (el) el.scrollTop = el.scrollHeight;
-  }, [aileanTurns.length, currentDraft, aileanBusy]);
+  }, [displayTurns?.length, currentDraft, aileanBusy]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -189,9 +210,9 @@ export default function VoicePanel({
 
         {/* Transcript — structured view when Ailean has turns, plain textarea otherwise */}
         <div className="flex-1 relative overflow-hidden">
-          {aileanActive && aileanTurns.length > 0 ? (
+          {isStructured ? (
             <div className="absolute inset-0 overflow-y-auto p-3 space-y-3 bg-white" id="ailean-transcript-scroll">
-              {aileanTurns.map((turn, i) => (
+              {displayTurns.map((turn, i) => (
                 <div key={i} className={`flex gap-2 ${turn.type === 'user' ? 'flex-row-reverse' : ''}`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-[9px] font-bold ${turn.type === 'ailean' ? 'bg-purple-600' : 'bg-gray-400'}`}>
                     {turn.type === 'ailean' ? 'A' : 'S'}
@@ -205,8 +226,8 @@ export default function VoicePanel({
                 </div>
               ))}
 
-              {/* In-progress user draft */}
-              {(currentDraft.trim() || (isRecording && interimText)) && (
+              {/* In-progress user draft (only when Ailean is live, not for parsed transcript) */}
+              {aileanActive && (currentDraft.trim() || (isRecording && interimText)) && (
                 <div className="flex gap-2 flex-row-reverse">
                   <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center shrink-0 text-white text-[9px] font-bold">S</div>
                   <div className="flex-1 min-w-0 text-xs rounded-xl px-3 py-2 leading-relaxed bg-gray-100 text-gray-700 opacity-60 italic">
@@ -219,8 +240,8 @@ export default function VoicePanel({
                 </div>
               )}
 
-              {/* Thinking / speaking indicators inline */}
-              {(ailean.thinking || ailean.speaking) && (
+              {/* Thinking / speaking indicators inline (live Ailean only) */}
+              {aileanActive && (ailean.thinking || ailean.speaking) && (
                 <div className="flex gap-2">
                   <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center shrink-0 text-white text-[9px] font-bold">A</div>
                   <div className="flex-1 min-w-0 text-xs rounded-xl px-3 py-2 bg-purple-50 text-purple-600">
@@ -271,8 +292,8 @@ export default function VoicePanel({
           )}
         </div>
 
-        {/* ── Ailean status bar (shown only when NOT in structured view) ── */}
-        {aileanActive && aileanTurns.length === 0 && (
+        {/* ── Ailean status bar (shown only when Ailean is active but no turns yet) ── */}
+        {aileanActive && !isStructured && (
           <div className="shrink-0 border-t border-purple-100 bg-purple-50/60 px-3 py-2 space-y-1.5">
             {ailean.thinking && (
               <div className="flex items-center gap-2 text-xs text-purple-600">
@@ -305,8 +326,8 @@ export default function VoicePanel({
           </div>
         )}
 
-        {/* ── Ailean footer controls (when structured view is active) ── */}
-        {aileanActive && aileanTurns.length > 0 && (
+        {/* ── Ailean footer controls (when Ailean is live and structured) ── */}
+        {aileanActive && isStructured && (
           <div className="shrink-0 border-t border-purple-100 bg-purple-50/40 px-3 py-1.5 flex items-center justify-between">
             {ailean.error && (
               <p className="text-[10px] text-red-500 flex-1 truncate">{ailean.error}</p>
@@ -373,7 +394,7 @@ export default function VoicePanel({
             {!effectiveTranscript?.trim() ? t.enterTranscript : t.setApiKeyFirst}
           </p>
         )}
-        {aileanActive && aileanTurns.length > 0 && effectiveTranscript && (
+        {aileanActive && isStructured && effectiveTranscript && (
           <details className="mt-2">
             <summary className="text-[10px] text-purple-400 hover:text-purple-600 cursor-pointer select-none">
               Preview structured transcript
