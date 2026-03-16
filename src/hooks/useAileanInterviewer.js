@@ -30,10 +30,13 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) 
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [questions, setQuestions]       = useState([]);
   const [error, setError]               = useState(null);
+  const [turns, setTurns]               = useState([]); // structured conversation turns
+  const [prevTranscriptLength, setPrevTranscriptLength] = useState(0);
 
-  const historyRef          = useRef([]);   // last N turns sent to Claude
-  const audioRef            = useRef(null); // current Audio element
-  const lastTranscriptRef   = useRef('');   // last transcript we acted on
+  const historyRef              = useRef([]);   // last N turns sent to Claude
+  const audioRef                = useRef(null); // current Audio element
+  const lastTranscriptRef       = useRef('');   // last transcript we acted on
+  const prevTranscriptLenRef    = useRef(0);    // length of transcript at last Ailean question
 
   const stopSpeaking = useCallback(() => {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
@@ -52,6 +55,9 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) 
     setThinking(true);
     setError(null);
 
+    // Capture the user's speech since the last Ailean question
+    const userText = transcript.slice(prevTranscriptLenRef.current).trim();
+
     try {
       const question = await getInterviewFollowUp(
         transcript,
@@ -62,6 +68,17 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) 
 
       setCurrentQuestion(question);
       setQuestions(prev => [...prev, question]);
+
+      // Add user turn + Ailean question to structured conversation
+      setTurns(prev => [
+        ...prev,
+        ...(userText ? [{ type: 'user', text: userText }] : []),
+        { type: 'ailean', text: question },
+      ]);
+
+      // Update transcript position marker
+      prevTranscriptLenRef.current = transcript.length;
+      setPrevTranscriptLength(transcript.length);
 
       // Keep last 3 turns (6 messages) to stay within context
       historyRef.current = [
@@ -107,8 +124,11 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) 
     stopSpeaking();
     historyRef.current = [];
     lastTranscriptRef.current = '';
+    prevTranscriptLenRef.current = 0;
     setCurrentQuestion(null);
     setQuestions([]);
+    setTurns([]);
+    setPrevTranscriptLength(0);
     setThinking(false);
     setError(null);
   }
@@ -117,6 +137,7 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext }) 
     enabled, toggle,
     thinking, speaking,
     currentQuestion, questions,
+    turns, prevTranscriptLength,
     error,
     askFollowUp, stopSpeaking, reset,
   };

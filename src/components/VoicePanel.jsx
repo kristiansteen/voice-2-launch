@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import InterviewGuide from './InterviewGuide.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder.js';
@@ -54,8 +54,18 @@ export default function VoicePanel({
     }
   }
 
-  const aileanActive = ailean?.enabled;
-  const aileanBusy   = ailean?.thinking || ailean?.speaking;
+  const aileanActive   = ailean?.enabled;
+  const aileanBusy     = ailean?.thinking || ailean?.speaking;
+  const aileanTurns    = ailean?.turns || [];
+  // Text the user has spoken since the last Ailean question (current in-progress turn)
+  const currentDraft   = aileanActive ? transcript.slice(ailean?.prevTranscriptLength || 0) : '';
+
+  // Auto-scroll structured conversation to bottom when turns or draft change
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    const el = document.getElementById('ailean-transcript-scroll');
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [aileanTurns.length, currentDraft, aileanBusy]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -159,31 +169,91 @@ export default function VoicePanel({
           )}
         </div>
 
-        {/* Transcript textarea */}
+        {/* Transcript — structured view when Ailean has turns, plain textarea otherwise */}
         <div className="flex-1 relative overflow-hidden">
-          <textarea
-            value={transcript + (interimText ? ' ' + interimText : '')}
-            onChange={e => {
-              if (!isRecording) setTranscript(e.target.value);
-            }}
-            readOnly={isRecording}
-            placeholder={t.transcriptPlaceholder}
-            className={[
-              'absolute inset-0 w-full h-full p-3 text-sm text-gray-700 resize-none focus:outline-none',
-              isRecording ? 'bg-red-50/30 cursor-default' : 'bg-white',
-            ].join(' ')}
-          />
-          {isRecording && interimText && (
-            <div className="absolute bottom-2 left-3 right-3 pointer-events-none">
-              <span className="text-xs text-gray-400 italic">
-                {t.recordingInterim}: {interimText}
-              </span>
+          {aileanActive && aileanTurns.length > 0 ? (
+            <div className="absolute inset-0 overflow-y-auto p-3 space-y-3 bg-white" id="ailean-transcript-scroll">
+              {aileanTurns.map((turn, i) => (
+                <div key={i} className={`flex gap-2 ${turn.type === 'user' ? 'flex-row-reverse' : ''}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-[9px] font-bold ${turn.type === 'ailean' ? 'bg-purple-600' : 'bg-gray-400'}`}>
+                    {turn.type === 'ailean' ? 'A' : 'S'}
+                  </div>
+                  <div className={`flex-1 min-w-0 text-xs rounded-xl px-3 py-2 leading-relaxed ${turn.type === 'ailean' ? 'bg-purple-50 text-purple-900' : 'bg-gray-100 text-gray-700'}`}>
+                    <span className="block text-[9px] font-semibold uppercase tracking-wider opacity-50 mb-0.5">
+                      {turn.type === 'ailean' ? 'Ailean' : 'SME'}
+                    </span>
+                    {turn.text}
+                  </div>
+                </div>
+              ))}
+
+              {/* In-progress user draft */}
+              {(currentDraft.trim() || (isRecording && interimText)) && (
+                <div className="flex gap-2 flex-row-reverse">
+                  <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center shrink-0 text-white text-[9px] font-bold">S</div>
+                  <div className="flex-1 min-w-0 text-xs rounded-xl px-3 py-2 leading-relaxed bg-gray-100 text-gray-700 opacity-60 italic">
+                    <span className="block text-[9px] font-semibold uppercase tracking-wider opacity-50 mb-0.5 not-italic">SME</span>
+                    {currentDraft.trim() || ''}
+                    {isRecording && interimText && (
+                      <span className="text-gray-400"> {interimText}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Thinking / speaking indicators inline */}
+              {(ailean.thinking || ailean.speaking) && (
+                <div className="flex gap-2">
+                  <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center shrink-0 text-white text-[9px] font-bold">A</div>
+                  <div className="flex-1 min-w-0 text-xs rounded-xl px-3 py-2 bg-purple-50 text-purple-600">
+                    {ailean.thinking ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin shrink-0" />
+                        thinking…
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5">
+                        <span className="flex items-end gap-0.5 h-3 shrink-0">
+                          {[0,1,2,3].map(i => (
+                            <span key={i} className="w-0.5 bg-purple-500 rounded-full animate-bounce"
+                              style={{ height: `${[8,12,10,7][i]}px`, animationDelay: `${i * 0.12}s` }} />
+                          ))}
+                        </span>
+                        speaking…
+                        <button onClick={ailean.stopSpeaking} className="ml-auto text-[10px] underline opacity-70 hover:opacity-100">stop</button>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+          ) : (
+            <>
+              <textarea
+                value={transcript + (interimText ? ' ' + interimText : '')}
+                onChange={e => {
+                  if (!isRecording) setTranscript(e.target.value);
+                }}
+                readOnly={isRecording}
+                placeholder={t.transcriptPlaceholder}
+                className={[
+                  'absolute inset-0 w-full h-full p-3 text-sm text-gray-700 resize-none focus:outline-none',
+                  isRecording ? 'bg-red-50/30 cursor-default' : 'bg-white',
+                ].join(' ')}
+              />
+              {isRecording && interimText && (
+                <div className="absolute bottom-2 left-3 right-3 pointer-events-none">
+                  <span className="text-xs text-gray-400 italic">
+                    {t.recordingInterim}: {interimText}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* ── Ailean status + question ────────────────────────────── */}
-        {aileanActive && (
+        {/* ── Ailean status bar (shown only when NOT in structured view) ── */}
+        {aileanActive && aileanTurns.length === 0 && (
           <div className="shrink-0 border-t border-purple-100 bg-purple-50/60 px-3 py-2 space-y-1.5">
             {ailean.thinking && (
               <div className="flex items-center gap-2 text-xs text-purple-600">
@@ -193,36 +263,17 @@ export default function VoicePanel({
             )}
             {ailean.speaking && !ailean.thinking && (
               <div className="flex items-center gap-2 text-xs text-purple-600">
-                {/* animated bars */}
                 <span className="flex items-end gap-0.5 h-3.5 shrink-0">
                   {[0,1,2,3].map(i => (
-                    <span
-                      key={i}
-                      className="w-0.5 bg-purple-500 rounded-full animate-bounce"
-                      style={{ height: `${[8,12,10,7][i]}px`, animationDelay: `${i * 0.12}s` }}
-                    />
+                    <span key={i} className="w-0.5 bg-purple-500 rounded-full animate-bounce"
+                      style={{ height: `${[8,12,10,7][i]}px`, animationDelay: `${i * 0.12}s` }} />
                   ))}
                 </span>
                 Ailean is speaking…
-                <button
-                  onClick={ailean.stopSpeaking}
-                  className="ml-auto text-[10px] text-purple-400 hover:text-purple-700 underline"
-                >
-                  stop
-                </button>
+                <button onClick={ailean.stopSpeaking} className="ml-auto text-[10px] text-purple-400 hover:text-purple-700 underline">stop</button>
               </div>
             )}
-            {ailean.currentQuestion && !ailean.thinking && (
-              <div className="flex gap-2">
-                <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-white text-[9px] font-bold">A</span>
-                </div>
-                <p className="text-xs text-purple-900 leading-relaxed">
-                  {ailean.currentQuestion}
-                </p>
-              </div>
-            )}
-            {!ailean.thinking && !ailean.speaking && !ailean.currentQuestion && (
+            {!ailean.thinking && !ailean.speaking && (
               <p className="text-[10px] text-purple-400 italic">
                 Record your answer — Ailean will ask a follow-up when you stop.
               </p>
@@ -232,23 +283,22 @@ export default function VoicePanel({
                 {ailean.error}
               </p>
             )}
-            {ailean.questions.length > 1 && (
-              <details className="text-[10px] text-purple-400 cursor-pointer">
-                <summary className="hover:text-purple-600">
-                  {ailean.questions.length - 1} previous question{ailean.questions.length > 2 ? 's' : ''}
-                </summary>
-                <ul className="mt-1 space-y-1 pl-2 border-l border-purple-200">
-                  {ailean.questions.slice(0, -1).map((q, i) => (
-                    <li key={i} className="text-purple-500">{q}</li>
-                  ))}
-                </ul>
-              </details>
+          </div>
+        )}
+
+        {/* ── Ailean footer controls (when structured view is active) ── */}
+        {aileanActive && aileanTurns.length > 0 && (
+          <div className="shrink-0 border-t border-purple-100 bg-purple-50/40 px-3 py-1.5 flex items-center justify-between">
+            {ailean.error && (
+              <p className="text-[10px] text-red-500 flex-1 truncate">{ailean.error}</p>
             )}
-            <button
-              onClick={ailean.reset}
-              className="text-[10px] text-purple-300 hover:text-purple-600 transition-colors"
-            >
-              Reset conversation
+            {!ailean.error && (
+              <p className="text-[10px] text-purple-400 italic flex-1">
+                {isRecording ? 'Recording…' : 'Stop recording for Ailean to respond.'}
+              </p>
+            )}
+            <button onClick={ailean.reset} className="text-[10px] text-purple-300 hover:text-purple-600 transition-colors shrink-0 ml-2">
+              Reset
             </button>
           </div>
         )}
