@@ -17,110 +17,162 @@ import {
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
 
-const DEMO_TRANSCRIPT = `Interviewer: Can you walk me through the invoice approval process?
+const DEMO_TRANSCRIPT = `hi can we start the interview hi can we start the interview I would love to focus on the account table process start off by   sorry to the process begins when the company receives an invoice from a venta for goods or services that are out  this might arrive by email mail or through an electronic in washing system the accountable team check the invoice  and then upon receivable and then they checked invoice details against the supporting documents this is usually a purchase order maybe also a good receipt or receiving port or the lyric confirmation this three-way match ensures the company actually ordered the goods received them in the correct quantity and condition and then the pricing matches what was agreed upon the invoice would be rejected and the vendor will be notified via email  or the same channel as they have  sent the invoice the windows since a new invoice what's the three-way matches verified the invoices coded to the appropriate general Ledger Account cost Center or department it then routes through an approval workflow often tiered by dollar amount so some  procurement manager might be able to approve a certain amount and others might need to approve another amount  the authorized managers confirm the expense  and make sure that it's probably categorized the dollar amounts are decided within the Earp system  the invoices get righted routed to the right approval  also automatically via the Earp system based on the dollar amount after approval the invoices entered all auto posted into the accounting system slash Earp system  as an accountable entry  this also creates a credit to account people and a debit to the relevant expense or asset account payment issued via check or AC H transfer wire virtual card or another method the accounts payable record is then cleared debiting AP and crediting the bank account did payment methods is described in the vendor master data in the Earp system  the  payment is triggered on a monthly basis so one of the end of month activities is to make sure that this  all the payments are sent to the bank for transfer  the payments are sent to the bank and eight month by the payment team the accountable team will handle that as an exception  this can be done in many ways and I don't think we should map that out if the discrepancy is more than 5% the invoice is rejected  also if the  exchange rate is wrong  if the company identification node is wrong  and that's it email back the accountable clerk can notify that in the email the department manager can should be involved every time the dollar amount is above 10,000  the CEO of the company should be involved if the amount is above 100,000 naked auto-approved it goes back to the vendor directly  via the AP clerk yes all payments are done as part of in month activities that is done by the head of the payment team the bank issues a confirmation note via email to the head of the banking sorry head of payment team if they receive a sale payment notification from the bank they will call the bank and handlebit as an exception this is done case by case and can is very very difficult to document in the process  and I think we should skip that they will always send the corrected invoice  if the invoice is dropped that is also an exception that we should not handle within the process it goes through the three way match again I already did that they are also approved  Auto that could be any clerk working that day the remark the goods received as missing in the Earp system the mark the good receipt as missing and then they reach out to someone internally to get it another AP clerk most likely we will ask the winter for you  good receipt  but we can proceed  without the good receipt if needed they can also call the person who requested  the goods or services delivered and ask them if they have received it so it becomes a manual good foresee that is done by the AP clerk also according to the dollar  thresholds I already mentioned that the other thing then the invoice is rejected and the vento is contacted exactly system invoice Close directly into decoding step that is the same AP clerk the reference to the original purchase order the original requester of order  will be contacted Taken 2 either depending on who it is they continue with the coding before they proceed to the approval workforce`;
 
-SME: Sure. When we receive an invoice from a supplier, the Accounts Payable clerk first checks if it matches a purchase order. If it matches, they send it to the relevant department manager for approval. The manager either approves or rejects it. If approved, AP processes the payment. If rejected, they notify the supplier and archive the invoice. If there's no matching PO, AP sends it back to procurement to raise one first.`;
+const DEMO_PARSED = {"process_name":"Accounts Payable Invoice Processing","roles":[{"id":"role_1","name":"Accounts Payable Clerk"},{"id":"role_2","name":"Department Manager"},{"id":"role_3","name":"CEO"},{"id":"role_4","name":"Payment Team"},{"id":"role_5","name":"Head of Payment Team"},{"id":"role_6","name":"ERP System"}],"events":[{"id":"event_1","type":"start","name":"Vendor invoice received"},{"id":"event_2","type":"end","name":"Payment processed and AP cleared"},{"id":"event_3","type":"end","name":"Invoice rejected"}],"activities":[{"id":"act_1","name":"Invoice Receipt","performer":"role_1"},{"id":"act_2","name":"Three-Way Matching","performer":"role_1"},{"id":"act_3","name":"Handle Missing Documents","performer":"role_1"},{"id":"act_4","name":"Reject Invalid Invoices","performer":"role_1"},{"id":"act_5","name":"Code Invoice","performer":"role_1"},{"id":"act_6","name":"Route for Approval","performer":"role_6"},{"id":"act_7","name":"Manager Approval","performer":"role_2"},{"id":"act_8","name":"CEO Approval","performer":"role_3"},{"id":"act_9","name":"Post Accounting Entry","performer":"role_6"},{"id":"act_10","name":"Process Monthly Payments","performer":"role_4"},{"id":"act_11","name":"Authorize Payment Batch","performer":"role_5"},{"id":"act_12","name":"Clear AP Records","performer":"role_6"}],"gateways":[{"id":"gw_1","type":"exclusive","name":"Documents available?"},{"id":"gw_2","type":"exclusive","name":"Invoice valid?"},{"id":"gw_3","type":"exclusive","name":"Approval amount threshold"},{"id":"gw_4","type":"exclusive","name":"CEO approval needed?"},{"id":"gw_5","type":"exclusive","name":"Approved?"}],"sequence_flows":[{"id":"flow_1","from":"event_1","to":"act_1","condition":null},{"id":"flow_2","from":"act_1","to":"act_2","condition":null},{"id":"flow_3","from":"act_2","to":"gw_1","condition":null},{"id":"flow_4","from":"gw_1","to":"act_3","condition":"Missing documents"},{"id":"flow_5","from":"gw_1","to":"gw_2","condition":"Documents available"},{"id":"flow_6","from":"act_3","to":"gw_2","condition":null},{"id":"flow_7","from":"gw_2","to":"act_4","condition":"Invalid"},{"id":"flow_8","from":"gw_2","to":"act_5","condition":"Valid"},{"id":"flow_9","from":"act_4","to":"event_3","condition":null},{"id":"flow_10","from":"act_5","to":"act_6","condition":null},{"id":"flow_11","from":"act_6","to":"gw_3","condition":null},{"id":"flow_12","from":"gw_3","to":"act_9","condition":"Under $10,000"},{"id":"flow_13","from":"gw_3","to":"act_7","condition":"$10,000-$99,999"},{"id":"flow_14","from":"gw_3","to":"gw_4","condition":"$100,000+"},{"id":"flow_15","from":"gw_4","to":"act_8","condition":"CEO approval needed"},{"id":"flow_16","from":"act_7","to":"gw_5","condition":null},{"id":"flow_17","from":"act_8","to":"gw_5","condition":null},{"id":"flow_18","from":"gw_5","to":"act_9","condition":"Approved"},{"id":"flow_19","from":"gw_5","to":"event_3","condition":"Rejected"},{"id":"flow_20","from":"act_9","to":"act_10","condition":null},{"id":"flow_21","from":"act_10","to":"act_11","condition":null},{"id":"flow_22","from":"act_11","to":"act_12","condition":null},{"id":"flow_23","from":"act_12","to":"event_2","condition":null}]};
 
-const DEMO_PARSED = {
-  process_name: 'Invoice Approval Process',
-  roles: [
-    { id: 'role_1', name: 'Accounts Payable Clerk' },
-    { id: 'role_2', name: 'Department Manager' },
-    { id: 'role_3', name: 'Procurement' },
-  ],
-  events: [
-    { id: 'event_1', type: 'start', name: 'Invoice Received' },
-    { id: 'event_2', type: 'end',   name: 'Payment Processed' },
-    { id: 'event_3', type: 'end',   name: 'Invoice Archived' },
-    { id: 'event_4', type: 'end',   name: 'PO Raised' },
-  ],
-  activities: [
-    { id: 'act_1', name: 'Check PO Match',        performer: 'role_1' },
-    { id: 'act_2', name: 'Send for Approval',      performer: 'role_1' },
-    { id: 'act_3', name: 'Review Invoice',         performer: 'role_2' },
-    { id: 'act_4', name: 'Process Payment',        performer: 'role_1' },
-    { id: 'act_5', name: 'Notify Supplier',        performer: 'role_1' },
-    { id: 'act_6', name: 'Archive Invoice',        performer: 'role_1' },
-    { id: 'act_7', name: 'Raise Purchase Order',   performer: 'role_3' },
-  ],
-  gateways: [
-    { id: 'gw_1', type: 'exclusive', name: 'PO Match?' },
-    { id: 'gw_2', type: 'exclusive', name: 'Approved?' },
-  ],
-  sequence_flows: [
-    { id: 'flow_1',  from: 'event_1', to: 'act_1',   condition: null },
-    { id: 'flow_2',  from: 'act_1',   to: 'gw_1',    condition: null },
-    { id: 'flow_3',  from: 'gw_1',    to: 'act_2',   condition: 'Yes' },
-    { id: 'flow_4',  from: 'gw_1',    to: 'act_7',   condition: 'No' },
-    { id: 'flow_5',  from: 'act_2',   to: 'act_3',   condition: null },
-    { id: 'flow_6',  from: 'act_3',   to: 'gw_2',    condition: null },
-    { id: 'flow_7',  from: 'gw_2',    to: 'act_4',   condition: 'Approved' },
-    { id: 'flow_8',  from: 'gw_2',    to: 'act_5',   condition: 'Rejected' },
-    { id: 'flow_9',  from: 'act_4',   to: 'event_2', condition: null },
-    { id: 'flow_10', from: 'act_5',   to: 'act_6',   condition: null },
-    { id: 'flow_11', from: 'act_6',   to: 'event_3', condition: null },
-    { id: 'flow_12', from: 'act_7',   to: 'event_4', condition: null },
-  ],
-};
+const DEMO_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_1" name="Accounts Payable Invoice Processing" processRef="Process_1" />
+  </collaboration>
+  <process id="Process_1" isExecutable="false">
+    <laneSet id="LaneSet_1">
+      <lane id="role_1" name="Accounts Payable Clerk">
+        <flowNodeRef>event_1</flowNodeRef><flowNodeRef>event_3</flowNodeRef>
+        <flowNodeRef>act_1</flowNodeRef><flowNodeRef>act_2</flowNodeRef>
+        <flowNodeRef>act_3</flowNodeRef><flowNodeRef>act_4</flowNodeRef>
+        <flowNodeRef>act_5</flowNodeRef><flowNodeRef>gw_1</flowNodeRef><flowNodeRef>gw_2</flowNodeRef>
+      </lane>
+      <lane id="role_2" name="Department Manager">
+        <flowNodeRef>act_7</flowNodeRef><flowNodeRef>gw_5</flowNodeRef>
+      </lane>
+      <lane id="role_3" name="CEO">
+        <flowNodeRef>act_8</flowNodeRef>
+      </lane>
+      <lane id="role_4" name="Payment Team">
+        <flowNodeRef>act_10</flowNodeRef>
+      </lane>
+      <lane id="role_5" name="Head of Payment Team">
+        <flowNodeRef>act_11</flowNodeRef>
+      </lane>
+      <lane id="role_6" name="ERP System">
+        <flowNodeRef>event_2</flowNodeRef><flowNodeRef>act_6</flowNodeRef>
+        <flowNodeRef>act_9</flowNodeRef><flowNodeRef>act_12</flowNodeRef>
+        <flowNodeRef>gw_3</flowNodeRef><flowNodeRef>gw_4</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="event_1" name="Vendor invoice received" />
+    <endEvent id="event_2" name="Payment processed and AP cleared" />
+    <endEvent id="event_3" name="Invoice rejected" />
+    <userTask id="act_1" name="Invoice Receipt" />
+    <userTask id="act_2" name="Three-Way Matching" />
+    <userTask id="act_3" name="Handle Missing Documents" />
+    <userTask id="act_4" name="Reject Invalid Invoices" />
+    <userTask id="act_5" name="Code Invoice" />
+    <userTask id="act_6" name="Route for Approval" />
+    <userTask id="act_7" name="Manager Approval" />
+    <userTask id="act_8" name="CEO Approval" />
+    <userTask id="act_9" name="Post Accounting Entry" />
+    <userTask id="act_10" name="Process Monthly Payments" />
+    <userTask id="act_11" name="Authorize Payment Batch" />
+    <userTask id="act_12" name="Clear AP Records" />
+    <exclusiveGateway id="gw_1" name="Documents available?" />
+    <exclusiveGateway id="gw_2" name="Invoice valid?" />
+    <exclusiveGateway id="gw_3" name="Approval amount threshold" />
+    <exclusiveGateway id="gw_4" name="CEO approval needed?" />
+    <exclusiveGateway id="gw_5" name="Approved?" />
+    <sequenceFlow id="flow_1" sourceRef="event_1" targetRef="act_1" />
+    <sequenceFlow id="flow_2" sourceRef="act_1" targetRef="act_2" />
+    <sequenceFlow id="flow_3" sourceRef="act_2" targetRef="gw_1" />
+    <sequenceFlow id="flow_4" sourceRef="gw_1" targetRef="act_3"><conditionExpression>Missing documents</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_5" sourceRef="gw_1" targetRef="gw_2"><conditionExpression>Documents available</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_6" sourceRef="act_3" targetRef="gw_2" />
+    <sequenceFlow id="flow_7" sourceRef="gw_2" targetRef="act_4"><conditionExpression>Invalid</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_8" sourceRef="gw_2" targetRef="act_5"><conditionExpression>Valid</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_9" sourceRef="act_4" targetRef="event_3" />
+    <sequenceFlow id="flow_10" sourceRef="act_5" targetRef="act_6" />
+    <sequenceFlow id="flow_11" sourceRef="act_6" targetRef="gw_3" />
+    <sequenceFlow id="flow_12" sourceRef="gw_3" targetRef="act_9"><conditionExpression>Under $10,000</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_13" sourceRef="gw_3" targetRef="act_7"><conditionExpression>$10,000-$99,999</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_14" sourceRef="gw_3" targetRef="gw_4"><conditionExpression>$100,000+</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_15" sourceRef="gw_4" targetRef="act_8"><conditionExpression>CEO approval needed</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_16" sourceRef="act_7" targetRef="gw_5" />
+    <sequenceFlow id="flow_17" sourceRef="act_8" targetRef="gw_5" />
+    <sequenceFlow id="flow_18" sourceRef="gw_5" targetRef="act_9"><conditionExpression>Approved</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_19" sourceRef="gw_5" targetRef="event_3"><conditionExpression>Rejected</conditionExpression></sequenceFlow>
+    <sequenceFlow id="flow_20" sourceRef="act_9" targetRef="act_10" />
+    <sequenceFlow id="flow_21" sourceRef="act_10" targetRef="act_11" />
+    <sequenceFlow id="flow_22" sourceRef="act_11" targetRef="act_12" />
+    <sequenceFlow id="flow_23" sourceRef="act_12" targetRef="event_2" />
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true"><dc:Bounds x="100" y="80" width="3060" height="1200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_1_di" bpmnElement="role_1" isHorizontal="true"><dc:Bounds x="130" y="80" width="3030" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_2_di" bpmnElement="role_2" isHorizontal="true"><dc:Bounds x="130" y="280" width="3030" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_3_di" bpmnElement="role_3" isHorizontal="true"><dc:Bounds x="130" y="480" width="3030" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_4_di" bpmnElement="role_4" isHorizontal="true"><dc:Bounds x="130" y="680" width="3030" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_5_di" bpmnElement="role_5" isHorizontal="true"><dc:Bounds x="130" y="880" width="3030" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="role_6_di" bpmnElement="role_6" isHorizontal="true"><dc:Bounds x="130" y="1080" width="3030" height="200" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_1_di" bpmnElement="event_1"><dc:Bounds x="302" y="162" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_2_di" bpmnElement="event_2"><dc:Bounds x="2902" y="1162" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_3_di" bpmnElement="event_3"><dc:Bounds x="2502" y="162" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_1_di" bpmnElement="act_1"><dc:Bounds x="470" y="140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_2_di" bpmnElement="act_2"><dc:Bounds x="670" y="140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_3_di" bpmnElement="act_3"><dc:Bounds x="1070" y="140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_4_di" bpmnElement="act_4"><dc:Bounds x="1470" y="140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_5_di" bpmnElement="act_5"><dc:Bounds x="1670" y="140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_6_di" bpmnElement="act_6"><dc:Bounds x="1670" y="1140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_7_di" bpmnElement="act_7"><dc:Bounds x="2070" y="340" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_8_di" bpmnElement="act_8"><dc:Bounds x="2270" y="540" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_9_di" bpmnElement="act_9"><dc:Bounds x="2470" y="1140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_10_di" bpmnElement="act_10"><dc:Bounds x="2270" y="740" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_11_di" bpmnElement="act_11"><dc:Bounds x="2470" y="940" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="act_12_di" bpmnElement="act_12"><dc:Bounds x="2670" y="1140" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_1_di" bpmnElement="gw_1"><dc:Bounds x="895" y="155" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_2_di" bpmnElement="gw_2"><dc:Bounds x="1295" y="155" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_3_di" bpmnElement="gw_3"><dc:Bounds x="1895" y="1155" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_4_di" bpmnElement="gw_4"><dc:Bounds x="2095" y="1155" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_5_di" bpmnElement="gw_5"><dc:Bounds x="2495" y="355" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1"><di:waypoint x="338" y="180" /><di:waypoint x="470" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2"><di:waypoint x="570" y="180" /><di:waypoint x="670" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3"><di:waypoint x="770" y="180" /><di:waypoint x="895" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4"><di:waypoint x="945" y="180" /><di:waypoint x="1070" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5"><di:waypoint x="945" y="180" /><di:waypoint x="1295" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6"><di:waypoint x="1170" y="180" /><di:waypoint x="1295" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7"><di:waypoint x="1345" y="180" /><di:waypoint x="1470" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_8_di" bpmnElement="flow_8"><di:waypoint x="1345" y="180" /><di:waypoint x="1670" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_9_di" bpmnElement="flow_9"><di:waypoint x="1570" y="180" /><di:waypoint x="2502" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_10_di" bpmnElement="flow_10"><di:waypoint x="1770" y="180" /><di:waypoint x="1820" y="180" /><di:waypoint x="1820" y="1180" /><di:waypoint x="1670" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_11_di" bpmnElement="flow_11"><di:waypoint x="1770" y="1180" /><di:waypoint x="1895" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_12_di" bpmnElement="flow_12"><di:waypoint x="1945" y="1180" /><di:waypoint x="2470" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_13_di" bpmnElement="flow_13"><di:waypoint x="1945" y="1180" /><di:waypoint x="2008" y="1180" /><di:waypoint x="2008" y="380" /><di:waypoint x="2070" y="380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_14_di" bpmnElement="flow_14"><di:waypoint x="1945" y="1180" /><di:waypoint x="2095" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_15_di" bpmnElement="flow_15"><di:waypoint x="2145" y="1180" /><di:waypoint x="2208" y="1180" /><di:waypoint x="2208" y="580" /><di:waypoint x="2270" y="580" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_16_di" bpmnElement="flow_16"><di:waypoint x="2170" y="380" /><di:waypoint x="2495" y="380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_17_di" bpmnElement="flow_17"><di:waypoint x="2370" y="580" /><di:waypoint x="2433" y="580" /><di:waypoint x="2433" y="380" /><di:waypoint x="2495" y="380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_18_di" bpmnElement="flow_18"><di:waypoint x="2545" y="380" /><di:waypoint x="2508" y="380" /><di:waypoint x="2508" y="1180" /><di:waypoint x="2470" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_19_di" bpmnElement="flow_19"><di:waypoint x="2545" y="380" /><di:waypoint x="2524" y="380" /><di:waypoint x="2524" y="180" /><di:waypoint x="2502" y="180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_20_di" bpmnElement="flow_20"><di:waypoint x="2570" y="1180" /><di:waypoint x="2620" y="1180" /><di:waypoint x="2620" y="780" /><di:waypoint x="2270" y="780" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_21_di" bpmnElement="flow_21"><di:waypoint x="2370" y="780" /><di:waypoint x="2420" y="780" /><di:waypoint x="2420" y="980" /><di:waypoint x="2470" y="980" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_22_di" bpmnElement="flow_22"><di:waypoint x="2570" y="980" /><di:waypoint x="2620" y="980" /><di:waypoint x="2620" y="1180" /><di:waypoint x="2670" y="1180" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_23_di" bpmnElement="flow_23"><di:waypoint x="2770" y="1180" /><di:waypoint x="2902" y="1180" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>`;
 
-const DEMO_DESCRIPTION = {
-  process_name: 'Invoice Approval Process',
-  overview: 'The invoice approval process covers the receipt, validation, approval, and payment of supplier invoices. It ensures all invoices are matched to valid purchase orders before payment is authorised.',
-  scope: 'In scope: invoice receipt through to payment or rejection. Out of scope: purchase order creation (handled by Procurement) and supplier onboarding.',
-  roles: [
-    { name: 'Accounts Payable Clerk', responsibilities: 'Receives invoices, checks PO match, routes for approval, processes payments, notifies suppliers, archives invoices.' },
-    { name: 'Department Manager', responsibilities: 'Reviews and approves or rejects invoices forwarded by AP.' },
-    { name: 'Procurement', responsibilities: 'Raises purchase orders when an invoice arrives without a matching PO.' },
-  ],
-  steps: [
-    { order: 1, name: 'Receive Invoice', performer: 'Accounts Payable Clerk', description: 'Invoice is received from supplier via email or post.' },
-    { order: 2, name: 'Check PO Match', performer: 'Accounts Payable Clerk', description: 'Clerk checks whether the invoice matches an existing purchase order.' },
-    { order: 3, name: 'Route to Manager', performer: 'Accounts Payable Clerk', description: 'If a PO match is found, the invoice is sent to the relevant department manager for approval.' },
-    { order: 4, name: 'Approve or Reject', performer: 'Department Manager', description: 'Manager reviews the invoice and either approves or rejects it.' },
-    { order: 5, name: 'Process Payment', performer: 'Accounts Payable Clerk', description: 'If approved, AP schedules and processes the payment.' },
-    { order: 6, name: 'Notify & Archive', performer: 'Accounts Payable Clerk', description: 'If rejected, AP notifies the supplier and archives the invoice.' },
-    { order: 7, name: 'Raise PO', performer: 'Procurement', description: 'If no PO match, AP routes to Procurement who raise a PO before the process can continue.' },
-  ],
-  exceptions: [
-    'Duplicate invoice received — AP checks for duplicates before proceeding.',
-    'Manager unavailable — invoice escalates to their deputy after 48 hours.',
-  ],
-  known_issues: [
-    'Manual PO matching is time-consuming and error-prone.',
-    'No automated notification to suppliers on rejection status.',
-  ],
-};
+const DEMO_DESCRIPTION = {"process_name":"Accounts Payable Invoice Processing","overview":"This process handles the complete lifecycle of vendor invoice processing, from receipt through payment. It begins when the company receives a vendor invoice and includes verification through three-way matching, approval workflows based on dollar thresholds, and monthly payment processing. The process ensures proper validation of invoices against supporting documents before payment.","scope":"The process covers invoice receipt, three-way matching validation, coding to general ledger accounts, tiered approval workflows, and payment processing. Out of scope are detailed exception handling procedures, specific failed payment resolution steps, and dropped invoice scenarios.","roles":[{"name":"Accounts Payable Clerk","responsibilities":"Receives invoices, performs three-way matching, handles rejections and communications with vendors, codes invoices to appropriate accounts, manages exceptions, and contacts internal requesters for missing information"},{"name":"Department Manager","responsibilities":"Approves invoices over $10,000, confirms expenses are properly categorized, and can reject invoices that require vendor correction"},{"name":"CEO","responsibilities":"Approves invoices over $100,000, provides final authorization for high-value transactions"},{"name":"Payment Team","responsibilities":"Processes monthly payments to vendors using various payment methods as specified in vendor master data"},{"name":"Head of Payment Team","responsibilities":"Reviews and authorizes payment batches before sending to bank, receives bank confirmation notifications"}],"steps":[{"order":1,"name":"Invoice Receipt","performer":"Accounts Payable Clerk","description":"Company receives vendor invoice via email, mail, or electronic invoicing system for goods or services"},{"order":2,"name":"Three-Way Matching","performer":"Accounts Payable Clerk","description":"Check invoice details against supporting documents including purchase order, goods receipt, and delivery confirmation to ensure company ordered goods, received correct quantity/condition, and pricing matches agreement"},{"order":3,"name":"Handle Missing Documents","performer":"Accounts Payable Clerk","description":"If goods receipt is missing, mark it in ERP system, reach out to other AP clerks or contact original requester for manual verification based on dollar thresholds"},{"order":4,"name":"Reject Invalid Invoices","performer":"Accounts Payable Clerk","description":"Reject invoices with discrepancies over 5%, wrong exchange rates, or incorrect company identification codes, and notify vendor via email with specific error details"},{"order":5,"name":"Code Invoice","performer":"Accounts Payable Clerk","description":"Code verified invoices to appropriate general ledger accounts, cost centers, or departments using purchase order as reference, contacting original requester if coding information is unclear"},{"order":6,"name":"Route for Approval","performer":"ERP System","description":"Automatically route invoices through tiered approval workflow: under $10,000 auto-approved, $10,000+ to department manager, $100,000+ to CEO"},{"order":7,"name":"Manager Approval","performer":"Department Manager/CEO","description":"Authorized managers review and approve expenses, confirm proper categorization, or reject invoices that require vendor correction"},{"order":8,"name":"Post Accounting Entry","performer":"ERP System","description":"After approval, automatically post invoice as accounts payable entry, creating credit to AP and debit to relevant expense or asset account"},{"order":9,"name":"Process Monthly Payments","performer":"Payment Team","description":"At month-end, process all approved invoices for payment using methods specified in vendor master data (check, ACH, wire, virtual card)"},{"order":10,"name":"Authorize Payment Batch","performer":"Head of Payment Team","description":"Review and authorize payment batch before sending to bank"},{"order":11,"name":"Clear AP Records","performer":"ERP System","description":"After payment processing, clear accounts payable records by debiting AP and crediting bank account, receive bank confirmation via email"}],"exceptions":["Three-way match failures requiring vendor invoice correction","Missing supporting documents requiring manual verification","Manager rejection of approved invoices","Failed bank payments requiring case-by-case resolution with bank","Dropped invoices that vendors don't correct"],"known_issues":["Payment failures require manual intervention and bank contact","Manual goods receipt verification process when system receipts are missing","Complex exception handling for various types of invoice discrepancies"]};
 
 const DEMO_IMPROVEMENTS = [
-  { id: 'imp_1', title: 'Automate PO Matching', category: 'automation', effort: 'medium', effort_score: 45, impact_score: 85, description: 'Implement automated 3-way matching between invoice, PO, and goods receipt.', benefit: 'Reduces manual checking time by ~70% and eliminates matching errors.' },
-  { id: 'imp_2', title: 'Digital Approval Workflow', category: 'efficiency', effort: 'low', effort_score: 25, impact_score: 75, description: 'Replace email-based approvals with an in-system approval queue with auto-escalation.', benefit: 'Cuts approval cycle time from days to hours; provides full audit trail.' },
-  { id: 'imp_3', title: 'Supplier Self-Service Portal', category: 'clarity', effort: 'high', effort_score: 75, impact_score: 70, description: 'Allow suppliers to submit invoices digitally and track payment status.', benefit: 'Reduces inbound queries by ~50% and improves supplier relationships.' },
+  { id: 'imp_1', title: 'Implement OCR and AI-powered Invoice Data Extraction', category: 'automation', effort: 'high', effort_score: 80, impact_score: 85, description: 'Deploy optical character recognition (OCR) and machine learning to automatically extract invoice data, reducing manual data entry and improving accuracy in invoice receipt and coding activities', benefit: 'Reduces processing time by 60-70%, eliminates data entry errors, and frees up AP clerks for higher-value tasks' },
+  { id: 'imp_2', title: 'Establish Real-time Invoice Status Dashboard', category: 'clarity', effort: 'medium', effort_score: 45, impact_score: 70, description: 'Create a centralized dashboard showing invoice status, approval bottlenecks, and aging reports visible to all stakeholders in the process', benefit: 'Improves visibility, reduces status inquiry calls, and enables proactive management of payment deadlines and cash flow' },
+  { id: 'imp_3', title: 'Automate Three-Way Matching Process', category: 'automation', effort: 'medium', effort_score: 55, impact_score: 75, description: 'Implement automated matching of invoices with purchase orders and receiving documents using ERP system capabilities and exception-based processing', benefit: 'Reduces manual matching time by 80%, improves accuracy, and allows straight-through processing for exact matches' },
+  { id: 'imp_4', title: 'Implement Dynamic Approval Workflows', category: 'governance', effort: 'medium', effort_score: 50, impact_score: 65, description: 'Create configurable approval routing based on vendor, category, department, and amount with automatic escalation for delayed approvals', benefit: 'Reduces approval cycle time, ensures proper authorization controls, and minimizes bottlenecks from absent approvers' },
+  { id: 'imp_5', title: 'Optimize Payment Processing Frequency', category: 'efficiency', effort: 'low', effort_score: 25, impact_score: 60, description: 'Move from monthly to weekly payment runs with automated payment scheduling based on terms and early payment discounts', benefit: 'Improves vendor relationships, captures early payment discounts, and optimizes cash flow management' },
+  { id: 'imp_6', title: 'Establish Vendor Portal for Self-Service', category: 'efficiency', effort: 'high', effort_score: 75, impact_score: 70, description: 'Deploy a vendor portal allowing suppliers to submit invoices electronically and track payment status', benefit: 'Reduces manual invoice handling, improves vendor satisfaction, and decreases inquiry volume by 40-50%' },
+  { id: 'imp_7', title: 'Implement Exception-Based Processing Controls', category: 'risk', effort: 'medium', effort_score: 45, impact_score: 65, description: 'Define clear tolerance levels for invoice variances and automate processing of invoices within acceptable limits while flagging exceptions for review', benefit: 'Reduces processing time for routine invoices while maintaining control over exceptions and potential fraud' },
 ];
 
-const DEMO_PROJECT_PLAN = {
-  plan_name: 'Invoice Approval Improvement Plan',
-  process_name: 'Invoice Approval Process',
-  duration_weeks: 12,
-  tracks: [
-    { id: 'track_1', name: 'Technology' },
-    { id: 'track_2', name: 'Process' },
-    { id: 'track_3', name: 'Change Management' },
-  ],
-  tasks: [
-    { id: 'task_1', title: 'Requirements & vendor selection', track_id: 'track_1', week_start: 1, week_end: 3, owner: 'IT Lead', improvement_id: 'imp_1' },
-    { id: 'task_2', title: 'Configure PO matching rules', track_id: 'track_1', week_start: 3, week_end: 6, owner: 'IT Lead', improvement_id: 'imp_1' },
-    { id: 'task_3', title: 'Design approval workflow', track_id: 'track_2', week_start: 1, week_end: 2, owner: 'Finance Manager', improvement_id: 'imp_2' },
-    { id: 'task_4', title: 'Deploy digital approval system', track_id: 'track_1', week_start: 4, week_end: 7, owner: 'IT Lead', improvement_id: 'imp_2' },
-    { id: 'task_5', title: 'Update SOP documentation', track_id: 'track_2', week_start: 6, week_end: 8, owner: 'AP Manager', improvement_id: 'imp_2' },
-    { id: 'task_6', title: 'UAT and parallel run', track_id: 'track_1', week_start: 8, week_end: 10, owner: 'IT + Finance', improvement_id: 'imp_1' },
-    { id: 'task_7', title: 'Staff training', track_id: 'track_3', week_start: 9, week_end: 11, owner: 'HR + Finance', improvement_id: 'imp_2' },
-    { id: 'task_8', title: 'Go-live and hypercare', track_id: 'track_1', week_start: 11, week_end: 12, owner: 'IT Lead', improvement_id: 'imp_1' },
-  ],
-  risks: [
-    { id: 'risk_1', title: 'ERP integration delays', probability: 60, consequence: 70, mitigation: 'Engage vendor early; agree integration spec by week 2.' },
-    { id: 'risk_2', title: 'Low user adoption', probability: 40, consequence: 60, mitigation: 'Run change champion programme; mandatory training sign-off.' },
-  ],
-};
+const DEMO_SELECTED_IDS = ['imp_2', 'imp_1', 'imp_3', 'imp_5', 'imp_6'];
+
+const DEMO_PROJECT_PLAN = {"plan_name":"Accounts Payable Invoice Processing Transformation","duration_weeks":14,"tracks":[{"id":"track_1","name":"Technology & Automation"},{"id":"track_2","name":"Process Optimization"},{"id":"track_3","name":"Vendor Management"},{"id":"track_4","name":"Monitoring & Control"}],"tasks":[{"id":"task_1","title":"Conduct OCR/AI solution vendor evaluation and selection","track_id":"track_1","week_start":1,"week_end":3,"owner":"IT Manager","improvement_id":"imp_1"},{"id":"task_2","title":"Design and configure OCR data extraction workflows","track_id":"track_1","week_start":4,"week_end":7,"owner":"Technical Lead","improvement_id":"imp_1"},{"id":"task_3","title":"Deploy OCR system and conduct user acceptance testing","track_id":"track_1","week_start":8,"week_end":10,"owner":"Implementation Team","improvement_id":"imp_1"},{"id":"task_4","title":"Configure ERP system for automated three-way matching","track_id":"track_1","week_start":2,"week_end":5,"owner":"ERP Administrator","improvement_id":"imp_3"},{"id":"task_5","title":"Test automated matching rules and exception handling","track_id":"track_1","week_start":6,"week_end":8,"owner":"AP Process Owner","improvement_id":"imp_3"},{"id":"task_6","title":"Analyze current payment cycles and discount opportunities","track_id":"track_2","week_start":1,"week_end":2,"owner":"AP Manager","improvement_id":"imp_5"},{"id":"task_7","title":"Redesign payment scheduling and approval workflows","track_id":"track_2","week_start":3,"week_end":5,"owner":"Process Analyst","improvement_id":"imp_5"},{"id":"task_8","title":"Implement weekly payment runs with automated scheduling","track_id":"track_2","week_start":6,"week_end":8,"owner":"Payment Team Lead","improvement_id":"imp_5"},{"id":"task_9","title":"Evaluate and select vendor portal platform","track_id":"track_3","week_start":1,"week_end":3,"owner":"Vendor Relations Manager","improvement_id":"imp_6"},{"id":"task_10","title":"Configure vendor portal and integration with ERP","track_id":"track_3","week_start":4,"week_end":8,"owner":"IT Solutions Architect","improvement_id":"imp_6"},{"id":"task_11","title":"Onboard priority vendors to self-service portal","track_id":"track_3","week_start":9,"week_end":12,"owner":"Vendor Onboarding Team","improvement_id":"imp_6"},{"id":"task_12","title":"Design real-time dashboard requirements and mockups","track_id":"track_4","week_start":2,"week_end":4,"owner":"Business Analyst","improvement_id":"imp_2"},{"id":"task_13","title":"Develop and deploy invoice status dashboard","track_id":"track_4","week_start":5,"week_end":9,"owner":"Dashboard Developer","improvement_id":"imp_2"},{"id":"task_14","title":"Train all stakeholders on new systems and processes","track_id":"track_4","week_start":10,"week_end":12,"owner":"Training Coordinator","improvement_id":"imp_1"},{"id":"task_15","title":"Monitor performance and optimize system configuration","track_id":"track_4","week_start":13,"week_end":14,"owner":"Process Excellence Team","improvement_id":"imp_2"}],"risks":[{"id":"risk_1","title":"OCR accuracy issues with non-standard invoice formats","probability":70,"consequence":60,"mitigation":"Implement comprehensive testing with diverse invoice samples and establish manual review processes for low-confidence extractions"},{"id":"risk_2","title":"ERP system integration complexity","probability":60,"consequence":75,"mitigation":"Engage ERP vendor support early and conduct phased rollout with parallel processing initially"},{"id":"risk_3","title":"Vendor adoption resistance for self-service portal","probability":65,"consequence":50,"mitigation":"Develop vendor incentive programs and provide dedicated support during transition period"},{"id":"risk_4","title":"Staff resistance to automated processes","probability":55,"consequence":65,"mitigation":"Implement comprehensive change management program with retraining for higher-value activities"},{"id":"risk_5","title":"Dashboard performance issues with large data volumes","probability":45,"consequence":40,"mitigation":"Implement data caching strategies and optimize database queries during development phase"}]};
 
 // Draggable divider between two panel wrappers.
 function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
@@ -441,11 +493,12 @@ export default function App() {
     setParsed(DEMO_PARSED);
     setProcessDescription(DEMO_DESCRIPTION);
     setProcessContext({ apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null });
-    setXml(null);
+    setXml(DEMO_XML);
     setVoiceError(null);
     setImprovements(DEMO_IMPROVEMENTS);
-    setSelectedImprovementIds(DEMO_IMPROVEMENTS.map(i => i.id));
+    setSelectedImprovementIds(DEMO_SELECTED_IDS);
     setProjectPlan(DEMO_PROJECT_PLAN);
+    setCustomRisks([]);
   }
 
   // If Ailean interviewed, build a structured transcript; otherwise use raw text.
@@ -613,20 +666,6 @@ export default function App() {
               title={t.clearTitle}
             >
               {t.clear}
-            </button>
-          )}
-          {/* TEMP: copy current state as demo JSON */}
-          {(parsed || projectPlan) && (
-            <button
-              onClick={() => {
-                const data = { transcript, processDescription, parsed, xml, improvements, selectedImprovementIds: selectedImprovementIds, customRisks, projectPlan, processContext };
-                navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-                alert('State copied to clipboard!');
-              }}
-              className="text-xs text-yellow-400 hover:text-yellow-200 border border-yellow-700 rounded px-2 py-0.5 transition-colors"
-              title="Copy current state as demo JSON"
-            >
-              Copy state
             </button>
           )}
           <LangSwitcher />
