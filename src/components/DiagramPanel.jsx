@@ -10,7 +10,7 @@ import {
   deleteDiagram,
 } from '../services/diagramService.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, onGenerateToBe, canGenerateToBe }) {
+export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey, asIsXml, toBeXml, onToBeXmlChange, toBeLoading }) {
   const { t } = useLang();
   const viewerRef = useRef(null);
   const toBeViewerRef = useRef(null);
@@ -164,17 +164,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
           {t.loadDiagramBtn}
         </button>
         <div className="flex-1" />
-        {/* AS-IS → TO-BE button */}
-        {!asIsXml ? (
-          <button
-            onClick={onGenerateToBe}
-            disabled={!canGenerateToBe || toBeLoading}
-            title={canGenerateToBe ? 'Save as AS-IS and generate TO-BE from selected improvements' : 'Select improvements first'}
-            className="text-xs font-medium px-2.5 py-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-green-50 text-green-700 border-green-300 hover:bg-green-100"
-          >
-            AS-IS → TO-BE
-          </button>
-        ) : (
+        {asIsXml && (
           <span className="text-[10px] text-green-600 font-medium border border-green-200 rounded px-2 py-0.5 bg-green-50">
             {toBeXml ? '✓ AS-IS + TO-BE' : toBeLoading ? '⏳ Generating…' : 'AS-IS saved'}
           </span>

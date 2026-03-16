@@ -196,9 +196,9 @@ export default function ImprovePanel({
               {planLoading ? (
                 <>
                   <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {t.generatingPlan}
+                  Generating…
                 </>
-              ) : t.generatePlan}
+              ) : 'Generate TO-BE process and Project Plan'}
             </button>
             {projectPlan && (
               <p className="text-xs text-green-600 text-center mt-2">{t.planReady}</p>

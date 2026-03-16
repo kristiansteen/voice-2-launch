@@ -613,34 +613,30 @@ export default function App() {
     );
   }
 
-  async function handleGenerateToBe() {
-    if (!parsed || !apiKey) return;
+  async function handleGeneratePlan() {
     const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
     if (!selected.length) return;
-    // Freeze current as AS-IS
+
+    // Freeze AS-IS and kick off both in parallel
     setAsIsXml(xml);
     setAsIsParsed(parsed);
     setToBeXml(null);
     setToBeParsed(null);
     setToBeLoading(true);
+    setPlanLoading(true);
+
     try {
-      const toBeParsedResult = await generateToBeBpmn(parsed, selected, apiKey);
+      const [plan, toBeParsedResult] = await Promise.all([
+        generateProjectPlan(parsed, selected, apiKey, customRisks),
+        generateToBeBpmn(parsed, selected, apiKey),
+      ]);
+      setProjectPlan(plan);
       setToBeParsed(toBeParsedResult);
       const { generateBpmnXml } = await import('./services/xmlGenerator.js');
       setToBeXml(generateBpmnXml(toBeParsedResult));
     } finally {
-      setToBeLoading(false);
-    }
-  }
-
-  async function handleGeneratePlan() {
-    setPlanLoading(true);
-    try {
-      const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
-      const plan = await generateProjectPlan(parsed, selected, apiKey, customRisks);
-      setProjectPlan(plan);
-    } finally {
       setPlanLoading(false);
+      setToBeLoading(false);
     }
   }
 
@@ -798,8 +794,6 @@ export default function App() {
               toBeXml={toBeXml}
               onToBeXmlChange={setToBeXml}
               toBeLoading={toBeLoading}
-              onGenerateToBe={handleGenerateToBe}
-              canGenerateToBe={!!parsed && !!apiKey && selectedImprovementIds.length > 0}
             />
           </PanelShell>
         </div>
