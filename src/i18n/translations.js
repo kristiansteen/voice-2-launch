@@ -11,11 +11,11 @@ export const translations = {
     collapsePanel:  'Collapse panel',
 
     // Panel labels
-    panel1: 'Voice',
-    panel2: 'Identify',
+    panel1: 'Snak',
+    panel2: 'Identificér',
     panel3: 'Map',
-    panel4: 'Plan',
-    panel5: 'Launch',
+    panel4: 'Planlæg',
+    panel5: 'Lancér',
     panel6: 'Taxonomy DB',
 
     // ── VoicePanel ────────────────────────────────────────────────
@@ -155,12 +155,12 @@ export const translations = {
     apiKeySet:      '⚙ API-nøgle ✓',
     collapsePanel:  'Skjul panel',
 
-    panel1: 'Stemme',
+    panel1: 'Snak',
     panel2: 'Identificér',
-    panel3: 'Kortlæg',
+    panel3: 'Map',
     panel4: 'Planlæg',
-    panel5: 'Lancering',
-    panel6: 'Taksonomi DB',
+    panel5: 'Lancér',
+    panel6: 'Taxonomy DB',
 
     // ── VoicePanel ────────────────────────────────────────────────
     loadDemo:            '⚡ Indlæs demo',
