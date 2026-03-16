@@ -162,25 +162,20 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
 
       {/* ── Toolbar ─────────────────────────────────────────────────── */}
       <div className="bpmn-toolbar px-3 py-2 flex items-center gap-2 shrink-0">
-        {/* Left: save/load actions */}
-        <button onClick={openSavePanel} className="bpmn-toolbar-btn">
+        <button onClick={openSavePanel} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
           {savedId ? t.savedCloud : t.save}
         </button>
-        <button onClick={openLoadModal} className="bpmn-toolbar-btn">
+        <button onClick={openLoadModal} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
           {t.loadDiagramBtn}
         </button>
-        <div className="flex-1" />
+        <button onClick={() => setShowXmlModal(true)} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
+          {t.bpmnXml}
+        </button>
         {asIsXml && (
-          <span className="text-[10px] text-green-600 font-medium border border-green-200 rounded px-2 py-0.5 bg-green-50">
+          <span className="text-[10px] text-green-600 font-medium border border-green-200 rounded px-2 py-0.5 bg-green-50 shrink-0">
             {toBeXml ? '✓ AS-IS + TO-BE' : toBeLoading ? '⏳ Generating…' : 'AS-IS saved'}
           </span>
         )}
-        <button onClick={() => setShowXmlModal(true)} className="bpmn-toolbar-btn">
-          {t.bpmnXml}
-        </button>
-        <button onClick={handleDownload} className="bpmn-toolbar-btn">
-          ⬇
-        </button>
       </div>
 
       {/* ── Inline save panel ──────────────────────────────────────── */}
