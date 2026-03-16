@@ -506,6 +506,15 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showBurger, setShowBurger] = useState(false);
 
+  // ── vimpl login state ──────────────────────────────────────────────
+  const VIMPL_STORAGE_KEY = 'voice2bpmn_vimpl_config';
+  const VIMPL_LOGIN_URL = 'https://frontend-puce-ten-18.vercel.app/login.html';
+  const BACKEND_URL = 'https://backend-eight-rho-46.vercel.app';
+  const [vimplToken, setVimplToken] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}').token || null; }
+    catch { return null; }
+  });
+
   // ── Free session (vimpl token auth) ───────────────────────────────────────
   const [keyMode, setKeyMode] = useState(() => sessionStorage.getItem('v2l_keymode') || null);
   const [sessionNonce, setSessionNonce] = useState(() => sessionStorage.getItem('v2l_nonce') || null);
@@ -554,14 +563,6 @@ export default function App() {
     } catch { return null; }
   });
 
-  // ── vimpl login state ──────────────────────────────────────────────
-  const VIMPL_STORAGE_KEY = 'voice2bpmn_vimpl_config';
-  const VIMPL_LOGIN_URL = 'https://frontend-puce-ten-18.vercel.app/login.html';
-  const BACKEND_URL = 'https://backend-eight-rho-46.vercel.app';
-  const [vimplToken, setVimplToken] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}').token || null; }
-    catch { return null; }
-  });
   const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
   // Widths stored as fractions (0–1) of the flex container so redistribution is
   // always proportional and never dependent on a measured pixel value.
