@@ -21,7 +21,6 @@ export const translations = {
     // ── VoicePanel ────────────────────────────────────────────────
     loadDemo:            '⚡ Load demo',
     loadDemoTitle:       'Load pre-parsed demo — no API key needed',
-    loadExample:         'Load example text',
     transcriptPlaceholder: 'Paste or type your process interview transcript here...',
     parseVoice:          'Parse Voice →',
     parsingVoice:        'Parsing voice...',
@@ -166,7 +165,6 @@ export const translations = {
     // ── VoicePanel ────────────────────────────────────────────────
     loadDemo:            '⚡ Indlæs demo',
     loadDemoTitle:       'Indlæs forudanalyseret demo — ingen API-nøgle nødvendig',
-    loadExample:         'Indlæs eksempeltekst',
     transcriptPlaceholder: 'Indsæt eller skriv dit procesinterview-transskript her...',
     parseVoice:          'Analysér stemme →',
     parsingVoice:        'Analyserer stemme...',
