@@ -10,9 +10,10 @@ import {
   deleteDiagram,
 } from '../services/diagramService.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey }) {
+export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, onGenerateToBe, canGenerateToBe }) {
   const { t } = useLang();
   const viewerRef = useRef(null);
+  const toBeViewerRef = useRef(null);
   const [impLoading, setImpLoading] = useState(false);
   const [impError, setImpError] = useState(null);
 
@@ -163,6 +164,21 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
           {t.loadDiagramBtn}
         </button>
         <div className="flex-1" />
+        {/* AS-IS → TO-BE button */}
+        {!asIsXml ? (
+          <button
+            onClick={onGenerateToBe}
+            disabled={!canGenerateToBe || toBeLoading}
+            title={canGenerateToBe ? 'Save as AS-IS and generate TO-BE from selected improvements' : 'Select improvements first'}
+            className="text-xs font-medium px-2.5 py-1 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-green-50 text-green-700 border-green-300 hover:bg-green-100"
+          >
+            AS-IS → TO-BE
+          </button>
+        ) : (
+          <span className="text-[10px] text-green-600 font-medium border border-green-200 rounded px-2 py-0.5 bg-green-50">
+            {toBeXml ? '✓ AS-IS + TO-BE' : toBeLoading ? '⏳ Generating…' : 'AS-IS saved'}
+          </span>
+        )}
         <button onClick={() => setShowXmlModal(true)} className="bpmn-toolbar-btn">
           {t.bpmnXml}
         </button>
@@ -199,38 +215,77 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         </div>
       )}
 
-      {/* ── Diagram canvas + zoom controls ─────────────────────────── */}
-      <div className="flex-1 overflow-hidden relative">
-        <BpmnErrorBoundary>
-          <BpmnViewer
-            ref={viewerRef}
-            xml={xml}
-            onXmlChange={onXmlChange}
-            onElementDblClick={setCurtainElement}
-          />
-        </BpmnErrorBoundary>
+      {/* ── Diagram canvas ───────────────────────────────────────────── */}
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0">
 
-        {curtainElement && (
-          <StepCurtain
-            element={curtainElement}
-            parsed={parsed}
-            processDescription={processDescription}
-            onClose={() => setCurtainElement(null)}
-          />
-        )}
+        {/* AS-IS pane — full height when no TO-BE, half when both */}
+        <div className={`relative overflow-hidden flex flex-col ${asIsXml ? 'flex-1 border-b border-gray-200' : 'flex-1'}`}>
+          {asIsXml && (
+            <div className="shrink-0 flex items-center gap-2 px-3 py-1 bg-gray-50 border-b border-gray-200">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 bg-gray-200 rounded px-1.5 py-0.5">AS-IS</span>
+              <span className="text-xs text-gray-400 truncate">{processName}</span>
+            </div>
+          )}
+          <div className="flex-1 overflow-hidden relative">
+            <BpmnErrorBoundary>
+              <BpmnViewer
+                ref={viewerRef}
+                xml={asIsXml || xml}
+                onXmlChange={asIsXml ? undefined : onXmlChange}
+                onElementDblClick={setCurtainElement}
+              />
+            </BpmnErrorBoundary>
 
-        {/* Zoom controls — floating bottom-right */}
-        <div className="bpmn-zoom-controls">
-          <button onClick={() => viewerRef.current?.zoomIn()} title="Zoom in" className="bpmn-zoom-btn">
-            +
-          </button>
-          <button onClick={() => viewerRef.current?.fitViewport()} title="Fit to screen" className="bpmn-zoom-btn bpmn-zoom-fit">
-            ⊡
-          </button>
-          <button onClick={() => viewerRef.current?.zoomOut()} title="Zoom out" className="bpmn-zoom-btn">
-            −
-          </button>
+            {curtainElement && (
+              <StepCurtain
+                element={curtainElement}
+                parsed={parsed}
+                processDescription={processDescription}
+                onClose={() => setCurtainElement(null)}
+              />
+            )}
+
+            <div className="bpmn-zoom-controls">
+              <button onClick={() => viewerRef.current?.zoomIn()} title="Zoom in" className="bpmn-zoom-btn">+</button>
+              <button onClick={() => viewerRef.current?.fitViewport()} title="Fit" className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
+              <button onClick={() => viewerRef.current?.zoomOut()} title="Zoom out" className="bpmn-zoom-btn">−</button>
+            </div>
+          </div>
         </div>
+
+        {/* TO-BE pane — shown below AS-IS once generated */}
+        {(asIsXml || toBeLoading) && (
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="shrink-0 flex items-center gap-2 px-3 py-1 bg-green-50 border-b border-green-200">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-green-700 bg-green-200 rounded px-1.5 py-0.5">TO-BE</span>
+              {toBeLoading ? (
+                <span className="flex items-center gap-1.5 text-xs text-green-600">
+                  <span className="inline-block w-3 h-3 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
+                  Generating TO-BE diagram…
+                </span>
+              ) : (
+                <span className="text-xs text-green-600 truncate">{processName} — TO-BE</span>
+              )}
+            </div>
+            {toBeXml && !toBeLoading && (
+              <div className="flex-1 overflow-hidden relative">
+                <BpmnErrorBoundary>
+                  <BpmnViewer
+                    ref={toBeViewerRef}
+                    xml={toBeXml}
+                    onXmlChange={onToBeXmlChange}
+                    onElementDblClick={setCurtainElement}
+                  />
+                </BpmnErrorBoundary>
+                <div className="bpmn-zoom-controls">
+                  <button onClick={() => toBeViewerRef.current?.zoomIn()} title="Zoom in" className="bpmn-zoom-btn">+</button>
+                  <button onClick={() => toBeViewerRef.current?.fitViewport()} title="Fit" className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
+                  <button onClick={() => toBeViewerRef.current?.zoomOut()} title="Zoom out" className="bpmn-zoom-btn">−</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── XML preview modal ──────────────────────────────────────── */}

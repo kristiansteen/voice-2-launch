@@ -279,6 +279,50 @@ export async function generateProjectPlan(parsed, selectedImprovements, apiKey, 
   }
 }
 
+// ── TO-BE BPMN Generation ─────────────────────────────────────────────────────
+// Takes the AS-IS parsed BPMN JSON + selected improvements and generates a
+// modified TO-BE BPMN JSON with the improvements applied.
+const TO_BE_PROMPT = `You are a BPMN process modelling expert. You will receive an AS-IS BPMN process as JSON and a list of approved process improvements. Apply the improvements to produce a TO-BE version of the process.
+
+Return ONLY a valid JSON object following the exact same schema as the input — no explanation, no markdown, no preamble.
+
+Rules:
+- Keep the same top-level schema: process_name, roles, events, activities, gateways, sequence_flows
+- Add new roles for systems/automation introduced by improvements (e.g. "OCR System", "Automation Engine")
+- Rename or replace manual tasks with automated/improved equivalents where applicable
+- Add or remove activities, gateways, and flows to reflect the improvements
+- Remove steps that the improvements eliminate
+- All ids must be unique; new elements use the next available number (e.g. act_13, role_7)
+- sequence_flows must reference only valid element ids in the output
+- Set process_name to the original name suffixed with " — TO-BE"`;
+
+export async function generateToBeBpmn(asIsParsed, improvements, apiKey) {
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  const input = {
+    as_is_bpmn: asIsParsed,
+    improvements: improvements.map(i => ({ title: i.title, description: i.description, category: i.category })),
+  };
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4000,
+    system: TO_BE_PROMPT,
+    messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
+  });
+
+  const text = message.content[0].text.trim();
+  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const err = new Error('Failed to parse TO-BE BPMN as JSON');
+    err.rawResponse = text;
+    throw err;
+  }
+}
+
 // ── Ailean Interview Follow-up ────────────────────────────────────────────────
 // Returns a single follow-up question as plain text (no JSON).
 export async function getInterviewFollowUp(transcript, conversationHistory, apiKey, processContext) {

@@ -13,6 +13,7 @@ import {
   parseToBpmn,
   getStructuredImprovements,
   generateProjectPlan,
+  generateToBeBpmn,
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
@@ -426,6 +427,13 @@ export default function App() {
   const [projectPlan, setProjectPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
 
+  // Panel 3 — AS-IS / TO-BE
+  const [asIsXml, setAsIsXml] = useState(null);
+  const [asIsParsed, setAsIsParsed] = useState(null);
+  const [toBeXml, setToBeXml] = useState(null);
+  const [toBeParsed, setToBeParsed] = useState(null);
+  const [toBeLoading, setToBeLoading] = useState(false);
+
   // ── Auto-login: read token from ?token= (vimpl SSO callback) or #token= (board deep-link) ──
   useEffect(() => {
     try {
@@ -507,6 +515,10 @@ export default function App() {
     setSelectedImprovementIds([]);
     setCustomRisks([]);
     setProjectPlan(null);
+    setAsIsXml(null);
+    setAsIsParsed(null);
+    setToBeXml(null);
+    setToBeParsed(null);
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
   }
 
@@ -599,6 +611,26 @@ export default function App() {
     setSelectedImprovementIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
+  }
+
+  async function handleGenerateToBe() {
+    if (!parsed || !apiKey) return;
+    const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
+    if (!selected.length) return;
+    // Freeze current as AS-IS
+    setAsIsXml(xml);
+    setAsIsParsed(parsed);
+    setToBeXml(null);
+    setToBeParsed(null);
+    setToBeLoading(true);
+    try {
+      const toBeParsedResult = await generateToBeBpmn(parsed, selected, apiKey);
+      setToBeParsed(toBeParsedResult);
+      const { generateBpmnXml } = await import('./services/xmlGenerator.js');
+      setToBeXml(generateBpmnXml(toBeParsedResult));
+    } finally {
+      setToBeLoading(false);
+    }
   }
 
   async function handleGeneratePlan() {
@@ -762,6 +794,12 @@ export default function App() {
               processDescription={processDescription}
               onGetImprovements={handleGetImprovements}
               apiKey={apiKey}
+              asIsXml={asIsXml}
+              toBeXml={toBeXml}
+              onToBeXmlChange={setToBeXml}
+              toBeLoading={toBeLoading}
+              onGenerateToBe={handleGenerateToBe}
+              canGenerateToBe={!!parsed && !!apiKey && selectedImprovementIds.length > 0}
             />
           </PanelShell>
         </div>
