@@ -10,35 +10,39 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  // ── Auth ────────────────────────────────────────────────────────
+  // ── Auth — verify against vimpl backend ─────────────────────────
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
+  const meRes = await fetch(`${process.env.VIMPL_BACKEND_URL}/api/v1/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!meRes.ok) return res.status(401).json({ error: 'Invalid token' });
+  const { user } = await meRes.json();
+  const userId = user.id;
+
+  // ── Session nonce check ─────────────────────────────────────────
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_KEY,
   );
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
-
-  // ── Session nonce check ─────────────────────────────────────────
   const clientNonce = req.headers['x-session-nonce'];
 
   const { data: existing } = await supabase
     .from('free_sessions')
     .select('session_nonce')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle();
 
   let sessionNonce;
 
   if (!existing) {
-    // First use ever — create a session
+    // First use — create a session
     const nonce = crypto.randomUUID();
     const { error: insertErr } = await supabase
       .from('free_sessions')
-      .insert({ user_id: user.id, session_nonce: nonce });
+      .insert({ user_id: userId, session_nonce: nonce });
     if (insertErr) return res.status(500).json({ error: 'Failed to create session' });
     sessionNonce = nonce;
   } else if (clientNonce && existing.session_nonce === clientNonce) {

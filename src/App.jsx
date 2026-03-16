@@ -17,7 +17,6 @@ import {
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
-import { useAuth } from './hooks/useAuth.js';
 
 const DEMO_TRANSCRIPT = `Interviewer: Can you walk me through the accounts payable invoice processing workflow from start to finish?
 
@@ -507,24 +506,22 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showBurger, setShowBurger] = useState(false);
 
-  // ── Auth + free session ────────────────────────────────────────────────────
-  const auth = useAuth();
+  // ── Free session (vimpl token auth) ───────────────────────────────────────
   const [keyMode, setKeyMode] = useState(() => sessionStorage.getItem('v2l_keymode') || null);
   const [sessionNonce, setSessionNonce] = useState(() => sessionStorage.getItem('v2l_nonce') || null);
   const [sessionStatus, setSessionStatus] = useState('available'); // 'available' | 'active' | 'used'
 
-  // When user logs in, auto-activate free session (unless BYOK is already set)
+  // Auto-activate free session as soon as vimpl login is detected
   useEffect(() => {
-    if (!auth.user || !auth.session) return;
+    if (!vimplToken) return;
     if (keyMode === 'byok') return; // BYOK takes precedence
-    // Auto-delegate the API key for any signed-in user
     setKeyMode('free');
     sessionStorage.setItem('v2l_keymode', 'free');
     fetch('/api/proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${auth.session.access_token}`,
+        'Authorization': `Bearer ${vimplToken}`,
         ...(sessionNonce ? { 'x-session-nonce': sessionNonce } : {}),
       },
       body: JSON.stringify({ _check: true, model: 'claude-sonnet-4-20250514', system: ' ', messages: [{ role: 'user', content: ' ' }], max_tokens: 1 }),
@@ -535,19 +532,19 @@ export default function App() {
       setSessionStatus('active');
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.user?.id]);
+  }, [vimplToken]);
 
   function getProxyAuth() {
-    if (keyMode !== 'free' || !auth.session) return null;
+    if (keyMode !== 'free' || !vimplToken) return null;
     return {
-      token: auth.session.access_token,
+      token: vimplToken,
       sessionNonce,
       onNonce: (nonce) => { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); setSessionStatus('active'); },
     };
   }
 
   const effectiveApiKey = keyMode === 'byok' ? apiKey : null;
-  const hasAccess = keyMode === 'byok' ? !!apiKey : (keyMode === 'free' && sessionStatus !== 'used' && !!auth.session);
+  const hasAccess = keyMode === 'byok' ? !!apiKey : (keyMode === 'free' && sessionStatus !== 'used' && !!vimplToken);
 
   // ── Custom taxonomy (overrides APQC in ApqcSelector) ──────────────
   const [customTaxonomyNodes, setCustomTaxonomyNodes] = useState(() => {
@@ -1072,11 +1069,7 @@ export default function App() {
         apiKey={apiKey}
         onApiKeyChange={key => { setApiKey(key); setKeyMode('byok'); sessionStorage.setItem('v2l_keymode', 'byok'); }}
         elevenLabsKey={elevenLabsKey}
-        authUser={auth.user}
         sessionStatus={sessionStatus}
-        onGoogleSignIn={auth.signInWithGoogle}
-        onSignOut={auth.signOut}
-        onStartFreeSession={() => { setKeyMode('free'); sessionStorage.setItem('v2l_keymode', 'free'); setSessionStatus('active'); }}
         onElevenLabsKeyChange={key => { setElevenLabsKey(key); }}
         vimplToken={vimplToken}
         onLoginGoogle={loginWithGoogle}
