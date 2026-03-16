@@ -931,6 +931,7 @@ export default function App() {
               canParse={!!getEffectiveTranscript().trim() && !!apiKey}
               onLoadDemo={handleLoadDemo}
               ailean={ailean}
+              hasElevenLabsKey={!!elevenLabsKey}
               onAileanTurn={() => ailean.askFollowUp(transcript)}
             />
           </PanelShell>

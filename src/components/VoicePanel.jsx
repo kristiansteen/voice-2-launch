@@ -18,6 +18,7 @@ export default function VoicePanel({
   onParse, loading, canParse,
   onLoadDemo,
   ailean,
+  hasElevenLabsKey,
   onAileanTurn,
 }) {
   const { t, lang } = useLang();
@@ -142,7 +143,9 @@ export default function VoicePanel({
               'flex-1 flex items-center justify-center gap-1.5 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
               aileanActive
                 ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
-                : 'text-gray-600 border-gray-200 hover:border-purple-400 hover:text-purple-600',
+                : hasElevenLabsKey
+                  ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                  : 'text-gray-600 border-gray-200 hover:border-purple-400 hover:text-purple-600',
             ].join(' ')}
           >
             <svg width="13" height="11" viewBox="0 0 13 11" fill="none" xmlns="http://www.w3.org/2000/svg">
