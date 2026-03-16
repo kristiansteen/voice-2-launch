@@ -709,6 +709,14 @@ export default function App() {
           {draftRestored && (
             <span className="text-xs text-green-400 animate-pulse">{t.draftRestored}</span>
           )}
+          {toBeXml && (
+            <button
+              onClick={() => navigator.clipboard.writeText(toBeXml).then(() => alert('TO-BE XML copied!'))}
+              className="text-xs bg-yellow-400 text-black px-2 py-1 rounded font-bold"
+            >
+              📋 Copy TO-BE XML
+            </button>
+          )}
           {(transcript || xml) && (
             <button
               onClick={handleClearDraft}
