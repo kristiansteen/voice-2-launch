@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { APQC_NODES } from '../data/apqcTaxonomy.js';
 
-const LEVEL1 = APQC_NODES.filter(n => n.level === 1);
-const LEVEL2 = APQC_NODES.filter(n => n.level === 2);
-const LEVEL3 = APQC_NODES.filter(n => n.level === 3);
-
-export default function ApqcSelector({ processContext, onChange }) {
+export default function ApqcSelector({ processContext, onChange, nodes: customNodes }) {
+  const nodes = customNodes || APQC_NODES;
+  const LEVEL1 = nodes.filter(n => n.level === 1);
+  const LEVEL2 = nodes.filter(n => n.level === 2);
+  const LEVEL3 = nodes.filter(n => n.level === 3);
   const [open, setOpen]           = useState(false);
   const [search, setSearch]       = useState('');
   const [expandedL1, setExpandedL1] = useState(null); // L1 node id

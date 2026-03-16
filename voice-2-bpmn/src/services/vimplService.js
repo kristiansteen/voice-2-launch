@@ -7,7 +7,7 @@
  * @param {Array} selectedImprovements - Improvements from the improve panel (with effort_score/impact_score)
  * @returns {{ boardId, boardUrl, sectionId, tasksCreated }}
  */
-export async function exportToVimpl(projectPlan, processName, config, selectedImprovements = []) {
+export async function exportToVimpl(projectPlan, processName, config, selectedImprovements = [], processDescription = null) {
   const { baseUrl, token } = config;
 
   const res = await fetch(`${baseUrl}/api/v1/boards/import`, {
@@ -20,6 +20,8 @@ export async function exportToVimpl(projectPlan, processName, config, selectedIm
       plan_name: projectPlan.plan_name || processName,
       process_name: processName,
       duration_weeks: projectPlan.duration_weeks ?? 14,
+      overview: processDescription?.overview || '',
+      scope: processDescription?.scope || '',
       tracks: projectPlan.tracks ?? [],
       tasks: projectPlan.tasks ?? [],
       risks: projectPlan.risks ?? [],

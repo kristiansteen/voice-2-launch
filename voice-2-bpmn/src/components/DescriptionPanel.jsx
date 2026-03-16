@@ -101,11 +101,18 @@ function StepsList({ steps, onChange }) {
   );
 }
 
-export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange }) {
+export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange, taxonomyNodes }) {
   const { t } = useLang();
   const [approvingBpmn, setApprovingBpmn] = useState(false);
 
   function set(field, val) { onDescriptionChange({ ...description, [field]: val }); }
+
+  function handleProcessContextChange(newCtx) {
+    onProcessContextChange(newCtx);
+    if (newCtx.apqcNodeName && description && !description.process_name) {
+      set('process_name', newCtx.apqcNodeName);
+    }
+  }
 
   async function handleApprove() {
     setApprovingBpmn(true);
@@ -144,7 +151,8 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
         <div className="border border-gray-100 rounded-lg overflow-hidden">
           <ApqcSelector
             processContext={processContext}
-            onChange={onProcessContextChange}
+            onChange={handleProcessContextChange}
+            nodes={taxonomyNodes}
           />
         </div>
 

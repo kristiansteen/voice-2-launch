@@ -1,5 +1,41 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+// ── Client factory ────────────────────────────────────────────────────────────
+// Returns either a real Anthropic client (BYOK) or a proxy shim (free session).
+function makeClient(apiKey, proxyAuth = null) {
+  if (apiKey) return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  // Proxy shim — mirrors the Anthropic SDK's messages.create interface
+  return {
+    messages: {
+      async create(params) {
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${proxyAuth.token}`,
+        };
+        if (proxyAuth.sessionNonce) headers['x-session-nonce'] = proxyAuth.sessionNonce;
+
+        const res = await fetch('/api/proxy', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(params),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const e = new Error(err.error || 'Proxy error');
+          if (err.error === 'free_session_used') e.code = 'FREE_SESSION_USED';
+          throw e;
+        }
+
+        const nonce = res.headers.get('x-session-nonce');
+        if (nonce && proxyAuth.onNonce) proxyAuth.onNonce(nonce);
+        return res.json();
+      },
+    },
+  };
+}
+
 const SUGGESTIONS_PROMPT = `You are a BPMN process improvement expert. Analyse the following BPMN process JSON and provide concise, actionable improvement suggestions.
 
 Focus on:
@@ -80,7 +116,8 @@ Rules:
 - Each selected improvement should have at least one task
 - Group related tasks into 2-4 tracks (e.g., "Technology", "Process", "People", "Governance")
 - Each risk must reference a task_id
-- Include 3-6 risks`;
+- Include 3-6 risks total
+- If known_risks are provided in the input, include ALL of them verbatim in the output risks array (preserving their title, probability, consequence, mitigation), then add additional AI-generated risks as needed`;
 
 const SYSTEM_PROMPT = `You are a BPMN process modelling expert.
 Analyse the following interview transcript and extract all BPMN 2.0 elements.
@@ -114,8 +151,8 @@ Rules:
 - sequence_flows must reference valid element ids
 - If you are uncertain about an element, still include it — mark ambiguous names with a "?" suffix`;
 
-export async function parseTranscript(transcript, apiKey, processContext = {}) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function parseTranscript(transcript, apiKey, processContext = {}, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   let system = SYSTEM_PROMPT;
   if (!processContext.isCustom && processContext.apqcNodeId) {
@@ -151,8 +188,8 @@ export async function parseTranscript(transcript, apiKey, processContext = {}) {
   }
 }
 
-export async function getSuggestions(parsed, apiKey) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function getSuggestions(parsed, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -164,8 +201,8 @@ export async function getSuggestions(parsed, apiKey) {
   return message.content[0].text;
 }
 
-export async function parseVoiceToDescription(transcript, apiKey, processContext = {}) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function parseVoiceToDescription(transcript, apiKey, processContext = {}, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   let system = DESCRIPTION_PROMPT;
   if (!processContext.isCustom && processContext.apqcNodeId) {
@@ -198,8 +235,8 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
   }
 }
 
-export async function parseToBpmn(description, apiKey, processContext = {}) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function parseToBpmn(description, apiKey, processContext = {}, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   let system = SYSTEM_PROMPT;
   if (!processContext.isCustom && processContext.apqcNodeId) {
@@ -228,8 +265,8 @@ export async function parseToBpmn(description, apiKey, processContext = {}) {
   }
 }
 
-export async function getStructuredImprovements(parsed, apiKey) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -250,12 +287,13 @@ export async function getStructuredImprovements(parsed, apiKey) {
   }
 }
 
-export async function generateProjectPlan(parsed, selectedImprovements, apiKey) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
 
   const input = {
     process: parsed,
     selected_improvements: selectedImprovements,
+    ...(knownRisks.length > 0 ? { known_risks: knownRisks } : {}),
   };
 
   const message = await client.messages.create({
@@ -275,4 +313,99 @@ export async function generateProjectPlan(parsed, selectedImprovements, apiKey) 
     err.rawResponse = text;
     throw err;
   }
+}
+
+// ── TO-BE BPMN Generation ─────────────────────────────────────────────────────
+// Takes the AS-IS parsed BPMN JSON + selected improvements and generates a
+// modified TO-BE BPMN JSON with the improvements applied.
+const TO_BE_PROMPT = `You are a BPMN process modelling expert. You will receive an AS-IS BPMN process as JSON and a list of approved process improvements. Apply the improvements to produce a TO-BE version of the process.
+
+Return ONLY a valid JSON object following the exact same schema as the input — no explanation, no markdown, no preamble.
+
+Rules:
+- Keep the same top-level schema: process_name, roles, events, activities, gateways, sequence_flows
+- Add new roles for systems/automation introduced by improvements (e.g. "OCR System", "Automation Engine")
+- Rename or replace manual tasks with automated/improved equivalents where applicable
+- Add or remove activities, gateways, and flows to reflect the improvements
+- Remove steps that the improvements eliminate
+- All ids must be unique; new elements use the next available number (e.g. act_13, role_7)
+- sequence_flows must reference only valid element ids in the output
+- Set process_name to the original name suffixed with " — TO-BE"`;
+
+export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
+
+  const input = {
+    as_is_bpmn: asIsParsed,
+    improvements: improvements.map(i => ({ title: i.title, description: i.description, category: i.category })),
+  };
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4000,
+    system: TO_BE_PROMPT,
+    messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
+  });
+
+  const text = message.content[0].text.trim();
+  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const err = new Error('Failed to parse TO-BE BPMN as JSON');
+    err.rawResponse = text;
+    throw err;
+  }
+}
+
+// ── Ailean Interview Follow-up ────────────────────────────────────────────────
+// Returns a single follow-up question as plain text (no JSON).
+export async function getInterviewFollowUp(transcript, conversationHistory, apiKey, processContext, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
+
+  let systemPrompt = `You are Ailean, an expert lean consultant and process discovery interviewer with 20+ years of experience. You are conducting a process mapping interview to capture a business process as a BPMN diagram.
+
+Your role is to ask targeted follow-up questions that uncover:
+- Missing steps or activities
+- Decision points and gateway conditions
+- Who performs each step (roles/swimlanes)
+- Exceptions, error flows, and edge cases
+- Handovers between departments or systems
+- Inputs, outputs, and triggers
+- Pain points and bottlenecks
+
+Guidelines:
+- Ask ONLY ONE focused question at a time — never multiple questions in one turn
+- Keep it short: 1-2 natural sentences maximum
+- Be warm, curious, and conversational — like a trusted colleague
+- Build on exactly what the person just said
+- Briefly acknowledge their last answer before probing deeper
+- If a step is vague, dig into the specifics
+- If a role is unclear, ask who specifically performs it
+- If there is a decision, ask what conditions determine each path`;
+
+  if (processContext?.apqcNodeName) {
+    systemPrompt += `\n\nThe process being mapped is: ${processContext.apqcNodeName}`;
+  }
+
+  systemPrompt += `\n\nReturn ONLY your follow-up question. No preamble, no explanation, no quotation marks.`;
+
+  const messages = [
+    // Keep the last 3 turns (6 messages) to stay within context
+    ...conversationHistory.slice(-6),
+    {
+      role: 'user',
+      content: `Here is the interview transcript so far:\n\n${transcript}\n\nAsk your next follow-up question.`,
+    },
+  ];
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 120,
+    system: systemPrompt,
+    messages,
+  });
+
+  return response.content[0].text.trim();
 }

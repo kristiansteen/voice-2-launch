@@ -5,7 +5,7 @@ export default function SuggestionsPanel({ parsed, apiKey, suggestions, loading,
         <button
           onClick={onGetSuggestions}
           disabled={!parsed || !apiKey || loading}
-          className="w-full bg-purple-600 text-white text-sm font-medium py-2 rounded-md hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
