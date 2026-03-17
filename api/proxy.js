@@ -82,14 +82,22 @@ export default async function handler(req, res) {
     });
   }
 
+  // ── Session check (no Anthropic call needed) ───────────────────
+  const { _check } = req.body || {};
+  if (_check) {
+    res.setHeader('x-session-nonce', sessionNonce);
+    return res.status(200).json({ ok: true });
+  }
+
   // ── Forward to Anthropic ────────────────────────────────────────
+  // Set nonce header before the async call so it's always present
+  res.setHeader('x-session-nonce', sessionNonce);
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const { model, system, messages, max_tokens } = req.body;
 
     const message = await client.messages.create({ model, system, messages, max_tokens });
 
-    res.setHeader('x-session-nonce', sessionNonce);
     res.json(message);
   } catch (err) {
     res.status(500).json({ error: err.message });
