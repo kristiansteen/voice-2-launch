@@ -58,7 +58,7 @@ function RiskForm({ initial = BLANK_RISK, onSave, onCancel, saveLabel }) {
   );
 }
 
-export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk }) {
+export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported }) {
   const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
   const [showAddRisk, setShowAddRisk] = useState(false);
@@ -202,6 +202,7 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
           selectedImprovements={(improvements || []).filter(i => selectedIds.includes(i.id))}
           processDescription={processDescription}
           onClose={() => setShowExport(false)}
+          onExported={onExported}
         />
       )}
     </div>

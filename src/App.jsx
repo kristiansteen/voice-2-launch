@@ -519,6 +519,8 @@ export default function App() {
   const [keyMode, setKeyMode] = useState(() => sessionStorage.getItem('v2l_keymode') || null);
   const [sessionNonce, setSessionNonce] = useState(() => sessionStorage.getItem('v2l_nonce') || null);
   const [sessionStatus, setSessionStatus] = useState('available'); // 'available' | 'active' | 'used'
+  const [sessionBoardUrl, setSessionBoardUrl] = useState(() => sessionStorage.getItem('v2l_board_url') || null);
+  const [sessionCreatedAt, setSessionCreatedAt] = useState(() => sessionStorage.getItem('v2l_created_at') || null);
 
   // Auto-activate free session as soon as vimpl login is detected
   useEffect(() => {
@@ -535,13 +537,36 @@ export default function App() {
       },
       body: JSON.stringify({ _check: true, model: 'claude-sonnet-4-20250514', system: ' ', messages: [{ role: 'user', content: ' ' }], max_tokens: 1 }),
     }).then(async r => {
-      if (r.status === 403) { setSessionStatus('used'); return; }
+      if (r.status === 403) {
+        const body = await r.json().catch(() => ({}));
+        if (body.board_url) { setSessionBoardUrl(body.board_url); sessionStorage.setItem('v2l_board_url', body.board_url); }
+        if (body.created_at) { setSessionCreatedAt(body.created_at); sessionStorage.setItem('v2l_created_at', body.created_at); }
+        setSessionStatus('used');
+        return;
+      }
       const nonce = r.headers.get('x-session-nonce');
       if (nonce) { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); }
+      const created = r.headers.get('x-session-created');
+      if (created) { setSessionCreatedAt(created); sessionStorage.setItem('v2l_created_at', created); }
       setSessionStatus('active');
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vimplToken]);
+
+  async function handleExported(boardId, boardUrl) {
+    if (keyMode !== 'free' || !vimplToken || !sessionNonce) return;
+    setSessionBoardUrl(boardUrl);
+    sessionStorage.setItem('v2l_board_url', boardUrl);
+    fetch('/api/proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${vimplToken}`,
+        'x-session-nonce': sessionNonce,
+      },
+      body: JSON.stringify({ _complete: true, board_id: boardId, board_url: boardUrl }),
+    }).catch(() => {});
+  }
 
   function getProxyAuth() {
     if (keyMode !== 'free' || !vimplToken) return null;
@@ -1058,6 +1083,7 @@ export default function App() {
               onAddRisk={handleAddRisk}
               onUpdateRisk={handleUpdateRisk}
               onRemoveRisk={handleRemoveRisk}
+              onExported={handleExported}
             />
           </PanelShell>
         </div>
@@ -1071,6 +1097,8 @@ export default function App() {
         onApiKeyChange={key => { setApiKey(key); setKeyMode('byok'); sessionStorage.setItem('v2l_keymode', 'byok'); }}
         elevenLabsKey={elevenLabsKey}
         sessionStatus={sessionStatus}
+        sessionBoardUrl={sessionBoardUrl}
+        sessionCreatedAt={sessionCreatedAt}
         onElevenLabsKeyChange={key => { setElevenLabsKey(key); }}
         vimplToken={vimplToken}
         onLoginGoogle={loginWithGoogle}

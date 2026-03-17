@@ -27,7 +27,7 @@ export default function BurgerMenu({
   vimplToken, onLoginGoogle, onLoginVimpl, onLogout,
   parsed, processContext,
   customTaxonomyNodes, onTaxonomyChange,
-  sessionStatus,
+  sessionStatus, sessionBoardUrl, sessionCreatedAt,
 }) {
   const { t } = useLang();
   const [draftKey, setDraftKey] = useState(apiKey || '');
@@ -104,8 +104,19 @@ export default function BurgerMenu({
 
           {/* ── Session status (only shown when used) ─────────────── */}
           {sessionStatus === 'used' && (
-            <div className="mx-4 mt-3 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-3 py-2">
-              Free session used. Add your own key below.
+            <div className="mx-4 mt-3 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-3 py-2 space-y-1">
+              <p>Free session used. Add your own key below.</p>
+              {sessionBoardUrl && (
+                <a href={sessionBoardUrl} target="_blank" rel="noopener noreferrer"
+                  className="block text-blue-600 hover:underline truncate">
+                  View your board →
+                </a>
+              )}
+              {sessionCreatedAt && (
+                <p className="text-[10px] text-orange-400">
+                  {new Date(sessionCreatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              )}
             </div>
           )}
 

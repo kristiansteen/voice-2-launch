@@ -5,7 +5,7 @@ const STORAGE_KEY = 'voice2bpmn_vimpl_config';
 const VIMPL_LOGIN_URL = 'https://frontend-puce-ten-18.vercel.app/login.html';
 const VIMPL_BASE_URL = 'https://backend-eight-rho-46.vercel.app';
 
-export default function VimplExportModal({ projectPlan, processName, selectedImprovements = [], processDescription = null, onClose }) {
+export default function VimplExportModal({ projectPlan, processName, selectedImprovements = [], processDescription = null, onClose, onExported }) {
   const [token, setToken] = useState('');
   const [exporting, setExporting] = useState(false);
   const [result, setResult] = useState(null);
@@ -54,6 +54,7 @@ export default function VimplExportModal({ projectPlan, processName, selectedImp
         processDescription
       );
       setResult(res);
+      if (onExported) onExported(res.boardId, res.boardUrl);
     } catch (err) {
       // If 401, clear the stored token so they can re-login
       if (err.message?.includes('401') || err.message?.toLowerCase().includes('unauthorized')) {

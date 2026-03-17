@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-nonce');
-  res.setHeader('Access-Control-Expose-Headers', 'x-session-nonce');
+  res.setHeader('Access-Control-Expose-Headers', 'x-session-nonce, x-session-created');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
@@ -21,17 +21,29 @@ export default async function handler(req, res) {
   const { user } = await meRes.json();
   const userId = user.id;
 
-  // ── Session nonce check ─────────────────────────────────────────
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_KEY,
   );
 
+  // ── Mark session complete with board_id ─────────────────────────
+  const { _complete, board_id, board_url } = req.body || {};
+  if (_complete && board_id) {
+    const clientNonce = req.headers['x-session-nonce'];
+    await supabase
+      .from('free_sessions')
+      .update({ board_id, board_url: board_url || null })
+      .eq('user_id', userId)
+      .eq('session_nonce', clientNonce);
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── Session nonce check ─────────────────────────────────────────
   const clientNonce = req.headers['x-session-nonce'];
 
   const { data: existing } = await supabase
     .from('free_sessions')
-    .select('session_nonce')
+    .select('session_nonce, board_id, board_url, created_at')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -48,9 +60,15 @@ export default async function handler(req, res) {
   } else if (clientNonce && existing.session_nonce === clientNonce) {
     // Continuing a valid existing session
     sessionNonce = clientNonce;
+    res.setHeader('x-session-created', existing.created_at);
   } else {
     // Already used in a different session
-    return res.status(403).json({ error: 'free_session_used' });
+    return res.status(403).json({
+      error: 'free_session_used',
+      board_id: existing.board_id || null,
+      board_url: existing.board_url || null,
+      created_at: existing.created_at,
+    });
   }
 
   // ── Forward to Anthropic ────────────────────────────────────────
