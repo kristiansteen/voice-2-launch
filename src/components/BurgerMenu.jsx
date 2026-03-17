@@ -102,9 +102,20 @@ export default function BurgerMenu({
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
 
+          {/* ── Free session counter ───────────────────────────────── */}
+          <div className="mx-4 mt-3 flex items-center justify-between">
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Free sessions</span>
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[10px] font-semibold ${sessionStatus === 'used' ? 'text-orange-500' : 'text-green-600'}`}>
+                {sessionStatus === 'used' ? '0' : '1'} / 1
+              </span>
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${sessionStatus === 'used' ? 'bg-orange-400' : 'bg-green-500'}`} />
+            </div>
+          </div>
+
           {/* ── Session status (only shown when used) ─────────────── */}
           {sessionStatus === 'used' && (
-            <div className="mx-4 mt-3 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-3 py-2 space-y-1">
+            <div className="mx-4 mt-2 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-3 py-2 space-y-1">
               <p>Free session used. Add your own key below.</p>
               {sessionBoardUrl && (
                 <a href={sessionBoardUrl} target="_blank" rel="noopener noreferrer"
