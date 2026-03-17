@@ -514,6 +514,7 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}').token || null; }
     catch { return null; }
   });
+  const [vimplUser, setVimplUser] = useState(null);
 
   // ── Free session (vimpl token auth) ───────────────────────────────────────
   const [keyMode, setKeyMode] = useState(() => sessionStorage.getItem('v2l_keymode') || null);
@@ -525,6 +526,13 @@ export default function App() {
   // Auto-activate free session as soon as vimpl login is detected
   useEffect(() => {
     if (!vimplToken) return;
+    // Fetch vimpl user info (for admin features)
+    fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${vimplToken}` },
+    }).then(r => r.ok ? r.json() : null).then(data => {
+      if (data?.user) setVimplUser(data.user);
+    }).catch(() => {});
+
     if (keyMode === 'byok') return; // BYOK takes precedence
     setKeyMode('free');
     sessionStorage.setItem('v2l_keymode', 'free');
@@ -565,6 +573,41 @@ export default function App() {
         'x-session-nonce': sessionNonce,
       },
       body: JSON.stringify({ _complete: true, board_id: boardId, board_url: boardUrl }),
+    }).catch(() => {});
+  }
+
+  async function handleResetSession() {
+    if (!vimplToken) return;
+    try {
+      await fetch('/api/proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${vimplToken}`,
+        },
+        body: JSON.stringify({ _reset: true }),
+      });
+    } catch { /* ignore */ }
+    // Clear all session state
+    setSessionStatus('available');
+    setSessionNonce(null);
+    setSessionBoardUrl(null);
+    setSessionCreatedAt(null);
+    sessionStorage.removeItem('v2l_nonce');
+    sessionStorage.removeItem('v2l_board_url');
+    sessionStorage.removeItem('v2l_created_at');
+    // Re-create a fresh session immediately
+    fetch('/api/proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${vimplToken}`,
+      },
+      body: JSON.stringify({ _check: true, model: 'claude-sonnet-4-20250514', system: ' ', messages: [{ role: 'user', content: ' ' }], max_tokens: 1 }),
+    }).then(async r => {
+      const nonce = r.headers.get('x-session-nonce');
+      if (nonce) { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); }
+      setSessionStatus('active');
     }).catch(() => {});
   }
 
@@ -1101,9 +1144,11 @@ export default function App() {
         sessionCreatedAt={sessionCreatedAt}
         onElevenLabsKeyChange={key => { setElevenLabsKey(key); }}
         vimplToken={vimplToken}
+        vimplUser={vimplUser}
         onLoginGoogle={loginWithGoogle}
         onLoginVimpl={loginWithVimpl}
         onLogout={logoutVimpl}
+        onResetSession={handleResetSession}
         parsed={parsed}
         processContext={processContext}
         customTaxonomyNodes={customTaxonomyNodes}

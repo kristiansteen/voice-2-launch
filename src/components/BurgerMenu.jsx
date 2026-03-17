@@ -24,7 +24,7 @@ export default function BurgerMenu({
   open, onClose,
   apiKey, onApiKeyChange,
   elevenLabsKey, onElevenLabsKeyChange,
-  vimplToken, onLoginGoogle, onLoginVimpl, onLogout,
+  vimplToken, vimplUser, onLoginGoogle, onLoginVimpl, onLogout, onResetSession,
   parsed, processContext,
   customTaxonomyNodes, onTaxonomyChange,
   sessionStatus, sessionBoardUrl, sessionCreatedAt,
@@ -112,6 +112,18 @@ export default function BurgerMenu({
               <span className={`inline-block w-1.5 h-1.5 rounded-full ${sessionStatus === 'used' ? 'bg-orange-400' : 'bg-green-500'}`} />
             </div>
           </div>
+
+          {/* ── Admin reset (admin only) ──────────────────────────── */}
+          {vimplUser?.email === 'kristian.steen@vimpl.com' && (
+            <div className="mx-4 mt-2">
+              <button
+                onClick={onResetSession}
+                className="w-full text-[10px] text-red-400 hover:text-red-600 border border-red-100 rounded px-3 py-1.5 hover:bg-red-50 transition-colors"
+              >
+                ↺ Reset free session (admin)
+              </button>
+            </div>
+          )}
 
           {/* ── Session status (only shown when used) ─────────────── */}
           {sessionStatus === 'used' && (

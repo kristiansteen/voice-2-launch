@@ -20,11 +20,22 @@ export default async function handler(req, res) {
   if (!meRes.ok) return res.status(401).json({ error: 'Invalid token' });
   const { user } = await meRes.json();
   const userId = user.id;
+  const userEmail = user.email;
 
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_KEY,
   );
+
+  // ── Admin reset ─────────────────────────────────────────────────
+  const { _reset } = req.body || {};
+  if (_reset) {
+    if (userEmail !== 'kristian.steen@vimpl.com') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    await supabase.from('free_sessions').delete().eq('user_id', userId);
+    return res.status(200).json({ ok: true });
+  }
 
   // ── Mark session complete with board_id ─────────────────────────
   const { _complete, board_id, board_url } = req.body || {};
