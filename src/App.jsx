@@ -1127,6 +1127,7 @@ export default function App() {
               onUpdateRisk={handleUpdateRisk}
               onRemoveRisk={handleRemoveRisk}
               onExported={handleExported}
+              vimplToken={vimplToken}
             />
           </PanelShell>
         </div>
