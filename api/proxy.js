@@ -50,6 +50,7 @@ export default async function handler(req, res) {
   }
 
   // ── Session nonce check ─────────────────────────────────────────
+  const { _check } = req.body || {};
   const clientNonce = req.headers['x-session-nonce'];
 
   const { data: existing } = await supabase
@@ -68,12 +69,17 @@ export default async function handler(req, res) {
       .insert({ user_id: userId, session_nonce: nonce });
     if (insertErr) return res.status(500).json({ error: 'Failed to create session' });
     sessionNonce = nonce;
+  } else if (_check) {
+    // Re-sync: client lost its nonce (new tab / cleared storage).
+    // Return the stored nonce so the client can resume the session.
+    sessionNonce = existing.session_nonce;
+    res.setHeader('x-session-created', existing.created_at);
   } else if (clientNonce && existing.session_nonce === clientNonce) {
     // Continuing a valid existing session
     sessionNonce = clientNonce;
     res.setHeader('x-session-created', existing.created_at);
   } else {
-    // Already used in a different session
+    // Nonce mismatch on a real request — session belongs to a different browser session
     return res.status(403).json({
       error: 'free_session_used',
       board_id: existing.board_id || null,
@@ -83,7 +89,6 @@ export default async function handler(req, res) {
   }
 
   // ── Session check (no Anthropic call needed) ───────────────────
-  const { _check } = req.body || {};
   if (_check) {
     res.setHeader('x-session-nonce', sessionNonce);
     return res.status(200).json({ ok: true });
