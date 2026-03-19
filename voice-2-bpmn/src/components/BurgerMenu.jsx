@@ -24,10 +24,10 @@ export default function BurgerMenu({
   open, onClose,
   apiKey, onApiKeyChange,
   elevenLabsKey, onElevenLabsKeyChange,
-  vimplToken, onLoginGoogle, onLoginVimpl, onLogout,
+  vimplToken, vimplUser, onLoginGoogle, onLoginVimpl, onLogout, onResetSession,
   parsed, processContext,
   customTaxonomyNodes, onTaxonomyChange,
-  authUser, sessionStatus, onGoogleSignIn, onSignOut, onStartFreeSession,
+  sessionStatus, sessionBoardUrl, sessionCreatedAt,
 }) {
   const { t } = useLang();
   const [draftKey, setDraftKey] = useState(apiKey || '');
@@ -102,39 +102,46 @@ export default function BurgerMenu({
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* ── Free session ──────────────────────────────────────── */}
-          <Section title="Free session" defaultOpen={!apiKey && sessionStatus !== 'active'}>
-            <div className="space-y-3">
-              {sessionStatus === 'active' ? (
-                <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
-                  <span>✓</span><span>Free session active — complete your workflow</span>
-                </div>
-              ) : sessionStatus === 'used' ? (
-                <div className="text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-3 py-2">
-                  Free session used. Add your own key below.
-                </div>
-              ) : !authUser ? (
-                <>
-                  <p className="text-[10px] text-gray-400">Sign in with Google to try one full Voice-to-Launch workflow for free.</p>
-                  <button onClick={onGoogleSignIn} className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    <svg width="14" height="14" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.76-2.7.76-2.09 0-3.86-1.41-4.49-3.3H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.49 10.51A4.8 4.8 0 0 1 4.24 9c0-.52.09-1.03.25-1.51V5.42H1.83A8 8 0 0 0 .98 9c0 1.29.31 2.51.85 3.58l2.66-2.07z"/><path fill="#EA4335" d="M8.98 3.58c1.18 0 2.24.4 3.07 1.2l2.3-2.3A8 8 0 0 0 .98 9l2.51 1.95C4.12 4.99 6.2 3.58 8.98 3.58z"/></svg>
-                    Sign in with Google
-                  </button>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1.5">
-                    {authUser.user_metadata?.avatar_url && <img src={authUser.user_metadata.avatar_url} alt="" className="w-5 h-5 rounded-full" />}
-                    <span className="text-xs text-gray-600 flex-1 truncate">{authUser.user_metadata?.full_name || authUser.email}</span>
-                    <button onClick={onSignOut} className="text-[10px] text-gray-400 hover:text-red-500 transition-colors">sign out</button>
-                  </div>
-                  <button onClick={() => { onStartFreeSession(); onClose(); }} className="w-full text-xs font-medium bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition-colors">
-                    Start free session
-                  </button>
-                </div>
+          {/* ── Free session counter ───────────────────────────────── */}
+          <div className="mx-4 mt-3 flex items-center justify-between">
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Free sessions</span>
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[10px] font-semibold ${sessionStatus === 'used' ? 'text-orange-500' : 'text-green-600'}`}>
+                {sessionStatus === 'used' ? '0' : '1'} / 1
+              </span>
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${sessionStatus === 'used' ? 'bg-orange-400' : 'bg-green-500'}`} />
+            </div>
+          </div>
+
+          {/* ── Admin reset (admin only) ──────────────────────────── */}
+          {vimplUser?.email === 'kristian.steen@vimpl.com' && (
+            <div className="mx-4 mt-2">
+              <button
+                onClick={onResetSession}
+                className="w-full text-[10px] text-red-400 hover:text-red-600 border border-red-100 rounded px-3 py-1.5 hover:bg-red-50 transition-colors"
+              >
+                ↺ Reset free session (admin)
+              </button>
+            </div>
+          )}
+
+          {/* ── Session status (only shown when used) ─────────────── */}
+          {sessionStatus === 'used' && (
+            <div className="mx-4 mt-2 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-3 py-2 space-y-1">
+              <p>Free session used. Add your own key below.</p>
+              {sessionBoardUrl && (
+                <a href={sessionBoardUrl} target="_blank" rel="noopener noreferrer"
+                  className="block text-blue-600 hover:underline truncate">
+                  View your board →
+                </a>
+              )}
+              {sessionCreatedAt && (
+                <p className="text-[10px] text-orange-400">
+                  {new Date(sessionCreatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
               )}
             </div>
-          </Section>
+          )}
 
           {/* ── API Keys ──────────────────────────────────────────── */}
           <Section title="Bring your own key" defaultOpen={!apiKey}>

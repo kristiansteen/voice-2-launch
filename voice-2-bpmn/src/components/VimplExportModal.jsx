@@ -5,31 +5,22 @@ const STORAGE_KEY = 'voice2bpmn_vimpl_config';
 const VIMPL_LOGIN_URL = 'https://frontend-puce-ten-18.vercel.app/login.html';
 const VIMPL_BASE_URL = 'https://backend-eight-rho-46.vercel.app';
 
-export default function VimplExportModal({ projectPlan, processName, selectedImprovements = [], processDescription = null, onClose }) {
-  const [token, setToken] = useState('');
+export default function VimplExportModal({ projectPlan, processName, selectedImprovements = [], processDescription = null, onClose, onExported, vimplToken: propToken }) {
+  const [token, setToken] = useState(() => {
+    // Prefer the prop token (from App.jsx vimpl login) over stored token
+    if (propToken) return propToken;
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').token || '';
+    } catch { return ''; }
+  });
   const [exporting, setExporting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  // Sync if propToken arrives after mount (e.g. auth completes while modal is open)
   useEffect(() => {
-    // Check if vimpl redirected back here with a token in the URL
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get('token');
-    if (urlToken) {
-      setToken(urlToken);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: urlToken }));
-      // Clean the token from the URL without reloading
-      const clean = window.location.pathname + window.location.hash;
-      window.history.replaceState({}, '', clean);
-      return;
-    }
-
-    // Fall back to stored token
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      if (saved.token) setToken(saved.token);
-    } catch { /* ignore */ }
-  }, []);
+    if (propToken && !token) setToken(propToken);
+  }, [propToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function loginWithVimpl() {
     const returnTo = window.location.href.split('?')[0]; // current page without params
@@ -54,11 +45,12 @@ export default function VimplExportModal({ projectPlan, processName, selectedImp
         processDescription
       );
       setResult(res);
+      if (onExported) onExported(res.boardId, res.boardUrl);
     } catch (err) {
-      // If 401, clear the stored token so they can re-login
+      // On auth error, only clear the modal token — do NOT remove shared localStorage
+      // key since it's also used by App.jsx for the free session.
       if (err.message?.includes('401') || err.message?.toLowerCase().includes('unauthorized')) {
-        setToken('');
-        localStorage.removeItem(STORAGE_KEY);
+        if (!propToken) setToken(''); // only clear if we weren't using the prop token
       }
       setError(err.message || 'Export failed.');
     } finally {
