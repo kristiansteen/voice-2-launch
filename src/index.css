@@ -97,12 +97,12 @@ body {
   background: var(--vimpl-primary-dark);
 }
 
-/* ── Language switcher (matches ailean style) ─────────────────────── */
+/* ── Language switcher ─────────────────────────────────────────────── */
 .lang-switcher {
   display: inline-flex;
   align-items: center;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: var(--vimpl-gray-200);
+  border: 1px solid var(--vimpl-gray-200);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -111,7 +111,7 @@ body {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: rgba(255,255,255,0.45);
+  color: var(--vimpl-gray-500);
   background: transparent;
   border: none;
   padding: 4px 8px;
@@ -121,13 +121,13 @@ body {
 }
 
 .lang-btn:hover {
-  color: rgba(255,255,255,0.8);
-  background: rgba(255,255,255,0.08);
+  color: var(--vimpl-dark);
+  background: var(--vimpl-gray-100);
 }
 
 .lang-btn.active {
   color: #fff;
-  background: rgba(101,196,52,0.25);
+  background: var(--vimpl-primary);
 }
 
 /* ── DiagramPanel toolbar ──────────────────────────────────────────── */

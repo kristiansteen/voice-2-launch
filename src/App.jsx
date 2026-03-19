@@ -1132,9 +1132,9 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-900">
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-100">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
+      <header className="flex items-center justify-between px-6 py-2 bg-slate-100 border-b border-gray-200 shadow-sm shrink-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <button
@@ -1191,11 +1191,11 @@ export default function App() {
           { num: 5, label: t.panel5 },
         ];
         return (
-          <div className="flex items-center justify-center gap-1 px-4 py-2 bg-gray-900 border-b border-gray-700 shrink-0">
+          <div className="flex items-center justify-center gap-1 px-4 py-2 bg-slate-100 border-b border-gray-200 shrink-0">
             <button
               onClick={() => setActivePanel(p => Math.max(1, p - 1))}
               disabled={activePanel === 1}
-              className="text-gray-500 hover:text-gray-300 disabled:opacity-20 transition-colors px-2 text-sm select-none"
+              className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors px-2 text-sm select-none"
             >
               ←
             </button>
@@ -1207,12 +1207,12 @@ export default function App() {
                   'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
                   activePanel === s.num
                     ? 'bg-vimpl text-gray-900'
-                    : 'text-gray-500 hover:text-gray-200 hover:bg-gray-800',
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200',
                 ].join(' ')}
               >
                 <span className={[
                   'w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
-                  activePanel === s.num ? 'bg-gray-900/20 text-gray-900' : 'bg-gray-700 text-gray-400',
+                  activePanel === s.num ? 'bg-white/50 text-gray-800' : 'bg-gray-300 text-gray-500',
                 ].join(' ')}>{s.num}</span>
                 {s.label}
               </button>
@@ -1220,7 +1220,7 @@ export default function App() {
             <button
               onClick={() => setActivePanel(p => Math.min(5, p + 1))}
               disabled={activePanel === 5}
-              className="text-gray-500 hover:text-gray-300 disabled:opacity-20 transition-colors px-2 text-sm select-none"
+              className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors px-2 text-sm select-none"
             >
               →
             </button>
@@ -1229,7 +1229,7 @@ export default function App() {
       })()}
 
       {/* Carousel */}
-      <div className="relative flex-1 bg-gray-900 overflow-hidden">
+      <div className="relative flex-1 bg-slate-100 overflow-hidden">
 
         {/* Panel 1 — Voice */}
         <div style={getCarouselStyle(1)} onClick={activePanel !== 1 ? () => setActivePanel(1) : undefined}>
@@ -1252,7 +1252,7 @@ export default function App() {
               onAileanTurn={() => ailean.askFollowUp(transcript)}
             />
           </PanelShell>
-          {activePanel !== 1 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
+          {activePanel !== 1 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
         {/* Panel 2 — Description */}
@@ -1269,7 +1269,7 @@ export default function App() {
               taxonomyNodes={customTaxonomyNodes}
             />
           </PanelShell>
-          {activePanel !== 2 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
+          {activePanel !== 2 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
         {/* Panel 3 — Diagram */}
@@ -1290,7 +1290,7 @@ export default function App() {
               toBeLoading={toBeLoading}
             />
           </PanelShell>
-          {activePanel !== 3 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
+          {activePanel !== 3 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
         {/* Panel 4 — Plan */}
@@ -1310,7 +1310,7 @@ export default function App() {
               planLoading={planLoading}
             />
           </PanelShell>
-          {activePanel !== 4 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
+          {activePanel !== 4 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
         {/* Panel 5 — Launch */}
@@ -1332,7 +1332,7 @@ export default function App() {
               onNewFlow={handleCreateFlow}
             />
           </PanelShell>
-          {activePanel !== 5 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
+          {activePanel !== 5 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
       </div>
