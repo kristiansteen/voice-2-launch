@@ -131,7 +131,7 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
           <div className="w-px h-5 bg-gray-200" />
           <span className="text-xs font-semibold text-gray-400 tracking-wide uppercase">Voice to Launch</span>
           <a
-            href="https://www.ailean.dk"
+            href="https://www.vimpl.com"
             target="_blank"
             rel="noopener noreferrer"
             className="ailean-badge"

@@ -1139,27 +1139,16 @@ export default function App() {
         <span className="absolute left-1/2 -translate-x-1/2 text-xs font-semibold text-gray-400 tracking-wide uppercase pointer-events-none">
           Voice to Launch
         </span>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleBackToDashboard}
-              className="text-gray-400 hover:text-vimpl transition-colors text-sm leading-none"
-              title="Back to dashboard"
-            >
-              ←
-            </button>
-            <span className="ailean-logo" style={{ fontSize: '15px' }}>AILEAN</span>
-          </div>
-          <a
-            href="https://www.ailean.dk"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ailean-badge"
-          >
-            <span>Powered by</span>
-            <span className="vimpl-wordmark" style={{ fontSize: '16px', lineHeight: 1 }}>vimpl</span>
-          </a>
-        </div>
+        <a
+          href="https://www.vimpl.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ailean-badge"
+          style={{ padding: '6px 14px' }}
+        >
+          <span>Powered by</span>
+          <span className="vimpl-wordmark" style={{ fontSize: '32px', lineHeight: 1 }}>vimpl</span>
+        </a>
         <div className="flex items-center gap-2">
           <LangSwitcher />
           <button
