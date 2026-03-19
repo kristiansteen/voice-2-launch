@@ -663,8 +663,8 @@ export default function App() {
       return { ...base, left: offset < 0 ? '-100%' : '100%', width: '100%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: 0 };
     }
 
-    // Panels 4 & 5 (Plan / Launch) — 30% centred, neighbours peek on both sides
-    if (activePanel === 4 || activePanel === 5) {
+    // Panels 2, 4 & 5 (Identify / Plan / Launch) — 30% centred, neighbours peek on both sides
+    if (activePanel === 2 || activePanel === 4 || activePanel === 5) {
       if (offset === 0)  return { ...base, left: '35%', width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
       if (offset === -1) return { ...base, left: '1%',  width: '33%', opacity: 0.45, zIndex: 5,  cursor: 'pointer', borderRadius: r };
       if (offset === 1)  return { ...base, left: '66%', width: '33%', opacity: 0.45, zIndex: 5,  cursor: 'pointer', borderRadius: r };
