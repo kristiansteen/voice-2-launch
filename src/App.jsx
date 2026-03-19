@@ -1157,16 +1157,19 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-900">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleBackToDashboard}
-            className="text-gray-400 hover:text-vimpl transition-colors text-sm leading-none"
-            title="Back to dashboard"
-          >
-            ←
-          </button>
-          <span className="vimpl-wordmark">vimpl</span>
+      <header className="flex items-center justify-between px-6 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBackToDashboard}
+              className="text-gray-400 hover:text-vimpl transition-colors text-sm leading-none"
+              title="Back to dashboard"
+            >
+              ←
+            </button>
+            <span className="vimpl-wordmark">vimpl</span>
+          </div>
+          <div className="w-px h-5 bg-gray-200" />
           <span className="text-xs font-semibold text-gray-400 tracking-wide uppercase">Voice to Launch</span>
           <a
             href="https://www.ailean.dk"
