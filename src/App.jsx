@@ -1148,7 +1148,7 @@ export default function App() {
             >
               ←
             </button>
-            <span className="vimpl-wordmark">vimpl</span>
+            <span className="ailean-logo" style={{ fontSize: '15px' }}>AILEAN</span>
           </div>
           <a
             href="https://www.ailean.dk"
@@ -1157,7 +1157,7 @@ export default function App() {
             className="ailean-badge"
           >
             <span>Powered by</span>
-            <span className="ailean-logo">AILEAN</span>
+            <span className="vimpl-wordmark" style={{ fontSize: '16px', lineHeight: 1 }}>vimpl</span>
           </a>
         </div>
         <div className="flex items-center gap-2">

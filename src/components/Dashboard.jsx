@@ -127,7 +127,7 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
         <div className="flex items-center gap-4">
-          <span className="vimpl-wordmark">vimpl</span>
+          <span className="ailean-logo" style={{ fontSize: '15px' }}>AILEAN</span>
           <div className="w-px h-5 bg-gray-200" />
           <span className="text-xs font-semibold text-gray-400 tracking-wide uppercase">Voice to Launch</span>
           <a
@@ -137,7 +137,7 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
             className="ailean-badge"
           >
             <span>Powered by</span>
-            <span className="ailean-logo">AILEAN</span>
+            <span className="vimpl-wordmark" style={{ fontSize: '16px', lineHeight: 1 }}>vimpl</span>
           </a>
         </div>
         {vimplUser && (
