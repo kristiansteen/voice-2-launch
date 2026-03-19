@@ -162,13 +162,13 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
 
       {/* ── Toolbar ─────────────────────────────────────────────────── */}
       <div className="bpmn-toolbar px-3 py-2 flex items-center gap-2 shrink-0">
-        <button onClick={openSavePanel} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
+        <button onClick={openSavePanel} style={{ maxWidth: '8%' }} className="min-w-0 truncate text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
           {savedId ? t.savedCloud : t.save}
         </button>
-        <button onClick={openLoadModal} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
+        <button onClick={openLoadModal} style={{ maxWidth: '8%' }} className="min-w-0 truncate text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
           {t.loadDiagramBtn}
         </button>
-        <button onClick={() => setShowXmlModal(true)} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
+        <button onClick={() => setShowXmlModal(true)} style={{ maxWidth: '8%' }} className="min-w-0 truncate text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
           {t.bpmnXml}
         </button>
       </div>
