@@ -1184,9 +1184,9 @@ export default function App() {
           { num: 5, label: t.panel5 },
         ];
         return (
-          <div className="flex items-center justify-center gap-1 px-4 py-2 bg-slate-100 border-b border-gray-200 shrink-0">
-            {/* Left: utility buttons */}
-            <div className="flex items-center gap-1 mr-3">
+          <div className="relative flex items-center justify-center gap-1 px-4 py-2 bg-slate-100 border-b border-gray-200 shrink-0">
+            {/* Left: utility buttons — pinned to left edge */}
+            <div className="absolute left-4 flex items-center gap-1">
               <button
                 onClick={handleLoadDemo}
                 className="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-md px-2 py-1 transition-colors"
