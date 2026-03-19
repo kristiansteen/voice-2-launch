@@ -651,28 +651,30 @@ export default function App() {
       position: 'absolute',
       top: 0,
       bottom: 0,
-      transition: 'left 0.38s cubic-bezier(0.4,0,0.2,1), width 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.3s, box-shadow 0.38s',
+      transition: 'left 0.38s cubic-bezier(0.4,0,0.2,1), width 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.3s, box-shadow 0.38s, border-radius 0.38s',
       overflow: 'hidden',
     };
 
-    // Panel 3 (Map) — full width, no peeking
+    const r = '8px'; // standard radius from CSS design system
+
+    // Panel 3 (Map) — full width, no peeking, no radius (edge-to-edge)
     if (activePanel === 3) {
-      if (offset === 0)  return { ...base, left: '0%',   width: '100%', opacity: 1, zIndex: 10, boxShadow: 'none' };
-      return { ...base, left: offset < 0 ? '-100%' : '100%', width: '100%', opacity: 0, zIndex: 0, pointerEvents: 'none' };
+      if (offset === 0)  return { ...base, left: '0%',   width: '100%', opacity: 1, zIndex: 10, boxShadow: 'none', borderRadius: 0 };
+      return { ...base, left: offset < 0 ? '-100%' : '100%', width: '100%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: 0 };
     }
 
     // Panel 5 (Launch) — 30% flush-right, panel 4 fills the left
     if (activePanel === 5) {
-      if (offset === 0)  return { ...base, left: '70%', width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)' };
-      if (offset === -1) return { ...base, left: '1%',  width: '60%', opacity: 0.55, zIndex: 5,  cursor: 'pointer' };
-      return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none' };
+      if (offset === 0)  return { ...base, left: '70%', width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
+      if (offset === -1) return { ...base, left: '1%',  width: '60%', opacity: 0.55, zIndex: 5,  cursor: 'pointer', borderRadius: r };
+      return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: r };
     }
 
     // Panels 1, 2, 4 — 30% flush-left, next panel fills the right
-    if (offset === 0)  return { ...base, left: '0%',  width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)' };
-    if (offset === 1)  return { ...base, left: '31%', width: '60%', opacity: 0.55, zIndex: 5,  cursor: 'pointer' };
-    if (offset === 2)  return { ...base, left: '92%', width: '7%',  opacity: 0.3,  zIndex: 3,  cursor: 'pointer' };
-    return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none' };
+    if (offset === 0)  return { ...base, left: '0%',  width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
+    if (offset === 1)  return { ...base, left: '31%', width: '60%', opacity: 0.55, zIndex: 5,  cursor: 'pointer', borderRadius: r };
+    if (offset === 2)  return { ...base, left: '92%', width: '7%',  opacity: 0.3,  zIndex: 3,  cursor: 'pointer', borderRadius: r };
+    return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: r };
   }
 
   // Process context
