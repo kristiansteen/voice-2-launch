@@ -949,7 +949,7 @@ export default function App() {
     setXml(DEMO_XML);
     setAsIsXml(null);
     setAsIsParsed(null);
-    setToBeXml(null);
+    setToBeXml(DEMO_TO_BE_XML);
     setVoiceError(null);
     setImprovements(DEMO_IMPROVEMENTS);
     setSelectedImprovementIds(DEMO_SELECTED_IDS);
