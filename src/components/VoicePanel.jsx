@@ -372,10 +372,8 @@ export default function VoicePanel({
             t.parseVoice
           )}
         </button>
-        {!canParse && !loading && (
-          <p className="text-xs text-gray-400 mt-1 text-center">
-            {!effectiveTranscript?.trim() ? t.enterTranscript : t.setApiKeyFirst}
-          </p>
+        {!canParse && !loading && !effectiveTranscript?.trim() && (
+          <p className="text-xs text-gray-400 mt-1 text-center">{t.enterTranscript}</p>
         )}
         {aileanActive && isStructured && effectiveTranscript && (
           <details className="mt-2">
