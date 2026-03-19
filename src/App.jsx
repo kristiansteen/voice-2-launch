@@ -1161,15 +1161,6 @@ export default function App() {
           </a>
         </div>
         <div className="flex items-center gap-2">
-          {(transcript || xml) && (
-            <button
-              onClick={handleClearCurrentFlow}
-              className="text-xs text-gray-400 hover:text-red-400 transition-colors"
-              title={t.clearTitle}
-            >
-              {t.clear}
-            </button>
-          )}
           <LangSwitcher />
           <button
             onClick={() => setShowBurger(true)}
@@ -1194,6 +1185,25 @@ export default function App() {
         ];
         return (
           <div className="flex items-center justify-center gap-1 px-4 py-2 bg-slate-100 border-b border-gray-200 shrink-0">
+            {/* Left: utility buttons */}
+            <div className="flex items-center gap-1 mr-3">
+              <button
+                onClick={handleLoadDemo}
+                className="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-md px-2 py-1 transition-colors"
+                title={t.loadDemoTitle}
+              >
+                {t.loadDemo}
+              </button>
+              {(transcript || xml) && (
+                <button
+                  onClick={handleClearCurrentFlow}
+                  className="text-xs text-gray-400 hover:text-red-400 border border-gray-200 rounded-md px-2 py-1 transition-colors"
+                  title={t.clearTitle}
+                >
+                  {t.clear}
+                </button>
+              )}
+            </div>
             <button
               onClick={() => setActivePanel(p => Math.max(1, p - 1))}
               disabled={activePanel === 1}
@@ -1248,7 +1258,6 @@ export default function App() {
               onParse={handleParseVoice}
               loading={descParsing}
               canParse={!!getEffectiveTranscript().trim() && hasAccess}
-              onLoadDemo={handleLoadDemo}
               ailean={ailean}
               hasElevenLabsKey={!!elevenLabsKey}
               onAileanTurn={() => ailean.askFollowUp(transcript)}

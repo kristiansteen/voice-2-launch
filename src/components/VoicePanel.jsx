@@ -16,7 +16,6 @@ export default function VoicePanel({
   transcript, setTranscript,
   effectiveTranscript,
   onParse, loading, canParse,
-  onLoadDemo,
   ailean,
   hasElevenLabsKey,
   onAileanTurn,
@@ -109,14 +108,6 @@ export default function VoicePanel({
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-2 shrink-0">
-        <button
-          onClick={onLoadDemo}
-          className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors"
-          title={t.loadDemoTitle}
-        >
-          {t.loadDemo}
-        </button>
-
         <button
           onClick={handlePaste}
           title="Paste transcript from clipboard"
