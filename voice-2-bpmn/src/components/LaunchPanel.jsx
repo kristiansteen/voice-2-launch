@@ -58,11 +58,16 @@ function RiskForm({ initial = BLANK_RISK, onSave, onCancel, saveLabel }) {
   );
 }
 
-export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk }) {
+export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, sessionBoardUrl, onNewFlow }) {
   const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
   const [showAddRisk, setShowAddRisk] = useState(false);
   const [editingRiskId, setEditingRiskId] = useState(null);
+
+  function handleExportDone(boardId, boardUrl) {
+    setShowExport(false);
+    onExported?.(boardId, boardUrl);
+  }
 
   if (!projectPlan) {
     return (
@@ -186,13 +191,35 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
       </div>
 
       {/* ── Export CTA ───────────────────────────────────────────────── */}
-      <div className="px-4 py-4 border-t border-gray-100 shrink-0">
-        <button
-          onClick={() => setShowExport(true)}
-          className="w-full bg-vimpl text-black text-sm font-semibold py-2.5 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors flex items-center justify-center gap-2"
-        >
-          🚀 {t.exportToVimpl}
-        </button>
+      <div className="px-4 py-4 border-t border-gray-100 shrink-0 space-y-2">
+        {sessionBoardUrl ? (
+          <>
+            <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+              <span className="text-green-500 text-sm shrink-0">✓</span>
+              <a
+                href={sessionBoardUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-green-700 font-medium hover:underline flex-1 truncate"
+              >
+                Open board in vimpl
+              </a>
+            </div>
+            <button
+              onClick={onNewFlow}
+              className="w-full border border-gray-300 text-gray-600 text-sm font-medium py-2.5 rounded-lg hover:border-vimpl hover:text-black transition-colors flex items-center justify-center gap-2"
+            >
+              🔄 Start new process
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setShowExport(true)}
+            className="w-full bg-vimpl text-black text-sm font-semibold py-2.5 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors flex items-center justify-center gap-2"
+          >
+            🚀 {t.exportToVimpl}
+          </button>
+        )}
       </div>
 
       {showExport && (
@@ -202,6 +229,8 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
           selectedImprovements={(improvements || []).filter(i => selectedIds.includes(i.id))}
           processDescription={processDescription}
           onClose={() => setShowExport(false)}
+          onExported={handleExportDone}
+          vimplToken={vimplToken}
         />
       )}
     </div>

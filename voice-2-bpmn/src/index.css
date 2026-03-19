@@ -69,6 +69,19 @@ body {
   font-family: 'Inter', sans-serif;
 }
 
+/* ── vimpl wordmark logo ───────────────────────────────────────── */
+.vimpl-wordmark {
+  font-family: 'Birthstone', cursive;
+  font-size: 32px;
+  font-weight: 400;
+  background: linear-gradient(135deg, var(--vimpl-primary) 0%, var(--vimpl-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
 /* ── vimpl-style accents for panel UI ──────────────────────────── */
 .vimpl-btn-primary {
   background: var(--vimpl-primary);
