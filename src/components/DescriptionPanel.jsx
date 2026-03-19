@@ -158,7 +158,7 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
 
         {/* ── Process name with optional APQC mapping ───────────── */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.processName}</label>
+          <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">{t.processName}</label>
           <div className="mt-1 flex gap-1.5 items-stretch">
             <input
               value={description.process_name || ''}
@@ -182,35 +182,35 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
           )}
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.overview}</label>
+          <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">{t.overview}</label>
           <textarea value={description.overview || ''} onChange={e => set('overview', e.target.value)} rows={3}
             className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 resize-none" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.scope}</label>
+          <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">{t.scope}</label>
           <textarea value={description.scope || ''} onChange={e => set('scope', e.target.value)} rows={2}
             className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 resize-none" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.roles}</label>
+          <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">{t.roles}</label>
           <div className="mt-1">
             <RolesList roles={description.roles || []} onChange={val => set('roles', val)} />
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.steps}</label>
+          <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">{t.steps}</label>
           <div className="mt-1">
             <StepsList steps={description.steps || []} onChange={val => set('steps', val)} />
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.exceptions}</label>
+          <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">{t.exceptions}</label>
           <div className="mt-1">
             <EditableList items={description.exceptions || []} onChange={val => set('exceptions', val)} itemKey="exceptionItem" />
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.knownIssues}</label>
+          <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">{t.knownIssues}</label>
           <div className="mt-1">
             <EditableList items={description.known_issues || []} onChange={val => set('known_issues', val)} itemKey="knownIssueItem" />
           </div>
