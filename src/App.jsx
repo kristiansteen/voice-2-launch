@@ -435,48 +435,12 @@ function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
   );
 }
 
-function PanelShell({ num, label, action, collapsed, onToggle, children }) {
-  const { t } = useLang();
-  if (collapsed) {
-    return (
-      <div
-        className="flex flex-col h-full bg-gray-800 cursor-pointer select-none border-r border-gray-700"
-        onClick={onToggle}
-        title={`Expand ${label}`}
-      >
-        <div className="flex-1 flex items-center justify-center">
-          <div
-            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors py-4"
-          >
-            <span className="text-xs font-bold text-vimpl">{num}</span>
-            <span className="text-xs font-medium tracking-wide">{label}</span>
-          </div>
-        </div>
-        <div className="pb-3 flex justify-center">
-          <span className="text-gray-600 text-xs">›</span>
-        </div>
-      </div>
-    );
-  }
-
+function PanelShell({ num, label, children }) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-200 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-white bg-vimpl rounded px-1.5 py-0.5 leading-none">{num}</span>
-          <span className="text-sm font-semibold text-gray-700">{label}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {action}
-          <button
-            onClick={onToggle}
-            title={t.collapsePanel}
-            className="text-gray-400 hover:text-gray-700 transition-colors text-xs px-1"
-          >
-            ‹
-          </button>
-        </div>
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-gray-200 shrink-0">
+        <span className="text-xs font-bold text-white bg-vimpl rounded px-1.5 py-0.5 leading-none">{num}</span>
+        <span className="text-sm font-semibold text-gray-700">{label}</span>
       </div>
       <div className="flex-1 overflow-hidden flex flex-col bg-white">
         {children}
@@ -678,57 +642,41 @@ export default function App() {
   const isSubscribed = vimplUser && vimplUser.subscriptionTier !== 'student';
   const canCreateFlow = keyMode === 'byok' || isSubscribed || flows.length === 0;
 
-  const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
-  // Widths stored as fractions (0–1) of the flex container so redistribution is
-  // always proportional and never dependent on a measured pixel value.
-  const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
+  // ── Carousel state ─────────────────────────────────────────────────
+  const [activePanel, setActivePanel] = useState(1);
 
-  const p1Ref = useRef(null);
-  const p2Ref = useRef(null);
-  const p3Ref = useRef(null);
-  const p4Ref = useRef(null);
-  const p5Ref = useRef(null);
-  const p6Ref = useRef(null);
-  const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref, 6: p6Ref };
-
-  // All panels share space equally (flex:1) when all are open.
-  // When any panel collapses, non-Map panels are frozen at their current pixel
-  // width and Map (panel 3) flexes to fill all freed space.
-  function getPanelStyle(n) {
-    if (collapsed[n]) return { width: 36, flexShrink: 0, flexGrow: 0 };
-    const w = panelWidths[n];
-    if (w != null) return { flex: 'none', width: w, minWidth: '20%' };
-    return { flex: 1, minWidth: '20%' };
-  }
-
-  function handleDragEnd(aKey, newA, bKey, newB) {
-    setPanelWidths(prev => ({ ...prev, [aKey]: newA, [bKey]: newB }));
-  }
-
-  function togglePanel(n) {
-    const nextCollapsed = { ...collapsed, [n]: !collapsed[n] };
-    const anyCollapsed = Object.values(nextCollapsed).some(Boolean);
-
-    [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref, p6Ref].forEach(r => {
-      if (r.current) r.current.style.cssText = '';
-    });
-
-    if (anyCollapsed) {
-      // Freeze non-Map panels at their current rendered width; Map fills the rest
-      const newWidths = { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
-      [1, 2, 4, 5, 6].forEach(p => {
-        if (!nextCollapsed[p] && pRefs[p].current) {
-          newWidths[p] = pRefs[p].current.offsetWidth;
-        }
-      });
-      // panel 3 (Map) stays null → flex:1 → fills remainder
-      setPanelWidths(newWidths);
-    } else {
-      // All open → reset to equal widths
-      setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
-    }
-
-    setCollapsed(nextCollapsed);
+  function getCarouselStyle(n) {
+    const offset = n - activePanel;
+    const base = {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      transition: 'left 0.38s cubic-bezier(0.4,0,0.2,1), width 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.3s, box-shadow 0.38s',
+      overflow: 'hidden',
+    };
+    if (offset === 0) return {
+      ...base,
+      left: '20%', width: '60%',
+      opacity: 1, zIndex: 10,
+      boxShadow: '0 8px 48px rgba(0,0,0,0.22)',
+    };
+    if (offset === -1) return {
+      ...base,
+      left: '1%', width: '18%',
+      opacity: 0.55, zIndex: 5, cursor: 'pointer',
+    };
+    if (offset === 1) return {
+      ...base,
+      left: '81%', width: '18%',
+      opacity: 0.55, zIndex: 5, cursor: 'pointer',
+    };
+    // Hidden off-screen
+    return {
+      ...base,
+      left: offset < 0 ? '-20%' : '100%',
+      width: '18%',
+      opacity: 0, zIndex: 0, pointerEvents: 'none',
+    };
   }
 
   // Process context
@@ -1032,6 +980,7 @@ export default function App() {
     try {
       const desc = await parseVoiceToDescription(getEffectiveTranscript(), effectiveApiKey, processContext, getProxyAuth());
       setProcessDescription(desc);
+      setActivePanel(2);
     } catch (err) {
       setVoiceError(err.message || 'Failed to parse voice.');
     } finally {
@@ -1051,6 +1000,7 @@ export default function App() {
       setParsed(bpmnJson);
       const generatedXml = generateBpmnXml(bpmnJson);
       setXml(generatedXml);
+      setActivePanel(3);
     } finally {
       setBpmnParsing(false);
     }
@@ -1060,6 +1010,7 @@ export default function App() {
     const result = await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth());
     setImprovements(result);
     setSelectedImprovementIds([]);
+    setActivePanel(4);
   }
 
   function handleAddImprovement(idea) {
@@ -1110,13 +1061,13 @@ export default function App() {
       setToBeParsed(toBeParsedResult);
       const { generateBpmnXml } = await import('./services/xmlGenerator.js');
       setToBeXml(generateBpmnXml(toBeParsedResult));
+      setActivePanel(5);
     } finally {
       setPlanLoading(false);
       setToBeLoading(false);
     }
   }
 
-  const handleProps = { onDragEnd: handleDragEnd };
 
   // ── Login gate ────────────────────────────────────────────────────
   if (!vimplToken) {
@@ -1232,12 +1183,59 @@ export default function App() {
         </div>
       </header>
 
-      {/* 5-panel layout */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Step navigator */}
+      {(() => {
+        const steps = [
+          { num: 1, label: t.panel1 },
+          { num: 2, label: t.panel2 },
+          { num: 3, label: t.panel3 },
+          { num: 4, label: t.panel4 },
+          { num: 5, label: t.panel5 },
+        ];
+        return (
+          <div className="flex items-center justify-center gap-1 px-4 py-2 bg-gray-900 border-b border-gray-700 shrink-0">
+            <button
+              onClick={() => setActivePanel(p => Math.max(1, p - 1))}
+              disabled={activePanel === 1}
+              className="text-gray-500 hover:text-gray-300 disabled:opacity-20 transition-colors px-2 text-sm select-none"
+            >
+              ←
+            </button>
+            {steps.map(s => (
+              <button
+                key={s.num}
+                onClick={() => setActivePanel(s.num)}
+                className={[
+                  'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
+                  activePanel === s.num
+                    ? 'bg-vimpl text-gray-900'
+                    : 'text-gray-500 hover:text-gray-200 hover:bg-gray-800',
+                ].join(' ')}
+              >
+                <span className={[
+                  'w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
+                  activePanel === s.num ? 'bg-gray-900/20 text-gray-900' : 'bg-gray-700 text-gray-400',
+                ].join(' ')}>{s.num}</span>
+                {s.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setActivePanel(p => Math.min(5, p + 1))}
+              disabled={activePanel === 5}
+              className="text-gray-500 hover:text-gray-300 disabled:opacity-20 transition-colors px-2 text-sm select-none"
+            >
+              →
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* Carousel */}
+      <div className="relative flex-1 bg-gray-900 overflow-hidden">
 
         {/* Panel 1 — Voice */}
-        <div ref={p1Ref} style={getPanelStyle(1)} className="overflow-hidden">
-          <PanelShell num="1" label={t.panel1} collapsed={collapsed[1]} onToggle={() => togglePanel(1)}>
+        <div style={getCarouselStyle(1)} onClick={activePanel !== 1 ? () => setActivePanel(1) : undefined}>
+          <PanelShell num="1" label={t.panel1}>
             {voiceError && (
               <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-xs shrink-0">
                 {voiceError}
@@ -1256,14 +1254,12 @@ export default function App() {
               onAileanTurn={() => ailean.askFollowUp(transcript)}
             />
           </PanelShell>
+          {activePanel !== 1 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
         </div>
 
-        <ResizeHandle aRef={pRefs[1]} bRef={pRefs[2]} disabled={collapsed[1] || collapsed[2]}
-          aKey={1} bKey={2} {...handleProps} />
-
         {/* Panel 2 — Description */}
-        <div ref={p2Ref} style={getPanelStyle(2)} className="overflow-hidden">
-          <PanelShell num="2" label={t.panel2} collapsed={collapsed[2]} onToggle={() => togglePanel(2)}>
+        <div style={getCarouselStyle(2)} onClick={activePanel !== 2 ? () => setActivePanel(2) : undefined}>
+          <PanelShell num="2" label={t.panel2}>
             <DescriptionPanel
               description={processDescription}
               onDescriptionChange={setProcessDescription}
@@ -1275,14 +1271,12 @@ export default function App() {
               taxonomyNodes={customTaxonomyNodes}
             />
           </PanelShell>
+          {activePanel !== 2 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
         </div>
 
-        <ResizeHandle aRef={pRefs[2]} bRef={pRefs[3]} disabled={collapsed[2] || collapsed[3]}
-          aKey={2} bKey={3} {...handleProps} />
-
         {/* Panel 3 — Diagram */}
-        <div ref={p3Ref} style={getPanelStyle(3)} className="overflow-hidden">
-          <PanelShell num="3" label={t.panel3} collapsed={collapsed[3]} onToggle={() => togglePanel(3)}>
+        <div style={getCarouselStyle(3)} onClick={activePanel !== 3 ? () => setActivePanel(3) : undefined}>
+          <PanelShell num="3" label={t.panel3}>
             <DiagramPanel
               xml={xml}
               onXmlChange={setXml}
@@ -1298,14 +1292,12 @@ export default function App() {
               toBeLoading={toBeLoading}
             />
           </PanelShell>
+          {activePanel !== 3 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
         </div>
 
-        <ResizeHandle aRef={pRefs[3]} bRef={pRefs[4]} disabled={collapsed[3] || collapsed[4]}
-          aKey={3} bKey={4} {...handleProps} />
-
-        {/* Panel 4 — Project */}
-        <div ref={p4Ref} style={getPanelStyle(4)} className="overflow-hidden">
-          <PanelShell num="4" label={t.panel4} collapsed={collapsed[4]} onToggle={() => togglePanel(4)}>
+        {/* Panel 4 — Plan */}
+        <div style={getCarouselStyle(4)} onClick={activePanel !== 4 ? () => setActivePanel(4) : undefined}>
+          <PanelShell num="4" label={t.panel4}>
             <ImprovePanel
               parsed={parsed}
               apiKey={hasAccess ? (effectiveApiKey || 'granted') : null}
@@ -1320,14 +1312,12 @@ export default function App() {
               planLoading={planLoading}
             />
           </PanelShell>
+          {activePanel !== 4 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
         </div>
 
-        <ResizeHandle aRef={pRefs[4]} bRef={pRefs[5]} disabled={collapsed[4] || collapsed[5]}
-          aKey={4} bKey={5} {...handleProps} />
-
         {/* Panel 5 — Launch */}
-        <div ref={p5Ref} style={getPanelStyle(5)} className="overflow-hidden">
-          <PanelShell num="5" label={t.panel5} collapsed={collapsed[5]} onToggle={() => togglePanel(5)}>
+        <div style={getCarouselStyle(5)} onClick={activePanel !== 5 ? () => setActivePanel(5) : undefined}>
+          <PanelShell num="5" label={t.panel5}>
             <LaunchPanel
               projectPlan={projectPlan}
               parsed={parsed}
@@ -1344,6 +1334,7 @@ export default function App() {
               onNewFlow={handleCreateFlow}
             />
           </PanelShell>
+          {activePanel !== 5 && <div className="absolute inset-0 bg-gray-900/10 pointer-events-none" />}
         </div>
 
       </div>
