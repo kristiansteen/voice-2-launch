@@ -124,7 +124,10 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
     const observer = new ResizeObserver(() => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        try { modelerRef.current?.get('canvas').resized(); } catch { /* not ready */ }
+        try {
+          const canvas = modelerRef.current?.get('canvas');
+          if (canvas) { canvas.resized(); canvas.zoom('fit-viewport'); }
+        } catch { /* not ready */ }
       }, 60);
     });
     observer.observe(containerRef.current);
