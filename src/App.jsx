@@ -1134,7 +1134,7 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-slate-100">
       {/* Header */}
-      <header className="relative flex items-center justify-between px-6 py-2 bg-slate-100 border-b border-gray-200 shadow-sm shrink-0">
+      <header className="relative flex items-center justify-between px-6 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
         {/* Centered label */}
         <span className="absolute left-1/2 -translate-x-1/2 text-xs font-semibold text-gray-400 tracking-wide uppercase pointer-events-none">
           Voice to Launch
