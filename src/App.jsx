@@ -933,6 +933,34 @@ export default function App() {
     localStorage.removeItem(ACTIVE_KEY);
   }
 
+  function handleClearCurrentFlow() {
+    setTranscript('');
+    setProcessDescription(null);
+    setParsed(null);
+    setXml(null);
+    setImprovements(null);
+    setSelectedImprovementIds([]);
+    setCustomRisks([]);
+    setProjectPlan(null);
+    setAsIsXml(null);
+    setAsIsParsed(null);
+    setToBeXml(null);
+    setToBeParsed(null);
+    setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
+    setSessionBoardUrl(null);
+    sessionStorage.removeItem('v2l_board_url');
+    if (currentFlowId) {
+      setFlows(prev => {
+        const updated = prev.map(f => f.id === currentFlowId
+          ? { ...f, ...blankFlowState(), process_name: 'New process', updated_at: new Date().toISOString() }
+          : f
+        );
+        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+    }
+  }
+
   async function handleDeleteFlow(flowId, deleteBoard) {
     const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
     const flow = stored.find(f => f.id === flowId);
@@ -1182,6 +1210,15 @@ export default function App() {
           </a>
         </div>
         <div className="flex items-center gap-2">
+          {(transcript || xml) && (
+            <button
+              onClick={handleClearCurrentFlow}
+              className="text-xs text-gray-400 hover:text-red-400 transition-colors"
+              title={t.clearTitle}
+            >
+              {t.clear}
+            </button>
+          )}
           <LangSwitcher />
           <button
             onClick={() => setShowBurger(true)}
