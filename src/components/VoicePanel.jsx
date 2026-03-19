@@ -169,7 +169,7 @@ export default function VoicePanel({
               className={[
                 'w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg border transition-all',
                 isRecording
-                  ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 animate-pulse'
+                  ? 'bg-red-500 text-white border-red-500 hover:bg-red-600'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50',
               ].join(' ')}
             >
@@ -180,7 +180,7 @@ export default function VoicePanel({
                 </>
               ) : (
                 <>
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 animate-pulse" />
                   {t.startRecording}
                 </>
               )}
