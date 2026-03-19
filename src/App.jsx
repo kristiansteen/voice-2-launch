@@ -947,8 +947,8 @@ export default function App() {
     setProcessDescription(DEMO_DESCRIPTION);
     setProcessContext({ apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null });
     setXml(DEMO_XML);
-    setAsIsXml(null);
-    setAsIsParsed(null);
+    setAsIsXml(DEMO_XML);
+    setAsIsParsed(DEMO_PARSED);
     setToBeXml(DEMO_TO_BE_XML);
     setVoiceError(null);
     setImprovements(DEMO_IMPROVEMENTS);
