@@ -663,14 +663,15 @@ export default function App() {
       return { ...base, left: offset < 0 ? '-100%' : '100%', width: '100%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: 0 };
     }
 
-    // Panel 5 (Launch) — 30% flush-right, panel 4 fills the left
-    if (activePanel === 5) {
-      if (offset === 0)  return { ...base, left: '70%', width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
-      if (offset === -1) return { ...base, left: '1%',  width: '60%', opacity: 0.55, zIndex: 5,  cursor: 'pointer', borderRadius: r };
+    // Panels 4 & 5 (Plan / Launch) — 30% centred, neighbours peek on both sides
+    if (activePanel === 4 || activePanel === 5) {
+      if (offset === 0)  return { ...base, left: '35%', width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
+      if (offset === -1) return { ...base, left: '1%',  width: '33%', opacity: 0.45, zIndex: 5,  cursor: 'pointer', borderRadius: r };
+      if (offset === 1)  return { ...base, left: '66%', width: '33%', opacity: 0.45, zIndex: 5,  cursor: 'pointer', borderRadius: r };
       return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: r };
     }
 
-    // Panels 1, 2, 4 — 30% flush-left, next panel fills the right
+    // Panels 1 & 2 — 30% flush-left, next panel fills the right
     if (offset === 0)  return { ...base, left: '0%',  width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
     if (offset === 1)  return { ...base, left: '31%', width: '60%', opacity: 0.55, zIndex: 5,  cursor: 'pointer', borderRadius: r };
     if (offset === 2)  return { ...base, left: '92%', width: '7%',  opacity: 0.3,  zIndex: 3,  cursor: 'pointer', borderRadius: r };
