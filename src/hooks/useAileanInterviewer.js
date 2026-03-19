@@ -81,9 +81,9 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext, pr
       prevTranscriptLenRef.current = transcript.length;
       setPrevTranscriptLength(transcript.length);
 
-      // Keep last 3 turns (6 messages) to stay within context
+      // Keep last 6 turns (12 messages) to stay within context
       historyRef.current = [
-        ...historyRef.current.slice(-6),
+        ...historyRef.current.slice(-12),
         { role: 'user',      content: `Transcript so far:\n${transcript}` },
         { role: 'assistant', content: question },
       ];

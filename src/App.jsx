@@ -8,6 +8,7 @@ import DescriptionPanel from './components/DescriptionPanel.jsx';
 import DiagramPanel from './components/DiagramPanel.jsx';
 import ImprovePanel from './components/ImprovePanel.jsx';
 import LaunchPanel from './components/LaunchPanel.jsx';
+import Dashboard from './components/Dashboard.jsx';
 import {
   parseVoiceToDescription,
   parseToBpmn,
@@ -439,16 +440,16 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
   if (collapsed) {
     return (
       <div
-        className="flex flex-col h-full bg-gray-900 cursor-pointer select-none"
+        className="flex flex-col h-full bg-gray-800 cursor-pointer select-none border-r border-gray-700"
         onClick={onToggle}
         title={`Expand ${label}`}
       >
         <div className="flex-1 flex items-center justify-center">
           <div
             style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors py-4"
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors py-4"
           >
-            <span className="text-xs font-mono">{num}</span>
+            <span className="text-xs font-bold text-vimpl">{num}</span>
             <span className="text-xs font-medium tracking-wide">{label}</span>
           </div>
         </div>
@@ -461,17 +462,17 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-3 bg-gray-900 text-white shrink-0">
+      <div className="flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-200 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-gray-400">{num}</span>
-          <span className="text-sm font-medium">{label}</span>
+          <span className="text-xs font-bold text-white bg-vimpl rounded px-1.5 py-0.5 leading-none">{num}</span>
+          <span className="text-sm font-semibold text-gray-700">{label}</span>
         </div>
         <div className="flex items-center gap-2">
           {action}
           <button
             onClick={onToggle}
             title={t.collapsePanel}
-            className="text-gray-500 hover:text-white transition-colors text-xs px-1"
+            className="text-gray-400 hover:text-gray-700 transition-colors text-xs px-1"
           >
             ‹
           </button>
@@ -484,7 +485,29 @@ function PanelShell({ num, label, action, collapsed, onToggle, children }) {
   );
 }
 
-const DRAFT_KEY = 'voice2bpmn_draft';
+const FLOWS_KEY = 'voice2bpmn_flows';
+const ACTIVE_KEY = 'voice2bpmn_active';
+const PRICING_URL = 'https://frontend-puce-ten-18.vercel.app/pricing';
+
+function blankFlowState() {
+  return {
+    transcript: '',
+    processDescription: null,
+    parsed: null,
+    xml: null,
+    improvements: null,
+    selectedImprovementIds: [],
+    customRisks: [],
+    projectPlan: null,
+    processContext: { apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null },
+    asIsXml: null,
+    asIsParsed: null,
+    toBeXml: null,
+    toBeParsed: null,
+    board_url: null,
+    board_id: null,
+  };
+}
 
 // Build a structured "Interviewer / SME" transcript from Ailean conversation turns.
 function buildStructuredTranscript(turns, currentDraft) {
@@ -562,18 +585,30 @@ export default function App() {
   }, [vimplToken]);
 
   async function handleExported(boardId, boardUrl) {
-    if (keyMode !== 'free' || !vimplToken || !sessionNonce) return;
     setSessionBoardUrl(boardUrl);
     sessionStorage.setItem('v2l_board_url', boardUrl);
-    fetch('/api/proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vimplToken}`,
-        'x-session-nonce': sessionNonce,
-      },
-      body: JSON.stringify({ _complete: true, board_id: boardId, board_url: boardUrl }),
-    }).catch(() => {});
+    // Persist board_id + board_url into the current flow
+    if (currentFlowId) {
+      setFlows(prev => {
+        const updated = prev.map(f => f.id === currentFlowId
+          ? { ...f, board_id: boardId, board_url: boardUrl, updated_at: new Date().toISOString() }
+          : f
+        );
+        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+    }
+    if (keyMode === 'free' && vimplToken && sessionNonce) {
+      fetch('/api/proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${vimplToken}`,
+          'x-session-nonce': sessionNonce,
+        },
+        body: JSON.stringify({ _complete: true, board_id: boardId, board_url: boardUrl }),
+      }).catch(() => {});
+    }
   }
 
   async function handleResetSession() {
@@ -631,11 +666,22 @@ export default function App() {
     } catch { return null; }
   });
 
+  // ── Multi-flow state ───────────────────────────────────────────────
+  const [flows, setFlows] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]'); }
+    catch { return []; }
+  });
+  const [currentFlowId, setCurrentFlowId] = useState(() => {
+    return localStorage.getItem(ACTIVE_KEY) || null;
+  });
+
+  const isSubscribed = vimplUser && vimplUser.subscriptionTier !== 'student';
+  const canCreateFlow = keyMode === 'byok' || isSubscribed || flows.length === 0;
+
   const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
   // Widths stored as fractions (0–1) of the flex container so redistribution is
   // always proportional and never dependent on a measured pixel value.
   const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
-  const [draftRestored, setDraftRestored] = useState(false);
 
   const p1Ref = useRef(null);
   const p2Ref = useRef(null);
@@ -761,38 +807,108 @@ export default function App() {
     setVimplToken(null);
   }
 
-  // ── Restore draft from localStorage on mount ──────────────────────
+  // ── Migrate old single-draft format to multi-flow on first run ────
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
-      if (!saved) return;
-      if (saved.transcript) setTranscript(saved.transcript);
-      if (saved.processDescription) setProcessDescription(saved.processDescription);
-      if (saved.parsed) setParsed(saved.parsed);
-      if (saved.xml) setXml(saved.xml);
-      if (saved.improvements) setImprovements(saved.improvements);
-      if (saved.selectedImprovementIds) setSelectedImprovementIds(saved.selectedImprovementIds);
-      if (saved.customRisks) setCustomRisks(saved.customRisks);
-      if (saved.projectPlan) setProjectPlan(saved.projectPlan);
-      if (saved.processContext) setProcessContext(saved.processContext);
-      setDraftRestored(true);
-      setTimeout(() => setDraftRestored(false), 3000);
-    } catch { /* ignore corrupt drafts */ }
+      const oldDraft = localStorage.getItem('voice2bpmn_draft');
+      const existingFlows = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
+      if (oldDraft && existingFlows.length === 0) {
+        const draft = JSON.parse(oldDraft);
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const migrated = {
+          id,
+          process_name: draft.parsed?.process_name || draft.processDescription?.process_name || 'Migrated flow',
+          created_at: now,
+          updated_at: now,
+          board_url: sessionStorage.getItem('v2l_board_url') || null,
+          board_id: null,
+          ...draft,
+        };
+        const newFlows = [migrated];
+        localStorage.setItem(FLOWS_KEY, JSON.stringify(newFlows));
+        localStorage.removeItem('voice2bpmn_draft');
+        setFlows(newFlows);
+        if (draft.transcript || draft.parsed) {
+          loadFlowIntoState(migrated);
+          setCurrentFlowId(id);
+          localStorage.setItem(ACTIVE_KEY, id);
+        }
+      }
+    } catch { /* ignore */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Auto-save draft whenever key state changes ────────────────────
+  // ── Restore active flow on mount ───────────────────────────────────
   useEffect(() => {
-    if (!transcript && !xml && !parsed) return; // nothing worth saving yet
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        transcript, processDescription, parsed, xml,
-        improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-      }));
-    } catch { /* storage full or unavailable */ }
-  }, [transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext]);
+    if (!currentFlowId) return;
+    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
+    const flow = stored.find(f => f.id === currentFlowId);
+    if (flow) loadFlowIntoState(flow);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleClearDraft() {
-    localStorage.removeItem(DRAFT_KEY);
+  function loadFlowIntoState(flow) {
+    setTranscript(flow.transcript || '');
+    setProcessDescription(flow.processDescription || null);
+    setParsed(flow.parsed || null);
+    setXml(flow.xml || null);
+    setImprovements(flow.improvements || null);
+    setSelectedImprovementIds(flow.selectedImprovementIds || []);
+    setCustomRisks(flow.customRisks || []);
+    setProjectPlan(flow.projectPlan || null);
+    setProcessContext(flow.processContext || { apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
+    setAsIsXml(flow.asIsXml || null);
+    setAsIsParsed(flow.asIsParsed || null);
+    setToBeXml(flow.toBeXml || null);
+    setToBeParsed(flow.toBeParsed || null);
+    setSessionBoardUrl(flow.board_url || null);
+    if (flow.board_url) sessionStorage.setItem('v2l_board_url', flow.board_url);
+  }
+
+  // ── Auto-save current flow whenever key state changes ─────────────
+  useEffect(() => {
+    if (!currentFlowId) return;
+    if (!transcript && !xml && !parsed) return;
+    setFlows(prev => {
+      const updated = prev.map(f => f.id === currentFlowId
+        ? {
+            ...f,
+            process_name: parsed?.process_name || processDescription?.process_name || f.process_name,
+            updated_at: new Date().toISOString(),
+            transcript, processDescription, parsed, xml,
+            improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
+            asIsXml, asIsParsed, toBeXml, toBeParsed,
+          }
+        : f
+      );
+      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed]); // eslint-disable-line
+
+  // ── Flow navigation ────────────────────────────────────────────────
+  function handleOpenFlow(flowId) {
+    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
+    const flow = stored.find(f => f.id === flowId);
+    if (!flow) return;
+    loadFlowIntoState(flow);
+    setCurrentFlowId(flowId);
+    localStorage.setItem(ACTIVE_KEY, flowId);
+  }
+
+  function handleCreateFlow() {
+    if (!canCreateFlow) {
+      window.open(PRICING_URL, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const newFlow = { id, process_name: 'New process', created_at: now, updated_at: now, ...blankFlowState() };
+    setFlows(prev => {
+      const updated = [newFlow, ...prev];
+      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    // Reset all content state
     setTranscript('');
     setProcessDescription(null);
     setParsed(null);
@@ -806,9 +922,52 @@ export default function App() {
     setToBeXml(null);
     setToBeParsed(null);
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
+    setSessionBoardUrl(null);
+    sessionStorage.removeItem('v2l_board_url');
+    setCurrentFlowId(id);
+    localStorage.setItem(ACTIVE_KEY, id);
+  }
+
+  function handleBackToDashboard() {
+    setCurrentFlowId(null);
+    localStorage.removeItem(ACTIVE_KEY);
+  }
+
+  async function handleDeleteFlow(flowId, deleteBoard) {
+    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
+    const flow = stored.find(f => f.id === flowId);
+    if (deleteBoard && flow?.board_id && vimplToken) {
+      await fetch(`${BACKEND_URL}/api/v1/boards/${flow.board_id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${vimplToken}` },
+      }).catch(() => {});
+    }
+    setFlows(prev => {
+      const updated = prev.filter(f => f.id !== flowId);
+      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    if (currentFlowId === flowId) {
+      setCurrentFlowId(null);
+      localStorage.removeItem(ACTIVE_KEY);
+    }
   }
 
   function handleLoadDemo() {
+    // Ensure we're in a flow context
+    let flowId = currentFlowId;
+    if (!flowId) {
+      flowId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const demoFlow = { id: flowId, process_name: DEMO_PARSED.process_name, created_at: now, updated_at: now, ...blankFlowState() };
+      setFlows(prev => {
+        const updated = [demoFlow, ...prev];
+        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      setCurrentFlowId(flowId);
+      localStorage.setItem(ACTIVE_KEY, flowId);
+    }
     setTranscript(DEMO_TRANSCRIPT);
     setParsed(DEMO_PARSED);
     setProcessDescription(DEMO_DESCRIPTION);
@@ -934,15 +1093,17 @@ export default function App() {
   // ── Login gate ────────────────────────────────────────────────────
   if (!vimplToken) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gray-900 gap-6">
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="text-2xl font-semibold text-white tracking-wide">{t.appTitle}</h1>
-          <a href="https://www.ailean.dk" target="_blank" rel="noopener noreferrer" className="ailean-badge">
-            <span>Powered by</span>
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-50 gap-6">
+        <div className="flex flex-col items-center gap-3">
+          <span className="vimpl-wordmark" style={{ fontSize: '52px' }}>vimpl</span>
+          <p className="text-sm font-semibold text-gray-500 tracking-widest uppercase">Voice to Launch</p>
+          <a href="https://www.ailean.dk" target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs bg-gray-100 border border-gray-200 px-3 py-1 rounded-full hover:border-vimpl-light transition-colors no-underline">
+            <span className="text-gray-400 font-semibold uppercase tracking-wide" style={{ fontSize: '10px' }}>Powered by</span>
             <span className="ailean-logo">AILEAN</span>
           </a>
         </div>
-        <div className="bg-white rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center gap-4 w-80">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 px-10 py-8 flex flex-col items-center gap-4 w-80">
           <p className="text-sm text-gray-500 text-center">Sign in to continue</p>
 
           {/* Google — primary */}
@@ -978,12 +1139,35 @@ export default function App() {
     );
   }
 
+  // ── Dashboard ──────────────────────────────────────────────────────
+  if (!currentFlowId) {
+    return (
+      <Dashboard
+        flows={flows}
+        vimplUser={vimplUser}
+        onOpen={handleOpenFlow}
+        onCreate={handleCreateFlow}
+        onDelete={handleDeleteFlow}
+        canCreate={canCreateFlow}
+        onLogout={logoutVimpl}
+      />
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-900">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-gray-700 shrink-0">
+      <header className="flex items-center justify-between px-5 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-white tracking-wide">{t.appTitle}</h1>
+          <button
+            onClick={handleBackToDashboard}
+            className="text-gray-400 hover:text-vimpl transition-colors text-sm leading-none"
+            title="Back to dashboard"
+          >
+            ←
+          </button>
+          <span className="vimpl-wordmark">vimpl</span>
+          <span className="text-xs font-semibold text-gray-400 tracking-wide uppercase">Voice to Launch</span>
           <a
             href="https://www.ailean.dk"
             target="_blank"
@@ -995,27 +1179,15 @@ export default function App() {
           </a>
         </div>
         <div className="flex items-center gap-2">
-          {draftRestored && (
-            <span className="text-xs text-green-400 animate-pulse">{t.draftRestored}</span>
-          )}
-          {(transcript || xml) && (
-            <button
-              onClick={handleClearDraft}
-              className="text-xs text-gray-500 hover:text-red-400 transition-colors"
-              title={t.clearTitle}
-            >
-              {t.clear}
-            </button>
-          )}
           <LangSwitcher />
           <button
             onClick={() => setShowBurger(true)}
-            className="flex flex-col gap-1 items-center justify-center w-8 h-8 rounded hover:bg-gray-700 transition-colors"
+            className="flex flex-col gap-1 items-center justify-center w-9 h-9 rounded-lg bg-gray-100 border border-gray-200 hover:bg-gray-200 hover:border-vimpl-light transition-colors"
             title="Settings"
           >
-            <span className="w-4 h-0.5 bg-gray-300 rounded" />
-            <span className="w-4 h-0.5 bg-gray-300 rounded" />
-            <span className="w-4 h-0.5 bg-gray-300 rounded" />
+            <span className="w-4 h-0.5 bg-gray-500 rounded" />
+            <span className="w-4 h-0.5 bg-gray-500 rounded" />
+            <span className="w-4 h-0.5 bg-gray-500 rounded" />
           </button>
         </div>
       </header>
@@ -1128,6 +1300,8 @@ export default function App() {
               onRemoveRisk={handleRemoveRisk}
               onExported={handleExported}
               vimplToken={vimplToken}
+              sessionBoardUrl={sessionBoardUrl}
+              onNewFlow={handleCreateFlow}
             />
           </PanelShell>
         </div>
