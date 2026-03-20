@@ -15,6 +15,8 @@ import {
   getStructuredImprovements,
   generateProjectPlan,
   generateToBeBpmn,
+  extractProcessMetrics,
+  estimateToBeMetrics,
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
@@ -375,6 +377,84 @@ const DEMO_TO_BE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 
 const DEMO_PROJECT_PLAN = {"plan_name":"Accounts Payable Invoice Processing Transformation","duration_weeks":14,"tracks":[{"id":"track_1","name":"Technology & Automation"},{"id":"track_2","name":"Process Optimization"},{"id":"track_3","name":"Vendor Management"},{"id":"track_4","name":"Monitoring & Control"}],"tasks":[{"id":"task_1","title":"Conduct OCR/AI solution vendor evaluation and selection","track_id":"track_1","week_start":1,"week_end":3,"owner":"IT Manager","improvement_id":"imp_1"},{"id":"task_2","title":"Design and configure OCR data extraction workflows","track_id":"track_1","week_start":4,"week_end":7,"owner":"Technical Lead","improvement_id":"imp_1"},{"id":"task_3","title":"Deploy OCR system and conduct user acceptance testing","track_id":"track_1","week_start":8,"week_end":10,"owner":"Implementation Team","improvement_id":"imp_1"},{"id":"task_4","title":"Configure ERP system for automated three-way matching","track_id":"track_1","week_start":2,"week_end":5,"owner":"ERP Administrator","improvement_id":"imp_3"},{"id":"task_5","title":"Test automated matching rules and exception handling","track_id":"track_1","week_start":6,"week_end":8,"owner":"AP Process Owner","improvement_id":"imp_3"},{"id":"task_6","title":"Analyze current payment cycles and discount opportunities","track_id":"track_2","week_start":1,"week_end":2,"owner":"AP Manager","improvement_id":"imp_5"},{"id":"task_7","title":"Redesign payment scheduling and approval workflows","track_id":"track_2","week_start":3,"week_end":5,"owner":"Process Analyst","improvement_id":"imp_5"},{"id":"task_8","title":"Implement weekly payment runs with automated scheduling","track_id":"track_2","week_start":6,"week_end":8,"owner":"Payment Team Lead","improvement_id":"imp_5"},{"id":"task_9","title":"Evaluate and select vendor portal platform","track_id":"track_3","week_start":1,"week_end":3,"owner":"Vendor Relations Manager","improvement_id":"imp_6"},{"id":"task_10","title":"Configure vendor portal and integration with ERP","track_id":"track_3","week_start":4,"week_end":8,"owner":"IT Solutions Architect","improvement_id":"imp_6"},{"id":"task_11","title":"Onboard priority vendors to self-service portal","track_id":"track_3","week_start":9,"week_end":12,"owner":"Vendor Onboarding Team","improvement_id":"imp_6"},{"id":"task_12","title":"Design real-time dashboard requirements and mockups","track_id":"track_4","week_start":2,"week_end":4,"owner":"Business Analyst","improvement_id":"imp_2"},{"id":"task_13","title":"Develop and deploy invoice status dashboard","track_id":"track_4","week_start":5,"week_end":9,"owner":"Dashboard Developer","improvement_id":"imp_2"},{"id":"task_14","title":"Train all stakeholders on new systems and processes","track_id":"track_4","week_start":10,"week_end":12,"owner":"Training Coordinator","improvement_id":"imp_1"},{"id":"task_15","title":"Monitor performance and optimize system configuration","track_id":"track_4","week_start":13,"week_end":14,"owner":"Process Excellence Team","improvement_id":"imp_2"}],"risks":[{"id":"risk_1","title":"OCR accuracy issues with non-standard invoice formats","probability":70,"consequence":60,"mitigation":"Implement comprehensive testing with diverse invoice samples and establish manual review processes for low-confidence extractions"},{"id":"risk_2","title":"ERP system integration complexity","probability":60,"consequence":75,"mitigation":"Engage ERP vendor support early and conduct phased rollout with parallel processing initially"},{"id":"risk_3","title":"Vendor adoption resistance for self-service portal","probability":65,"consequence":50,"mitigation":"Develop vendor incentive programs and provide dedicated support during transition period"},{"id":"risk_4","title":"Staff resistance to automated processes","probability":55,"consequence":65,"mitigation":"Implement comprehensive change management program with retraining for higher-value activities"},{"id":"risk_5","title":"Dashboard performance issues with large data volumes","probability":45,"consequence":40,"mitigation":"Implement data caching strategies and optimize database queries during development phase"}]};
 
+const DEMO_AS_IS_METRICS = {
+  activities: [
+    { id: "act_1",  duration_value: 15, duration_unit: "min", backlog: 50  },
+    { id: "act_2",  duration_value: 45, duration_unit: "min", backlog: 120 },
+    { id: "act_3",  duration_value: 2,  duration_unit: "hr",  backlog: 30  },
+    { id: "act_4",  duration_value: 30, duration_unit: "min", backlog: 15  },
+    { id: "act_5",  duration_value: 20, duration_unit: "min", backlog: 80  },
+    { id: "act_6",  duration_value: 5,  duration_unit: "min", backlog: 200 },
+    { id: "act_7",  duration_value: 1,  duration_unit: "day", backlog: 85  },
+    { id: "act_8",  duration_value: 2,  duration_unit: "day", backlog: 10  },
+    { id: "act_9",  duration_value: 10, duration_unit: "min", backlog: 200 },
+    { id: "act_10", duration_value: 4,  duration_unit: "hr",  backlog: 500 },
+    { id: "act_11", duration_value: 2,  duration_unit: "hr",  backlog: 500 },
+    { id: "act_12", duration_value: 15, duration_unit: "min", backlog: 200 },
+  ],
+  gateways: [
+    { id: "gw_1", branches: [
+      { condition: "Missing documents", rate: 25 },
+      { condition: "Documents available", rate: 75 },
+    ]},
+    { id: "gw_2", branches: [
+      { condition: "Invalid", rate: 20 },
+      { condition: "Valid", rate: 80 },
+    ]},
+    { id: "gw_3", branches: [
+      { condition: "Under $10,000", rate: 60 },
+      { condition: "$10,000-$99,999", rate: 35 },
+      { condition: "$100,000+", rate: 5 },
+    ]},
+    { id: "gw_4", branches: [
+      { condition: "CEO approval needed", rate: 100 },
+    ]},
+    { id: "gw_5", branches: [
+      { condition: "Approved", rate: 85 },
+      { condition: "Rejected", rate: 15 },
+    ]},
+  ],
+};
+
+const DEMO_TO_BE_METRICS = {
+  activities: [
+    { id: "act_1",  duration_value: 5,  duration_unit: "min", backlog: 20  },
+    { id: "act_2",  duration_value: 5,  duration_unit: "min", backlog: 30  },
+    { id: "act_3",  duration_value: 1,  duration_unit: "hr",  backlog: 8   },
+    { id: "act_4",  duration_value: 10, duration_unit: "min", backlog: 5   },
+    { id: "act_5",  duration_value: 5,  duration_unit: "min", backlog: 20  },
+    { id: "act_6",  duration_value: 1,  duration_unit: "min", backlog: 50  },
+    { id: "act_7",  duration_value: 4,  duration_unit: "hr",  backlog: 30  },
+    { id: "act_8",  duration_value: 4,  duration_unit: "hr",  backlog: 3   },
+    { id: "act_9",  duration_value: 1,  duration_unit: "min", backlog: 50  },
+    { id: "act_10", duration_value: 30, duration_unit: "min", backlog: 100 },
+    { id: "act_11", duration_value: 30, duration_unit: "min", backlog: 100 },
+    { id: "act_12", duration_value: 2,  duration_unit: "min", backlog: 50  },
+  ],
+  gateways: [
+    { id: "gw_1", branches: [
+      { condition: "Missing documents", rate: 10 },
+      { condition: "Documents available", rate: 90 },
+    ]},
+    { id: "gw_2", branches: [
+      { condition: "Invalid", rate: 8 },
+      { condition: "Valid", rate: 92 },
+    ]},
+    { id: "gw_3", branches: [
+      { condition: "Under $10,000", rate: 60 },
+      { condition: "$10,000-$99,999", rate: 35 },
+      { condition: "$100,000+", rate: 5 },
+    ]},
+    { id: "gw_4", branches: [
+      { condition: "CEO approval needed", rate: 100 },
+    ]},
+    { id: "gw_5", branches: [
+      { condition: "Approved", rate: 92 },
+      { condition: "Rejected", rate: 8 },
+    ]},
+  ],
+};
+
 // Draggable divider between two panel wrappers.
 function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
   const [active, setActive] = useState(false);
@@ -468,6 +548,8 @@ function blankFlowState() {
     asIsParsed: null,
     toBeXml: null,
     toBeParsed: null,
+    asIsMetrics: null,
+    toBeMetrics: null,
     board_url: null,
     board_id: null,
   };
@@ -718,6 +800,11 @@ export default function App() {
   const [toBeParsed, setToBeParsed] = useState(null);
   const [toBeLoading, setToBeLoading] = useState(false);
 
+  // Process metrics (activities: duration + backlog; gateways: branch rates)
+  const [asIsMetrics, setAsIsMetrics] = useState(null);
+  const [toBeMetrics, setToBeMetrics] = useState(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
   // ── Auto-login: read token from ?token= (vimpl SSO callback) or #token= (board deep-link) ──
   useEffect(() => {
     try {
@@ -812,6 +899,8 @@ export default function App() {
     setAsIsParsed(flow.asIsParsed || null);
     setToBeXml(flow.toBeXml || null);
     setToBeParsed(flow.toBeParsed || null);
+    setAsIsMetrics(flow.asIsMetrics || null);
+    setToBeMetrics(flow.toBeMetrics || null);
     setSessionBoardUrl(flow.board_url || null);
     if (flow.board_url) sessionStorage.setItem('v2l_board_url', flow.board_url);
   }
@@ -828,14 +917,14 @@ export default function App() {
             updated_at: new Date().toISOString(),
             transcript, processDescription, parsed, xml,
             improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-            asIsXml, asIsParsed, toBeXml, toBeParsed,
+            asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics,
           }
         : f
       );
       try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleOpenFlow(flowId) {
@@ -873,6 +962,8 @@ export default function App() {
     setAsIsParsed(null);
     setToBeXml(null);
     setToBeParsed(null);
+    setAsIsMetrics(null);
+    setToBeMetrics(null);
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setSessionBoardUrl(null);
     sessionStorage.removeItem('v2l_board_url');
@@ -898,6 +989,8 @@ export default function App() {
     setAsIsParsed(null);
     setToBeXml(null);
     setToBeParsed(null);
+    setAsIsMetrics(null);
+    setToBeMetrics(null);
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setSessionBoardUrl(null);
     sessionStorage.removeItem('v2l_board_url');
@@ -960,6 +1053,8 @@ export default function App() {
     setImprovements(DEMO_IMPROVEMENTS);
     setSelectedImprovementIds(DEMO_SELECTED_IDS);
     setProjectPlan(DEMO_PROJECT_PLAN);
+    setAsIsMetrics(DEMO_AS_IS_METRICS);
+    setToBeMetrics(DEMO_TO_BE_METRICS);
     setCustomRisks([]);
   }
 
@@ -999,12 +1094,23 @@ export default function App() {
     setImprovements(null);
     setSelectedImprovementIds([]);
     setProjectPlan(null);
+    setAsIsMetrics(null);
+    setToBeMetrics(null);
     try {
       const bpmnJson = await parseToBpmn(processDescription, effectiveApiKey, processContext, getProxyAuth());
       setParsed(bpmnJson);
       const generatedXml = generateBpmnXml(bpmnJson);
       setXml(generatedXml);
       setActivePanel(3);
+      // Background: extract AS-IS metrics from transcript
+      const _transcript = getEffectiveTranscript();
+      const _apiKey = effectiveApiKey;
+      const _proxyAuth = getProxyAuth();
+      setMetricsLoading(true);
+      extractProcessMetrics(bpmnJson, _transcript, _apiKey, _proxyAuth)
+        .then(m => { if (m) setAsIsMetrics(m); })
+        .catch(() => {})
+        .finally(() => setMetricsLoading(false));
     } finally {
       setBpmnParsing(false);
     }
@@ -1076,6 +1182,14 @@ export default function App() {
       const { generateBpmnXml } = await import('./services/xmlGenerator.js');
       setToBeXml(generateBpmnXml(toBeParsedResult));
       setActivePanel(5);
+      // Background: estimate TO-BE metrics from improvements
+      const _asIsMetrics = asIsMetrics;
+      const _asParsed = parsed;
+      const _apiKey = effectiveApiKey;
+      const _proxyAuth = getProxyAuth();
+      estimateToBeMetrics(_asParsed, toBeParsedResult, _asIsMetrics, selected, _apiKey, _proxyAuth)
+        .then(m => { if (m) setToBeMetrics(m); })
+        .catch(() => {});
     } finally {
       setPlanLoading(false);
       setToBeLoading(false);
@@ -1297,6 +1411,7 @@ export default function App() {
               bpmnLoading={bpmnParsing}
               processName={parsed?.process_name}
               parsed={parsed}
+              toBeParsed={toBeParsed}
               processDescription={processDescription}
               onGetImprovements={handleGetImprovements}
               apiKey={hasAccess ? (effectiveApiKey || 'granted') : null}
@@ -1304,6 +1419,26 @@ export default function App() {
               toBeXml={toBeXml}
               onToBeXmlChange={setToBeXml}
               toBeLoading={toBeLoading}
+              asIsMetrics={asIsMetrics}
+              onAsIsMetricsChange={setAsIsMetrics}
+              toBeMetrics={toBeMetrics}
+              onToBeMetricsChange={setToBeMetrics}
+              metricsLoading={metricsLoading}
+              onExtractMetrics={() => {
+                if (!parsed) return;
+                setMetricsLoading(true);
+                extractProcessMetrics(parsed, getEffectiveTranscript(), effectiveApiKey, getProxyAuth())
+                  .then(m => { if (m) setAsIsMetrics(m); })
+                  .catch(() => {})
+                  .finally(() => setMetricsLoading(false));
+              }}
+              onEstimateToBeMetrics={() => {
+                if (!parsed || !toBeParsed) return;
+                const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
+                estimateToBeMetrics(parsed, toBeParsed, asIsMetrics, selected, effectiveApiKey, getProxyAuth())
+                  .then(m => { if (m) setToBeMetrics(m); })
+                  .catch(() => {});
+              }}
             />
           </PanelShell>
           {activePanel !== 3 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}

@@ -10,7 +10,8 @@ import {
   deleteDiagram,
 } from '../services/diagramService.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey, asIsXml, toBeXml, onToBeXmlChange, toBeLoading }) {
+
+export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, toBeParsed, processDescription, onGetImprovements, apiKey, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange, metricsLoading, onExtractMetrics, onEstimateToBeMetrics }) {
   const { t } = useLang();
   const viewerRef = useRef(null);
   const toBeViewerRef = useRef(null);
@@ -33,6 +34,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
 
   // Step curtain
   const [curtainElement, setCurtainElement] = useState(null);
+
 
   // XML preview modal
   const [showXmlModal, setShowXmlModal] = useState(false);
@@ -253,14 +255,6 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
               onElementDblClick={setCurtainElement}
             />
           </BpmnErrorBoundary>
-          {curtainElement && (
-            <StepCurtain
-              element={curtainElement}
-              parsed={parsed}
-              processDescription={processDescription}
-              onClose={() => setCurtainElement(null)}
-            />
-          )}
           <div className="bpmn-zoom-controls">
             <button onClick={() => viewerRef.current?.zoomIn()} className="bpmn-zoom-btn">+</button>
             <button onClick={() => viewerRef.current?.fitViewport()} className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
@@ -285,6 +279,18 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
               <button onClick={() => toBeViewerRef.current?.zoomOut()} className="bpmn-zoom-btn">−</button>
             </div>
           </div>
+        )}
+
+        {/* StepCurtain — outside viewer divs to avoid visibility inheritance */}
+        {curtainElement && (
+          <StepCurtain
+            element={curtainElement}
+            parsed={activeTab === 'tobe' ? (toBeParsed || parsed) : parsed}
+            processDescription={processDescription}
+            onClose={() => setCurtainElement(null)}
+            metrics={activeTab === 'tobe' ? toBeMetrics : asIsMetrics}
+            onMetricsChange={activeTab === 'tobe' ? onToBeMetricsChange : onAsIsMetricsChange}
+          />
         )}
       </div>
 
