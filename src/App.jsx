@@ -706,6 +706,11 @@ export default function App() {
   const [projectPlan, setProjectPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
 
+  // Plan generation prompt modal
+  const [showPlanPrompt, setShowPlanPrompt] = useState(false);
+  const [planStartDate, setPlanStartDate] = useState('');
+  const [planDurationWeeks, setPlanDurationWeeks] = useState(14);
+
   // Panel 3 — AS-IS / TO-BE
   const [asIsXml, setAsIsXml] = useState(null);
   const [asIsParsed, setAsIsParsed] = useState(null);
@@ -1039,7 +1044,17 @@ export default function App() {
     );
   }
 
+  function handleGeneratePlanClick() {
+    const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
+    if (!selected.length) return;
+    // Pre-fill start date to today
+    setPlanStartDate(new Date().toISOString().slice(0, 10));
+    setPlanDurationWeeks(14);
+    setShowPlanPrompt(true);
+  }
+
   async function handleGeneratePlan() {
+    setShowPlanPrompt(false);
     const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
     if (!selected.length) return;
 
@@ -1053,7 +1068,7 @@ export default function App() {
 
     try {
       const [plan, toBeParsedResult] = await Promise.all([
-        generateProjectPlan(parsed, selected, effectiveApiKey, customRisks, getProxyAuth()),
+        generateProjectPlan(parsed, selected, effectiveApiKey, customRisks, getProxyAuth(), planStartDate || null, planDurationWeeks),
         generateToBeBpmn(parsed, selected, effectiveApiKey, getProxyAuth()),
       ]);
       setProjectPlan(plan);
@@ -1307,7 +1322,7 @@ export default function App() {
               selectedIds={selectedImprovementIds}
               onToggleSelect={handleToggleSelect}
               projectPlan={projectPlan}
-              onGeneratePlan={handleGeneratePlan}
+              onGeneratePlan={handleGeneratePlanClick}
               planLoading={planLoading}
             />
           </PanelShell>
@@ -1361,6 +1376,50 @@ export default function App() {
       />
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+
+      {/* ── Plan generation prompt modal ──────────────────────────── */}
+      {showPlanPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-4">
+            <h3 className="text-sm font-semibold text-gray-800">Project parameters</h3>
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">Project start date</label>
+              <input
+                type="date"
+                value={planStartDate}
+                onChange={e => setPlanStartDate(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-vimpl"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">Duration (weeks)</label>
+              <input
+                type="number"
+                min={1}
+                max={104}
+                value={planDurationWeeks}
+                onChange={e => setPlanDurationWeeks(Number(e.target.value) || 14)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-vimpl"
+              />
+              <p className="text-[9px] text-gray-400 mt-0.5">Default is 14 weeks</p>
+            </div>
+            <div className="flex gap-2 mt-1">
+              <button
+                onClick={handleGeneratePlan}
+                className="flex-1 bg-vimpl text-black text-sm font-semibold py-2 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors"
+              >
+                Generate
+              </button>
+              <button
+                onClick={() => setShowPlanPrompt(false)}
+                className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

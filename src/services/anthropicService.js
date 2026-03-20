@@ -111,7 +111,7 @@ The JSON must follow this exact schema:
 }
 
 Rules:
-- duration_weeks must be exactly 14
+- Use the duration_weeks value provided in the input (default 14 if not provided)
 - probability and consequence are integers 0-100
 - Each selected improvement should have at least one task
 - Group related tasks into 2-4 tracks (e.g., "Technology", "Process", "People", "Governance")
@@ -287,12 +287,14 @@ export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null
   }
 }
 
-export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null) {
+export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null, startDate = null, durationWeeks = 14) {
   const client = makeClient(apiKey, proxyAuth);
 
   const input = {
     process: parsed,
     selected_improvements: selectedImprovements,
+    duration_weeks: durationWeeks,
+    ...(startDate ? { project_start_date: startDate } : {}),
     ...(knownRisks.length > 0 ? { known_risks: knownRisks } : {}),
   };
 
