@@ -37,22 +37,22 @@ body {
   align-items: center;
   gap: 5px;
   text-decoration: none;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(101, 196, 52, 0.08);
+  border: 1px solid rgba(101, 196, 52, 0.25);
   padding: 3px 10px;
   border-radius: 50px;
   transition: all 0.2s ease;
 }
 
 .ailean-badge:hover {
-  background: rgba(255,255,255,0.12);
+  background: rgba(101, 196, 52, 0.15);
   border-color: rgba(101, 196, 52, 0.5);
 }
 
 .ailean-badge span:first-child {
   font-size: 10px;
   font-weight: 600;
-  color: rgba(255,255,255,0.45);
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-family: 'Inter', sans-serif;

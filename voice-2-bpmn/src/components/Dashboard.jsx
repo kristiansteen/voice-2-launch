@@ -73,8 +73,17 @@ function FlowCard({ flow, onOpen, onDelete }) {
       onClick={() => onOpen(flow.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative bg-white border border-gray-200 hover:border-vimpl/50 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md flex flex-col gap-2"
+      className={`relative bg-white border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md flex flex-col gap-2 ${
+        flow._demo
+          ? 'border-blue-200 hover:border-blue-400'
+          : 'border-gray-200 hover:border-vimpl/50'
+      }`}
     >
+      {flow._demo && (
+        <span className="absolute top-3 left-3 text-[10px] font-semibold bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded-full">
+          Demo
+        </span>
+      )}
       <button
         onClick={e => { e.stopPropagation(); onDelete(flow); }}
         className={`absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-all text-xs px-1.5 py-1 rounded hover:bg-red-50 ${hovered ? 'opacity-100' : 'opacity-0'}`}
@@ -83,7 +92,7 @@ function FlowCard({ flow, onOpen, onDelete }) {
         ✕
       </button>
 
-      <p className="text-sm font-semibold text-gray-800 pr-6 leading-snug">
+      <p className={`text-sm font-semibold text-gray-800 leading-snug pr-6 ${flow._demo ? 'pl-10' : ''}`}>
         {flow.process_name || 'Untitled process'}
       </p>
       <p className="text-xs text-gray-400">{formatDate(flow.updated_at)}</p>
@@ -110,12 +119,13 @@ function FlowCard({ flow, onOpen, onDelete }) {
   );
 }
 
-export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete, canCreate, onLogout }) {
+export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete, canCreate, onLogout, onDemo }) {
   const { t } = useLang();
   const [deletingFlow, setDeletingFlow] = useState(null);
 
   const sorted = [...flows].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
   const isTrial = !vimplUser || (vimplUser.subscriptionTier !== 'commercial' && vimplUser.subscriptionTier !== 'enterprise');
+  const realFlowCount = flows.filter(f => !f._demo).length;
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
@@ -189,7 +199,7 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
           <div>
             <h2 className="text-lg font-semibold text-gray-800">My Processes</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {flows.length} flow{flows.length !== 1 ? 's' : ''}
+              {realFlowCount} flow{realFlowCount !== 1 ? 's' : ''}
               {isTrial && ' · 1 included in trial'}
             </p>
           </div>
@@ -214,7 +224,7 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
 
         {/* Empty state */}
         {flows.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
             <div className="w-16 h-16 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-3xl">🎙️</div>
             <p className="text-sm font-medium text-gray-700">No flows yet</p>
             <p className="text-xs text-gray-400">Record your first process interview to get started</p>
@@ -260,6 +270,22 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
             </a>
           </div>
         )}
+
+        {/* Try Demo card — always visible */}
+        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">See it in action</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Walk through a full AP invoice process — from voice interview to vimpl board — with pre-built demo data. No API quota used.
+            </p>
+          </div>
+          <button
+            onClick={onDemo}
+            className="shrink-0 text-sm bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+          >
+            Try demo ↗
+          </button>
+        </div>
       </div>
 
       {/* Delete modal */}

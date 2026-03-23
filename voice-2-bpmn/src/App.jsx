@@ -648,7 +648,11 @@ export default function App() {
   });
 
   const isSubscribed = vimplUser && (vimplUser.subscriptionTier === 'commercial' || vimplUser.subscriptionTier === 'enterprise');
-  const canCreateFlow = isSubscribed || flows.length === 0;
+  const canCreateFlow = isSubscribed || flows.filter(f => !f._demo).length === 0;
+
+  // True when the currently-open flow is a demo flow (never consumes trial quota)
+  const currentFlow = flows.find(f => f.id === currentFlowId);
+  const isDemoFlow = !!(currentFlow?._demo);
 
   // ── Carousel state ─────────────────────────────────────────────────
   const [activePanel, setActivePanel] = useState(1);
@@ -953,35 +957,50 @@ export default function App() {
   }
 
   function handleLoadDemo() {
-    // Ensure we're in a flow context
-    let flowId = currentFlowId;
-    if (!flowId) {
-      flowId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      const demoFlow = { id: flowId, process_name: DEMO_PARSED.process_name, created_at: now, updated_at: now, ...blankFlowState() };
-      setFlows(prev => {
-        const updated = [demoFlow, ...prev];
-        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
-        return updated;
-      });
-      setCurrentFlowId(flowId);
-      localStorage.setItem(ACTIVE_KEY, flowId);
-    }
+    const flowId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const demoFlow = {
+      id: flowId,
+      process_name: 'AP Invoice Processing (Demo)',
+      created_at: now,
+      updated_at: now,
+      _demo: true,
+      ...blankFlowState(),
+      transcript: DEMO_TRANSCRIPT,
+      processContext: { apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null },
+    };
+
+    // Remove any previous demo flows and add the fresh one
+    setFlows(prev => {
+      const withoutDemo = prev.filter(f => !f._demo);
+      const updated = [demoFlow, ...withoutDemo];
+      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    // Reset all state to blank, load only the transcript
     setTranscript(DEMO_TRANSCRIPT);
-    setParsed(DEMO_PARSED);
-    setProcessDescription(DEMO_DESCRIPTION);
-    setProcessContext({ apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null });
-    setXml(DEMO_XML);
-    setAsIsXml(DEMO_XML);
-    setAsIsParsed(DEMO_PARSED);
-    setToBeXml(DEMO_TO_BE_XML);
-    setVoiceError(null);
-    setImprovements(DEMO_IMPROVEMENTS);
-    setSelectedImprovementIds(DEMO_SELECTED_IDS);
-    setProjectPlan(DEMO_PROJECT_PLAN);
-    setAsIsMetrics(DEMO_AS_IS_METRICS);
-    setToBeMetrics(DEMO_TO_BE_METRICS);
+    setProcessDescription(null);
+    setParsed(null);
+    setXml(null);
+    setImprovements(null);
+    setSelectedImprovementIds([]);
     setCustomRisks([]);
+    setProjectPlan(null);
+    setAsIsXml(null);
+    setAsIsParsed(null);
+    setToBeXml(null);
+    setToBeParsed(null);
+    setAsIsMetrics(null);
+    setToBeMetrics(null);
+    setProcessContext({ apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null });
+    setBoardUrl(null);
+    setBoardId(null);
+    setVoiceError(null);
+    setActivePanel(1);
+
+    setCurrentFlowId(flowId);
+    localStorage.setItem(ACTIVE_KEY, flowId);
   }
 
   // If Ailean interviewed, build a structured transcript; otherwise use raw text.
@@ -994,6 +1013,11 @@ export default function App() {
   }
 
   async function handleParseVoice() {
+    if (isDemoFlow) {
+      setProcessDescription(DEMO_DESCRIPTION);
+      setActivePanel(2);
+      return;
+    }
     setDescParsing(true);
     setVoiceError(null);
     setProcessDescription(null);
@@ -1014,6 +1038,15 @@ export default function App() {
   }
 
   async function handleApproveToBpmn() {
+    if (isDemoFlow) {
+      setParsed(DEMO_PARSED);
+      setXml(DEMO_XML);
+      setAsIsXml(DEMO_XML);
+      setAsIsParsed(DEMO_PARSED);
+      setAsIsMetrics(DEMO_AS_IS_METRICS);
+      setActivePanel(3);
+      return;
+    }
     setBpmnParsing(true);
     setParsed(null);
     setXml(null);
@@ -1043,6 +1076,12 @@ export default function App() {
   }
 
   async function handleGetImprovements() {
+    if (isDemoFlow) {
+      setImprovements(DEMO_IMPROVEMENTS);
+      setSelectedImprovementIds(DEMO_SELECTED_IDS);
+      setActivePanel(4);
+      return;
+    }
     const result = await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth());
     setImprovements(result);
     setSelectedImprovementIds([]);
@@ -1077,6 +1116,16 @@ export default function App() {
   }
 
   function handleGeneratePlanClick() {
+    if (isDemoFlow) {
+      setAsIsXml(DEMO_XML);
+      setAsIsParsed(DEMO_PARSED);
+      setProjectPlan(DEMO_PROJECT_PLAN);
+      setToBeXml(DEMO_TO_BE_XML);
+      setAsIsMetrics(DEMO_AS_IS_METRICS);
+      setToBeMetrics(DEMO_TO_BE_METRICS);
+      setActivePanel(5);
+      return;
+    }
     const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
     if (!selected.length) return;
     // Pre-fill start date to today
@@ -1183,6 +1232,7 @@ export default function App() {
         onDelete={handleDeleteFlow}
         canCreate={canCreateFlow}
         onLogout={logoutVimpl}
+        onDemo={handleLoadDemo}
       />
     );
   }
@@ -1231,14 +1281,20 @@ export default function App() {
         return (
           <div className="relative flex items-center justify-center gap-1 px-4 py-2 bg-slate-100 border-b border-gray-200 shrink-0">
             {/* Left: utility buttons — pinned to left edge */}
-            <div className="absolute left-4 flex items-center gap-1">
-              <button
-                onClick={handleLoadDemo}
-                className="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-md px-2 py-1 transition-colors"
-                title={t.loadDemoTitle}
-              >
-                {t.loadDemo}
-              </button>
+            <div className="absolute left-4 flex items-center gap-1.5">
+              {isDemoFlow ? (
+                <span className="text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-300 rounded-md px-2 py-1">
+                  Demo mode
+                </span>
+              ) : (
+                <button
+                  onClick={handleLoadDemo}
+                  className="text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md px-2 py-1 transition-colors"
+                  title={t.loadDemoTitle}
+                >
+                  Try demo
+                </button>
+              )}
               {(transcript || xml) && (
                 <button
                   onClick={handleClearCurrentFlow}
