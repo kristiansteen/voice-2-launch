@@ -93,56 +93,40 @@ export function useAileanInterviewer({ apiKey, processContext, proxyAuth = null 
       setThinking(false);
       setSpeaking(true);
 
-      if (proxyAuth?.token) {
-        try {
-          const url = await speakText(question, proxyAuth.token);
-          const audio = new Audio(url);
-          audioRef.current = audio;
-          await new Promise(resolve => {
-            audio.onended = resolve;
-            audio.onerror = resolve;
-            audio.play().catch(resolve);
-          });
-          URL.revokeObjectURL(url);
-          audioRef.current = null;
-        } catch {
-          // Fall back to browser TTS if ElevenLabs proxy fails
-          await speakBrowser(question);
-        }
-      } else {
-        await speakBrowser(question);
-      }
+      await ttsSpeak(question);
     } catch (err) {
       setError(err.message);
       setThinking(false);
     } finally {
       setSpeaking(false);
     }
-  }, [enabled, apiKey, thinking, speaking, processContext, proxyAuth]);
+  }, [enabled, apiKey, thinking, speaking, processContext, ttsSpeak]);
+
+  const ttsSpeak = useCallback(async (text) => {
+    if (proxyAuth?.token) {
+      const url = await speakText(text, proxyAuth.token);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      await new Promise(resolve => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve); });
+      URL.revokeObjectURL(url);
+      audioRef.current = null;
+    } else {
+      await speakBrowser(text);
+    }
+  }, [proxyAuth]);
 
   const introduceHerself = useCallback(async () => {
     setTurns([{ type: 'ailean', text: INTRO }]);
     historyRef.current = [{ role: 'assistant', content: INTRO }];
     setSpeaking(true);
     try {
-      if (proxyAuth?.token) {
-        try {
-          const url = await speakText(INTRO, proxyAuth.token);
-          const audio = new Audio(url);
-          audioRef.current = audio;
-          await new Promise(resolve => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve); });
-          URL.revokeObjectURL(url);
-          audioRef.current = null;
-        } catch {
-          await speakBrowser(INTRO);
-        }
-      } else {
-        await speakBrowser(INTRO);
-      }
+      await ttsSpeak(INTRO);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setSpeaking(false);
     }
-  }, [proxyAuth]);
+  }, [ttsSpeak]);
 
   async function toggle() {
     if (enabled) {
