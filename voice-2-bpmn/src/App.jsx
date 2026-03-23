@@ -15,6 +15,8 @@ import {
   getStructuredImprovements,
   generateProjectPlan,
   generateToBeBpmn,
+  extractProcessMetrics,
+  estimateToBeMetrics,
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
@@ -375,6 +377,84 @@ const DEMO_TO_BE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 
 const DEMO_PROJECT_PLAN = {"plan_name":"Accounts Payable Invoice Processing Transformation","duration_weeks":14,"tracks":[{"id":"track_1","name":"Technology & Automation"},{"id":"track_2","name":"Process Optimization"},{"id":"track_3","name":"Vendor Management"},{"id":"track_4","name":"Monitoring & Control"}],"tasks":[{"id":"task_1","title":"Conduct OCR/AI solution vendor evaluation and selection","track_id":"track_1","week_start":1,"week_end":3,"owner":"IT Manager","improvement_id":"imp_1"},{"id":"task_2","title":"Design and configure OCR data extraction workflows","track_id":"track_1","week_start":4,"week_end":7,"owner":"Technical Lead","improvement_id":"imp_1"},{"id":"task_3","title":"Deploy OCR system and conduct user acceptance testing","track_id":"track_1","week_start":8,"week_end":10,"owner":"Implementation Team","improvement_id":"imp_1"},{"id":"task_4","title":"Configure ERP system for automated three-way matching","track_id":"track_1","week_start":2,"week_end":5,"owner":"ERP Administrator","improvement_id":"imp_3"},{"id":"task_5","title":"Test automated matching rules and exception handling","track_id":"track_1","week_start":6,"week_end":8,"owner":"AP Process Owner","improvement_id":"imp_3"},{"id":"task_6","title":"Analyze current payment cycles and discount opportunities","track_id":"track_2","week_start":1,"week_end":2,"owner":"AP Manager","improvement_id":"imp_5"},{"id":"task_7","title":"Redesign payment scheduling and approval workflows","track_id":"track_2","week_start":3,"week_end":5,"owner":"Process Analyst","improvement_id":"imp_5"},{"id":"task_8","title":"Implement weekly payment runs with automated scheduling","track_id":"track_2","week_start":6,"week_end":8,"owner":"Payment Team Lead","improvement_id":"imp_5"},{"id":"task_9","title":"Evaluate and select vendor portal platform","track_id":"track_3","week_start":1,"week_end":3,"owner":"Vendor Relations Manager","improvement_id":"imp_6"},{"id":"task_10","title":"Configure vendor portal and integration with ERP","track_id":"track_3","week_start":4,"week_end":8,"owner":"IT Solutions Architect","improvement_id":"imp_6"},{"id":"task_11","title":"Onboard priority vendors to self-service portal","track_id":"track_3","week_start":9,"week_end":12,"owner":"Vendor Onboarding Team","improvement_id":"imp_6"},{"id":"task_12","title":"Design real-time dashboard requirements and mockups","track_id":"track_4","week_start":2,"week_end":4,"owner":"Business Analyst","improvement_id":"imp_2"},{"id":"task_13","title":"Develop and deploy invoice status dashboard","track_id":"track_4","week_start":5,"week_end":9,"owner":"Dashboard Developer","improvement_id":"imp_2"},{"id":"task_14","title":"Train all stakeholders on new systems and processes","track_id":"track_4","week_start":10,"week_end":12,"owner":"Training Coordinator","improvement_id":"imp_1"},{"id":"task_15","title":"Monitor performance and optimize system configuration","track_id":"track_4","week_start":13,"week_end":14,"owner":"Process Excellence Team","improvement_id":"imp_2"}],"risks":[{"id":"risk_1","title":"OCR accuracy issues with non-standard invoice formats","probability":70,"consequence":60,"mitigation":"Implement comprehensive testing with diverse invoice samples and establish manual review processes for low-confidence extractions"},{"id":"risk_2","title":"ERP system integration complexity","probability":60,"consequence":75,"mitigation":"Engage ERP vendor support early and conduct phased rollout with parallel processing initially"},{"id":"risk_3","title":"Vendor adoption resistance for self-service portal","probability":65,"consequence":50,"mitigation":"Develop vendor incentive programs and provide dedicated support during transition period"},{"id":"risk_4","title":"Staff resistance to automated processes","probability":55,"consequence":65,"mitigation":"Implement comprehensive change management program with retraining for higher-value activities"},{"id":"risk_5","title":"Dashboard performance issues with large data volumes","probability":45,"consequence":40,"mitigation":"Implement data caching strategies and optimize database queries during development phase"}]};
 
+const DEMO_AS_IS_METRICS = {
+  activities: [
+    { id: "act_1",  duration_value: 15, duration_unit: "min", backlog: 50  },
+    { id: "act_2",  duration_value: 45, duration_unit: "min", backlog: 120 },
+    { id: "act_3",  duration_value: 2,  duration_unit: "hr",  backlog: 30  },
+    { id: "act_4",  duration_value: 30, duration_unit: "min", backlog: 15  },
+    { id: "act_5",  duration_value: 20, duration_unit: "min", backlog: 80  },
+    { id: "act_6",  duration_value: 5,  duration_unit: "min", backlog: 200 },
+    { id: "act_7",  duration_value: 1,  duration_unit: "day", backlog: 85  },
+    { id: "act_8",  duration_value: 2,  duration_unit: "day", backlog: 10  },
+    { id: "act_9",  duration_value: 10, duration_unit: "min", backlog: 200 },
+    { id: "act_10", duration_value: 4,  duration_unit: "hr",  backlog: 500 },
+    { id: "act_11", duration_value: 2,  duration_unit: "hr",  backlog: 500 },
+    { id: "act_12", duration_value: 15, duration_unit: "min", backlog: 200 },
+  ],
+  gateways: [
+    { id: "gw_1", branches: [
+      { condition: "Missing documents", rate: 25 },
+      { condition: "Documents available", rate: 75 },
+    ]},
+    { id: "gw_2", branches: [
+      { condition: "Invalid", rate: 20 },
+      { condition: "Valid", rate: 80 },
+    ]},
+    { id: "gw_3", branches: [
+      { condition: "Under $10,000", rate: 60 },
+      { condition: "$10,000-$99,999", rate: 35 },
+      { condition: "$100,000+", rate: 5 },
+    ]},
+    { id: "gw_4", branches: [
+      { condition: "CEO approval needed", rate: 100 },
+    ]},
+    { id: "gw_5", branches: [
+      { condition: "Approved", rate: 85 },
+      { condition: "Rejected", rate: 15 },
+    ]},
+  ],
+};
+
+const DEMO_TO_BE_METRICS = {
+  activities: [
+    { id: "act_1",  duration_value: 5,  duration_unit: "min", backlog: 20  },
+    { id: "act_2",  duration_value: 5,  duration_unit: "min", backlog: 30  },
+    { id: "act_3",  duration_value: 1,  duration_unit: "hr",  backlog: 8   },
+    { id: "act_4",  duration_value: 10, duration_unit: "min", backlog: 5   },
+    { id: "act_5",  duration_value: 5,  duration_unit: "min", backlog: 20  },
+    { id: "act_6",  duration_value: 1,  duration_unit: "min", backlog: 50  },
+    { id: "act_7",  duration_value: 4,  duration_unit: "hr",  backlog: 30  },
+    { id: "act_8",  duration_value: 4,  duration_unit: "hr",  backlog: 3   },
+    { id: "act_9",  duration_value: 1,  duration_unit: "min", backlog: 50  },
+    { id: "act_10", duration_value: 30, duration_unit: "min", backlog: 100 },
+    { id: "act_11", duration_value: 30, duration_unit: "min", backlog: 100 },
+    { id: "act_12", duration_value: 2,  duration_unit: "min", backlog: 50  },
+  ],
+  gateways: [
+    { id: "gw_1", branches: [
+      { condition: "Missing documents", rate: 10 },
+      { condition: "Documents available", rate: 90 },
+    ]},
+    { id: "gw_2", branches: [
+      { condition: "Invalid", rate: 8 },
+      { condition: "Valid", rate: 92 },
+    ]},
+    { id: "gw_3", branches: [
+      { condition: "Under $10,000", rate: 60 },
+      { condition: "$10,000-$99,999", rate: 35 },
+      { condition: "$100,000+", rate: 5 },
+    ]},
+    { id: "gw_4", branches: [
+      { condition: "CEO approval needed", rate: 100 },
+    ]},
+    { id: "gw_5", branches: [
+      { condition: "Approved", rate: 92 },
+      { condition: "Rejected", rate: 8 },
+    ]},
+  ],
+};
+
 // Draggable divider between two panel wrappers.
 function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
   const [active, setActive] = useState(false);
@@ -435,48 +515,12 @@ function ResizeHandle({ aRef, bRef, disabled, aKey, bKey, onDragEnd }) {
   );
 }
 
-function PanelShell({ num, label, action, collapsed, onToggle, children }) {
-  const { t } = useLang();
-  if (collapsed) {
-    return (
-      <div
-        className="flex flex-col h-full bg-gray-800 cursor-pointer select-none border-r border-gray-700"
-        onClick={onToggle}
-        title={`Expand ${label}`}
-      >
-        <div className="flex-1 flex items-center justify-center">
-          <div
-            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-300 transition-colors py-4"
-          >
-            <span className="text-xs font-bold text-vimpl">{num}</span>
-            <span className="text-xs font-medium tracking-wide">{label}</span>
-          </div>
-        </div>
-        <div className="pb-3 flex justify-center">
-          <span className="text-gray-600 text-xs">›</span>
-        </div>
-      </div>
-    );
-  }
-
+function PanelShell({ num, label, children }) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-200 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-white bg-vimpl rounded px-1.5 py-0.5 leading-none">{num}</span>
-          <span className="text-sm font-semibold text-gray-700">{label}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {action}
-          <button
-            onClick={onToggle}
-            title={t.collapsePanel}
-            className="text-gray-400 hover:text-gray-700 transition-colors text-xs px-1"
-          >
-            ‹
-          </button>
-        </div>
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-gray-200 shrink-0">
+        <span className="text-xs font-bold text-white bg-vimpl rounded px-1.5 py-0.5 leading-none">{num}</span>
+        <span className="text-sm font-semibold text-gray-700">{label}</span>
       </div>
       <div className="flex-1 overflow-hidden flex flex-col bg-white">
         {children}
@@ -504,6 +548,8 @@ function blankFlowState() {
     asIsParsed: null,
     toBeXml: null,
     toBeParsed: null,
+    asIsMetrics: null,
+    toBeMetrics: null,
     board_url: null,
     board_id: null,
   };
@@ -524,7 +570,6 @@ function buildStructuredTranscript(turns, currentDraft) {
 
 export default function App() {
   const { t } = useLang();
-  const [apiKey, setApiKey] = useState('');
   const [elevenLabsKey, setElevenLabsKey] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showBurger, setShowBurger] = useState(false);
@@ -538,125 +583,41 @@ export default function App() {
     catch { return null; }
   });
   const [vimplUser, setVimplUser] = useState(null);
+  const [boardUrl, setBoardUrl] = useState(null);
+  const [boardId, setBoardId] = useState(null);
 
-  // ── Free session (vimpl token auth) ───────────────────────────────────────
-  const [keyMode, setKeyMode] = useState(() => sessionStorage.getItem('v2l_keymode') || null);
-  const [sessionNonce, setSessionNonce] = useState(() => sessionStorage.getItem('v2l_nonce') || null);
-  const [sessionStatus, setSessionStatus] = useState('available'); // 'available' | 'active' | 'used'
-  const [sessionBoardUrl, setSessionBoardUrl] = useState(() => sessionStorage.getItem('v2l_board_url') || null);
-  const [sessionCreatedAt, setSessionCreatedAt] = useState(() => sessionStorage.getItem('v2l_created_at') || null);
-
-  // Auto-activate free session as soon as vimpl login is detected
+  // Fetch vimpl user info on login
   useEffect(() => {
     if (!vimplToken) return;
-    // Fetch vimpl user info (for admin features)
     fetch(`${BACKEND_URL}/api/v1/auth/me`, {
       headers: { Authorization: `Bearer ${vimplToken}` },
     }).then(r => r.ok ? r.json() : null).then(data => {
       if (data?.user) setVimplUser(data.user);
     }).catch(() => {});
-
-    if (keyMode === 'byok') return; // BYOK takes precedence
-    setKeyMode('free');
-    sessionStorage.setItem('v2l_keymode', 'free');
-    fetch('/api/proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vimplToken}`,
-        ...(sessionNonce ? { 'x-session-nonce': sessionNonce } : {}),
-      },
-      body: JSON.stringify({ _check: true, model: 'claude-sonnet-4-20250514', system: ' ', messages: [{ role: 'user', content: ' ' }], max_tokens: 1 }),
-    }).then(async r => {
-      if (r.status === 403) {
-        const body = await r.json().catch(() => ({}));
-        if (body.board_url) { setSessionBoardUrl(body.board_url); sessionStorage.setItem('v2l_board_url', body.board_url); }
-        if (body.created_at) { setSessionCreatedAt(body.created_at); sessionStorage.setItem('v2l_created_at', body.created_at); }
-        setSessionStatus('used');
-        return;
-      }
-      const nonce = r.headers.get('x-session-nonce');
-      if (nonce) { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); }
-      const created = r.headers.get('x-session-created');
-      if (created) { setSessionCreatedAt(created); sessionStorage.setItem('v2l_created_at', created); }
-      setSessionStatus('active');
-    }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vimplToken]);
 
-  async function handleExported(boardId, boardUrl) {
-    setSessionBoardUrl(boardUrl);
-    sessionStorage.setItem('v2l_board_url', boardUrl);
-    // Persist board_id + board_url into the current flow
+  function handleExported(exportedBoardId, url) {
+    setBoardUrl(url);
+    setBoardId(exportedBoardId);
     if (currentFlowId) {
       setFlows(prev => {
         const updated = prev.map(f => f.id === currentFlowId
-          ? { ...f, board_id: boardId, board_url: boardUrl, updated_at: new Date().toISOString() }
+          ? { ...f, board_id: exportedBoardId, board_url: url, updated_at: new Date().toISOString() }
           : f
         );
         try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
         return updated;
       });
     }
-    if (keyMode === 'free' && vimplToken && sessionNonce) {
-      fetch('/api/proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${vimplToken}`,
-          'x-session-nonce': sessionNonce,
-        },
-        body: JSON.stringify({ _complete: true, board_id: boardId, board_url: boardUrl }),
-      }).catch(() => {});
-    }
-  }
-
-  async function handleResetSession() {
-    if (!vimplToken) return;
-    try {
-      await fetch('/api/proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${vimplToken}`,
-        },
-        body: JSON.stringify({ _reset: true }),
-      });
-    } catch { /* ignore */ }
-    // Clear all session state
-    setSessionStatus('available');
-    setSessionNonce(null);
-    setSessionBoardUrl(null);
-    setSessionCreatedAt(null);
-    sessionStorage.removeItem('v2l_nonce');
-    sessionStorage.removeItem('v2l_board_url');
-    sessionStorage.removeItem('v2l_created_at');
-    // Re-create a fresh session immediately
-    fetch('/api/proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vimplToken}`,
-      },
-      body: JSON.stringify({ _check: true, model: 'claude-sonnet-4-20250514', system: ' ', messages: [{ role: 'user', content: ' ' }], max_tokens: 1 }),
-    }).then(async r => {
-      const nonce = r.headers.get('x-session-nonce');
-      if (nonce) { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); }
-      setSessionStatus('active');
-    }).catch(() => {});
   }
 
   function getProxyAuth() {
-    if (keyMode !== 'free' || !vimplToken) return null;
-    return {
-      token: vimplToken,
-      sessionNonce,
-      onNonce: (nonce) => { setSessionNonce(nonce); sessionStorage.setItem('v2l_nonce', nonce); setSessionStatus('active'); },
-    };
+    return vimplToken ? { token: vimplToken } : null;
   }
 
-  const effectiveApiKey = keyMode === 'byok' ? apiKey : null;
-  const hasAccess = keyMode === 'byok' ? !!apiKey : (keyMode === 'free' && sessionStatus !== 'used' && !!vimplToken);
+  const effectiveApiKey = null;
+  const hasAccess = !!vimplToken;
 
   // ── Custom taxonomy (overrides APQC in ApqcSelector) ──────────────
   const [customTaxonomyNodes, setCustomTaxonomyNodes] = useState(() => {
@@ -676,59 +637,42 @@ export default function App() {
   });
 
   const isSubscribed = vimplUser && vimplUser.subscriptionTier !== 'student';
-  const canCreateFlow = keyMode === 'byok' || isSubscribed || flows.length === 0;
+  const canCreateFlow = isSubscribed || flows.length === 0;
 
-  const [collapsed, setCollapsed] = useState({ 1: false, 2: false, 3: false, 4: false, 5: false, 6: true });
-  // Widths stored as fractions (0–1) of the flex container so redistribution is
-  // always proportional and never dependent on a measured pixel value.
-  const [panelWidths, setPanelWidths] = useState({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
+  // ── Carousel state ─────────────────────────────────────────────────
+  const [activePanel, setActivePanel] = useState(1);
 
-  const p1Ref = useRef(null);
-  const p2Ref = useRef(null);
-  const p3Ref = useRef(null);
-  const p4Ref = useRef(null);
-  const p5Ref = useRef(null);
-  const p6Ref = useRef(null);
-  const pRefs = { 1: p1Ref, 2: p2Ref, 3: p3Ref, 4: p4Ref, 5: p5Ref, 6: p6Ref };
+  function getCarouselStyle(n) {
+    const offset = n - activePanel;
+    const base = {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      transition: 'left 0.38s cubic-bezier(0.4,0,0.2,1), width 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.3s, box-shadow 0.38s, border-radius 0.38s',
+      overflow: 'hidden',
+    };
 
-  // All panels share space equally (flex:1) when all are open.
-  // When any panel collapses, non-Map panels are frozen at their current pixel
-  // width and Map (panel 3) flexes to fill all freed space.
-  function getPanelStyle(n) {
-    if (collapsed[n]) return { width: 36, flexShrink: 0, flexGrow: 0 };
-    const w = panelWidths[n];
-    if (w != null) return { flex: 'none', width: w, minWidth: '20%' };
-    return { flex: 1, minWidth: '20%' };
-  }
+    const r = '8px'; // standard radius from CSS design system
 
-  function handleDragEnd(aKey, newA, bKey, newB) {
-    setPanelWidths(prev => ({ ...prev, [aKey]: newA, [bKey]: newB }));
-  }
-
-  function togglePanel(n) {
-    const nextCollapsed = { ...collapsed, [n]: !collapsed[n] };
-    const anyCollapsed = Object.values(nextCollapsed).some(Boolean);
-
-    [p1Ref, p2Ref, p3Ref, p4Ref, p5Ref, p6Ref].forEach(r => {
-      if (r.current) r.current.style.cssText = '';
-    });
-
-    if (anyCollapsed) {
-      // Freeze non-Map panels at their current rendered width; Map fills the rest
-      const newWidths = { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
-      [1, 2, 4, 5, 6].forEach(p => {
-        if (!nextCollapsed[p] && pRefs[p].current) {
-          newWidths[p] = pRefs[p].current.offsetWidth;
-        }
-      });
-      // panel 3 (Map) stays null → flex:1 → fills remainder
-      setPanelWidths(newWidths);
-    } else {
-      // All open → reset to equal widths
-      setPanelWidths({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null });
+    // Panel 3 (Map) — full width, no peeking, no radius (edge-to-edge)
+    if (activePanel === 3) {
+      if (offset === 0)  return { ...base, left: '0%',   width: '100%', opacity: 1, zIndex: 10, boxShadow: 'none', borderRadius: 0 };
+      return { ...base, left: offset < 0 ? '-100%' : '100%', width: '100%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: 0 };
     }
 
-    setCollapsed(nextCollapsed);
+    // Panels 2, 4 & 5 (Identify / Plan / Launch) — 30% centred, neighbours peek on both sides
+    if (activePanel === 2 || activePanel === 4 || activePanel === 5) {
+      if (offset === 0)  return { ...base, left: '35%', width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
+      if (offset === -1) return { ...base, left: '1%',  width: '33%', opacity: 0.45, zIndex: 5,  cursor: 'pointer', borderRadius: r };
+      if (offset === 1)  return { ...base, left: '66%', width: '33%', opacity: 0.45, zIndex: 5,  cursor: 'pointer', borderRadius: r };
+      return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: r };
+    }
+
+    // Panels 1 & 2 — 30% flush-left, next panel fills the right
+    if (offset === 0)  return { ...base, left: '0%',  width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
+    if (offset === 1)  return { ...base, left: '31%', width: '60%', opacity: 0.55, zIndex: 5,  cursor: 'pointer', borderRadius: r };
+    if (offset === 2)  return { ...base, left: '92%', width: '7%',  opacity: 0.3,  zIndex: 3,  cursor: 'pointer', borderRadius: r };
+    return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: r };
   }
 
   // Process context
@@ -759,12 +703,22 @@ export default function App() {
   const [projectPlan, setProjectPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
 
+  // Plan generation prompt modal
+  const [showPlanPrompt, setShowPlanPrompt] = useState(false);
+  const [planStartDate, setPlanStartDate] = useState('');
+  const [planDurationWeeks, setPlanDurationWeeks] = useState(14);
+
   // Panel 3 — AS-IS / TO-BE
   const [asIsXml, setAsIsXml] = useState(null);
   const [asIsParsed, setAsIsParsed] = useState(null);
   const [toBeXml, setToBeXml] = useState(null);
   const [toBeParsed, setToBeParsed] = useState(null);
   const [toBeLoading, setToBeLoading] = useState(false);
+
+  // Process metrics (activities: duration + backlog; gateways: branch rates)
+  const [asIsMetrics, setAsIsMetrics] = useState(null);
+  const [toBeMetrics, setToBeMetrics] = useState(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
 
   // ── Auto-login: read token from ?token= (vimpl SSO callback) or #token= (board deep-link) ──
   useEffect(() => {
@@ -821,7 +775,7 @@ export default function App() {
           process_name: draft.parsed?.process_name || draft.processDescription?.process_name || 'Migrated flow',
           created_at: now,
           updated_at: now,
-          board_url: sessionStorage.getItem('v2l_board_url') || null,
+          board_url: null,
           board_id: null,
           ...draft,
         };
@@ -860,8 +814,10 @@ export default function App() {
     setAsIsParsed(flow.asIsParsed || null);
     setToBeXml(flow.toBeXml || null);
     setToBeParsed(flow.toBeParsed || null);
-    setSessionBoardUrl(flow.board_url || null);
-    if (flow.board_url) sessionStorage.setItem('v2l_board_url', flow.board_url);
+    setAsIsMetrics(flow.asIsMetrics || null);
+    setToBeMetrics(flow.toBeMetrics || null);
+    setBoardUrl(flow.board_url || null);
+    setBoardId(flow.board_id || null);
   }
 
   // ── Auto-save current flow whenever key state changes ─────────────
@@ -876,14 +832,14 @@ export default function App() {
             updated_at: new Date().toISOString(),
             transcript, processDescription, parsed, xml,
             improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-            asIsXml, asIsParsed, toBeXml, toBeParsed,
+            asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics,
           }
         : f
       );
       try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleOpenFlow(flowId) {
@@ -921,9 +877,11 @@ export default function App() {
     setAsIsParsed(null);
     setToBeXml(null);
     setToBeParsed(null);
+    setAsIsMetrics(null);
+    setToBeMetrics(null);
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
-    setSessionBoardUrl(null);
-    sessionStorage.removeItem('v2l_board_url');
+    setBoardUrl(null);
+    setBoardId(null);
     setCurrentFlowId(id);
     localStorage.setItem(ACTIVE_KEY, id);
   }
@@ -931,6 +889,36 @@ export default function App() {
   function handleBackToDashboard() {
     setCurrentFlowId(null);
     localStorage.removeItem(ACTIVE_KEY);
+  }
+
+  function handleClearCurrentFlow() {
+    setTranscript('');
+    setProcessDescription(null);
+    setParsed(null);
+    setXml(null);
+    setImprovements(null);
+    setSelectedImprovementIds([]);
+    setCustomRisks([]);
+    setProjectPlan(null);
+    setAsIsXml(null);
+    setAsIsParsed(null);
+    setToBeXml(null);
+    setToBeParsed(null);
+    setAsIsMetrics(null);
+    setToBeMetrics(null);
+    setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
+    setBoardUrl(null);
+    setBoardId(null);
+    if (currentFlowId) {
+      setFlows(prev => {
+        const updated = prev.map(f => f.id === currentFlowId
+          ? { ...f, ...blankFlowState(), process_name: 'New process', updated_at: new Date().toISOString() }
+          : f
+        );
+        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+    }
   }
 
   async function handleDeleteFlow(flowId, deleteBoard) {
@@ -973,13 +961,15 @@ export default function App() {
     setProcessDescription(DEMO_DESCRIPTION);
     setProcessContext({ apqcNodeId: '8.6', apqcNodeName: 'Process accounts payable and expense reimbursements', isCustom: false, customLabel: null });
     setXml(DEMO_XML);
-    setAsIsXml(null);
-    setAsIsParsed(null);
-    setToBeXml(null);
+    setAsIsXml(DEMO_XML);
+    setAsIsParsed(DEMO_PARSED);
+    setToBeXml(DEMO_TO_BE_XML);
     setVoiceError(null);
     setImprovements(DEMO_IMPROVEMENTS);
     setSelectedImprovementIds(DEMO_SELECTED_IDS);
     setProjectPlan(DEMO_PROJECT_PLAN);
+    setAsIsMetrics(DEMO_AS_IS_METRICS);
+    setToBeMetrics(DEMO_TO_BE_METRICS);
     setCustomRisks([]);
   }
 
@@ -1004,6 +994,7 @@ export default function App() {
     try {
       const desc = await parseVoiceToDescription(getEffectiveTranscript(), effectiveApiKey, processContext, getProxyAuth());
       setProcessDescription(desc);
+      setActivePanel(2);
     } catch (err) {
       setVoiceError(err.message || 'Failed to parse voice.');
     } finally {
@@ -1018,11 +1009,23 @@ export default function App() {
     setImprovements(null);
     setSelectedImprovementIds([]);
     setProjectPlan(null);
+    setAsIsMetrics(null);
+    setToBeMetrics(null);
     try {
       const bpmnJson = await parseToBpmn(processDescription, effectiveApiKey, processContext, getProxyAuth());
       setParsed(bpmnJson);
       const generatedXml = generateBpmnXml(bpmnJson);
       setXml(generatedXml);
+      setActivePanel(3);
+      // Background: extract AS-IS metrics from transcript
+      const _transcript = getEffectiveTranscript();
+      const _apiKey = effectiveApiKey;
+      const _proxyAuth = getProxyAuth();
+      setMetricsLoading(true);
+      extractProcessMetrics(bpmnJson, _transcript, _apiKey, _proxyAuth)
+        .then(m => { if (m) setAsIsMetrics(m); })
+        .catch(() => {})
+        .finally(() => setMetricsLoading(false));
     } finally {
       setBpmnParsing(false);
     }
@@ -1032,6 +1035,7 @@ export default function App() {
     const result = await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth());
     setImprovements(result);
     setSelectedImprovementIds([]);
+    setActivePanel(4);
   }
 
   function handleAddImprovement(idea) {
@@ -1061,7 +1065,17 @@ export default function App() {
     );
   }
 
+  function handleGeneratePlanClick() {
+    const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
+    if (!selected.length) return;
+    // Pre-fill start date to today
+    setPlanStartDate(new Date().toISOString().slice(0, 10));
+    setPlanDurationWeeks(14);
+    setShowPlanPrompt(true);
+  }
+
   async function handleGeneratePlan() {
+    setShowPlanPrompt(false);
     const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
     if (!selected.length) return;
 
@@ -1075,20 +1089,28 @@ export default function App() {
 
     try {
       const [plan, toBeParsedResult] = await Promise.all([
-        generateProjectPlan(parsed, selected, effectiveApiKey, customRisks, getProxyAuth()),
+        generateProjectPlan(parsed, selected, effectiveApiKey, customRisks, getProxyAuth(), planStartDate || null, planDurationWeeks),
         generateToBeBpmn(parsed, selected, effectiveApiKey, getProxyAuth()),
       ]);
       setProjectPlan(plan);
       setToBeParsed(toBeParsedResult);
       const { generateBpmnXml } = await import('./services/xmlGenerator.js');
       setToBeXml(generateBpmnXml(toBeParsedResult));
+      setActivePanel(5);
+      // Background: estimate TO-BE metrics from improvements
+      const _asIsMetrics = asIsMetrics;
+      const _asParsed = parsed;
+      const _apiKey = effectiveApiKey;
+      const _proxyAuth = getProxyAuth();
+      estimateToBeMetrics(_asParsed, toBeParsedResult, _asIsMetrics, selected, _apiKey, _proxyAuth)
+        .then(m => { if (m) setToBeMetrics(m); })
+        .catch(() => {});
     } finally {
       setPlanLoading(false);
       setToBeLoading(false);
     }
   }
 
-  const handleProps = { onDragEnd: handleDragEnd };
 
   // ── Login gate ────────────────────────────────────────────────────
   if (!vimplToken) {
@@ -1155,29 +1177,23 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-900">
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-100">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleBackToDashboard}
-            className="text-gray-400 hover:text-vimpl transition-colors text-sm leading-none"
-            title="Back to dashboard"
-          >
-            ←
-          </button>
-          <span className="vimpl-wordmark">vimpl</span>
-          <span className="text-xs font-semibold text-gray-400 tracking-wide uppercase">Voice to Launch</span>
-          <a
-            href="https://www.ailean.dk"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ailean-badge"
-          >
-            <span>Powered by</span>
-            <span className="ailean-logo">AILEAN</span>
-          </a>
-        </div>
+      <header className="relative flex items-center justify-between px-6 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
+        {/* Centered label */}
+        <span className="absolute left-1/2 -translate-x-1/2 text-xs font-semibold text-gray-400 tracking-wide uppercase pointer-events-none">
+          Voice to Launch
+        </span>
+        <a
+          href="https://www.vimpl.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ailean-badge"
+          style={{ padding: '6px 14px' }}
+        >
+          <span>Powered by</span>
+          <span className="vimpl-wordmark" style={{ fontSize: '32px', lineHeight: 1 }}>vimpl</span>
+        </a>
         <div className="flex items-center gap-2">
           <LangSwitcher />
           <button
@@ -1192,12 +1208,78 @@ export default function App() {
         </div>
       </header>
 
-      {/* 5-panel layout */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Step navigator */}
+      {(() => {
+        const steps = [
+          { num: 1, label: t.panel1 },
+          { num: 2, label: t.panel2 },
+          { num: 3, label: t.panel3 },
+          { num: 4, label: t.panel4 },
+          { num: 5, label: t.panel5 },
+        ];
+        return (
+          <div className="relative flex items-center justify-center gap-1 px-4 py-2 bg-slate-100 border-b border-gray-200 shrink-0">
+            {/* Left: utility buttons — pinned to left edge */}
+            <div className="absolute left-4 flex items-center gap-1">
+              <button
+                onClick={handleLoadDemo}
+                className="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-md px-2 py-1 transition-colors"
+                title={t.loadDemoTitle}
+              >
+                {t.loadDemo}
+              </button>
+              {(transcript || xml) && (
+                <button
+                  onClick={handleClearCurrentFlow}
+                  className="text-xs text-gray-400 hover:text-red-400 border border-gray-200 rounded-md px-2 py-1 transition-colors"
+                  title={t.clearTitle}
+                >
+                  {t.clear}
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setActivePanel(p => Math.max(1, p - 1))}
+              disabled={activePanel === 1}
+              className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors px-2 text-sm select-none"
+            >
+              ←
+            </button>
+            {steps.map(s => (
+              <button
+                key={s.num}
+                onClick={() => setActivePanel(s.num)}
+                className={[
+                  'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all',
+                  activePanel === s.num
+                    ? 'bg-vimpl text-gray-900'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200',
+                ].join(' ')}
+              >
+                <span className={[
+                  'w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
+                  activePanel === s.num ? 'bg-white/50 text-gray-800' : 'bg-gray-300 text-gray-500',
+                ].join(' ')}>{s.num}</span>
+                {s.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setActivePanel(p => Math.min(5, p + 1))}
+              disabled={activePanel === 5}
+              className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors px-2 text-sm select-none"
+            >
+              →
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* Carousel */}
+      <div className="relative flex-1 bg-slate-100 overflow-hidden">
 
         {/* Panel 1 — Voice */}
-        <div ref={p1Ref} style={getPanelStyle(1)} className="overflow-hidden">
-          <PanelShell num="1" label={t.panel1} collapsed={collapsed[1]} onToggle={() => togglePanel(1)}>
+        <div style={getCarouselStyle(1)} onClick={activePanel !== 1 ? () => setActivePanel(1) : undefined}>
+          <PanelShell num="1" label={t.panel1}>
             {voiceError && (
               <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-xs shrink-0">
                 {voiceError}
@@ -1210,20 +1292,17 @@ export default function App() {
               onParse={handleParseVoice}
               loading={descParsing}
               canParse={!!getEffectiveTranscript().trim() && hasAccess}
-              onLoadDemo={handleLoadDemo}
               ailean={ailean}
               hasElevenLabsKey={!!elevenLabsKey}
               onAileanTurn={() => ailean.askFollowUp(transcript)}
             />
           </PanelShell>
+          {activePanel !== 1 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
-        <ResizeHandle aRef={pRefs[1]} bRef={pRefs[2]} disabled={collapsed[1] || collapsed[2]}
-          aKey={1} bKey={2} {...handleProps} />
-
         {/* Panel 2 — Description */}
-        <div ref={p2Ref} style={getPanelStyle(2)} className="overflow-hidden">
-          <PanelShell num="2" label={t.panel2} collapsed={collapsed[2]} onToggle={() => togglePanel(2)}>
+        <div style={getCarouselStyle(2)} onClick={activePanel !== 2 ? () => setActivePanel(2) : undefined}>
+          <PanelShell num="2" label={t.panel2}>
             <DescriptionPanel
               description={processDescription}
               onDescriptionChange={setProcessDescription}
@@ -1235,20 +1314,19 @@ export default function App() {
               taxonomyNodes={customTaxonomyNodes}
             />
           </PanelShell>
+          {activePanel !== 2 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
-        <ResizeHandle aRef={pRefs[2]} bRef={pRefs[3]} disabled={collapsed[2] || collapsed[3]}
-          aKey={2} bKey={3} {...handleProps} />
-
         {/* Panel 3 — Diagram */}
-        <div ref={p3Ref} style={getPanelStyle(3)} className="overflow-hidden">
-          <PanelShell num="3" label={t.panel3} collapsed={collapsed[3]} onToggle={() => togglePanel(3)}>
+        <div style={getCarouselStyle(3)} onClick={activePanel !== 3 ? () => setActivePanel(3) : undefined}>
+          <PanelShell num="3" label={t.panel3}>
             <DiagramPanel
               xml={xml}
               onXmlChange={setXml}
               bpmnLoading={bpmnParsing}
               processName={parsed?.process_name}
               parsed={parsed}
+              toBeParsed={toBeParsed}
               processDescription={processDescription}
               onGetImprovements={handleGetImprovements}
               apiKey={hasAccess ? (effectiveApiKey || 'granted') : null}
@@ -1256,16 +1334,34 @@ export default function App() {
               toBeXml={toBeXml}
               onToBeXmlChange={setToBeXml}
               toBeLoading={toBeLoading}
+              asIsMetrics={asIsMetrics}
+              onAsIsMetricsChange={setAsIsMetrics}
+              toBeMetrics={toBeMetrics}
+              onToBeMetricsChange={setToBeMetrics}
+              metricsLoading={metricsLoading}
+              onExtractMetrics={() => {
+                if (!parsed) return;
+                setMetricsLoading(true);
+                extractProcessMetrics(parsed, getEffectiveTranscript(), effectiveApiKey, getProxyAuth())
+                  .then(m => { if (m) setAsIsMetrics(m); })
+                  .catch(() => {})
+                  .finally(() => setMetricsLoading(false));
+              }}
+              onEstimateToBeMetrics={() => {
+                if (!parsed || !toBeParsed) return;
+                const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
+                estimateToBeMetrics(parsed, toBeParsed, asIsMetrics, selected, effectiveApiKey, getProxyAuth())
+                  .then(m => { if (m) setToBeMetrics(m); })
+                  .catch(() => {});
+              }}
             />
           </PanelShell>
+          {activePanel !== 3 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
-        <ResizeHandle aRef={pRefs[3]} bRef={pRefs[4]} disabled={collapsed[3] || collapsed[4]}
-          aKey={3} bKey={4} {...handleProps} />
-
-        {/* Panel 4 — Project */}
-        <div ref={p4Ref} style={getPanelStyle(4)} className="overflow-hidden">
-          <PanelShell num="4" label={t.panel4} collapsed={collapsed[4]} onToggle={() => togglePanel(4)}>
+        {/* Panel 4 — Plan */}
+        <div style={getCarouselStyle(4)} onClick={activePanel !== 4 ? () => setActivePanel(4) : undefined}>
+          <PanelShell num="4" label={t.panel4}>
             <ImprovePanel
               parsed={parsed}
               apiKey={hasAccess ? (effectiveApiKey || 'granted') : null}
@@ -1276,18 +1372,16 @@ export default function App() {
               selectedIds={selectedImprovementIds}
               onToggleSelect={handleToggleSelect}
               projectPlan={projectPlan}
-              onGeneratePlan={handleGeneratePlan}
+              onGeneratePlan={handleGeneratePlanClick}
               planLoading={planLoading}
             />
           </PanelShell>
+          {activePanel !== 4 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
-        <ResizeHandle aRef={pRefs[4]} bRef={pRefs[5]} disabled={collapsed[4] || collapsed[5]}
-          aKey={4} bKey={5} {...handleProps} />
-
         {/* Panel 5 — Launch */}
-        <div ref={p5Ref} style={getPanelStyle(5)} className="overflow-hidden">
-          <PanelShell num="5" label={t.panel5} collapsed={collapsed[5]} onToggle={() => togglePanel(5)}>
+        <div style={getCarouselStyle(5)} onClick={activePanel !== 5 ? () => setActivePanel(5) : undefined}>
+          <PanelShell num="5" label={t.panel5}>
             <LaunchPanel
               projectPlan={projectPlan}
               parsed={parsed}
@@ -1300,10 +1394,12 @@ export default function App() {
               onRemoveRisk={handleRemoveRisk}
               onExported={handleExported}
               vimplToken={vimplToken}
-              sessionBoardUrl={sessionBoardUrl}
+              boardUrl={boardUrl}
+              boardId={boardId}
               onNewFlow={handleCreateFlow}
             />
           </PanelShell>
+          {activePanel !== 5 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>
 
       </div>
@@ -1311,19 +1407,11 @@ export default function App() {
       <BurgerMenu
         open={showBurger}
         onClose={() => setShowBurger(false)}
-        apiKey={apiKey}
-        onApiKeyChange={key => { setApiKey(key); setKeyMode('byok'); sessionStorage.setItem('v2l_keymode', 'byok'); }}
         elevenLabsKey={elevenLabsKey}
-        sessionStatus={sessionStatus}
-        sessionBoardUrl={sessionBoardUrl}
-        sessionCreatedAt={sessionCreatedAt}
         onElevenLabsKeyChange={key => { setElevenLabsKey(key); }}
         vimplToken={vimplToken}
         vimplUser={vimplUser}
-        onLoginGoogle={loginWithGoogle}
-        onLoginVimpl={loginWithVimpl}
         onLogout={logoutVimpl}
-        onResetSession={handleResetSession}
         parsed={parsed}
         processContext={processContext}
         customTaxonomyNodes={customTaxonomyNodes}
@@ -1331,6 +1419,50 @@ export default function App() {
       />
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+
+      {/* ── Plan generation prompt modal ──────────────────────────── */}
+      {showPlanPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-4">
+            <h3 className="text-sm font-semibold text-gray-800">Project parameters</h3>
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">Project start date</label>
+              <input
+                type="date"
+                value={planStartDate}
+                onChange={e => setPlanStartDate(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-vimpl"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">Duration (weeks)</label>
+              <input
+                type="number"
+                min={1}
+                max={104}
+                value={planDurationWeeks}
+                onChange={e => setPlanDurationWeeks(Number(e.target.value) || 14)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-vimpl"
+              />
+              <p className="text-[9px] text-gray-400 mt-0.5">Default is 14 weeks</p>
+            </div>
+            <div className="flex gap-2 mt-1">
+              <button
+                onClick={handleGeneratePlan}
+                className="flex-1 bg-vimpl text-black text-sm font-semibold py-2 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors"
+              >
+                Generate
+              </button>
+              <button
+                onClick={() => setShowPlanPrompt(false)}
+                className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

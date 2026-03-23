@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 // ── Client factory ────────────────────────────────────────────────────────────
-// Returns either a real Anthropic client (BYOK) or a proxy shim (free session).
+// Returns either a real Anthropic client (BYOK) or a proxy shim (vimpl auth).
 function makeClient(apiKey, proxyAuth = null) {
   if (apiKey) return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
@@ -9,27 +9,20 @@ function makeClient(apiKey, proxyAuth = null) {
   return {
     messages: {
       async create(params) {
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${proxyAuth.token}`,
-        };
-        if (proxyAuth.sessionNonce) headers['x-session-nonce'] = proxyAuth.sessionNonce;
-
         const res = await fetch('/api/proxy', {
           method: 'POST',
-          headers,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${proxyAuth.token}`,
+          },
           body: JSON.stringify(params),
         });
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          const e = new Error(err.error || 'Proxy error');
-          if (err.error === 'free_session_used') e.code = 'FREE_SESSION_USED';
-          throw e;
+          throw new Error(err.error || 'Proxy error');
         }
 
-        const nonce = res.headers.get('x-session-nonce');
-        if (nonce && proxyAuth.onNonce) proxyAuth.onNonce(nonce);
         return res.json();
       },
     },
@@ -111,7 +104,7 @@ The JSON must follow this exact schema:
 }
 
 Rules:
-- duration_weeks must be exactly 14
+- Use the duration_weeks value provided in the input (default 14 if not provided)
 - probability and consequence are integers 0-100
 - Each selected improvement should have at least one task
 - Group related tasks into 2-4 tracks (e.g., "Technology", "Process", "People", "Governance")
@@ -287,12 +280,14 @@ export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null
   }
 }
 
-export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null) {
+export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null, startDate = null, durationWeeks = 14) {
   const client = makeClient(apiKey, proxyAuth);
 
   const input = {
     process: parsed,
     selected_improvements: selectedImprovements,
+    duration_weeks: durationWeeks,
+    ...(startDate ? { project_start_date: startDate } : {}),
     ...(knownRisks.length > 0 ? { known_risks: knownRisks } : {}),
   };
 
@@ -357,6 +352,102 @@ export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAu
     err.rawResponse = text;
     throw err;
   }
+}
+
+// ── Process Metrics Extraction ────────────────────────────────────────────────
+const METRICS_PROMPT = `You are a business process analyst. Based on the BPMN process structure and the interview transcript, estimate operational metrics for each process element.
+Return ONLY a valid JSON object — no explanation, no markdown, no preamble.
+
+Schema:
+{
+  "activities": [
+    { "id": "act_1", "duration_value": 30, "duration_unit": "min", "backlog": 150 }
+  ],
+  "gateways": [
+    { "id": "gw_1", "branches": [
+      { "condition": "Documents available", "rate": 75 },
+      { "condition": "Missing documents", "rate": 25 }
+    ]}
+  ]
+}
+
+Rules:
+- duration_unit must be one of: "min", "hr", "day", "week"
+- duration_value is a positive number representing time per single case instance
+- backlog is a positive integer — estimated number of open/waiting cases at any given point in time
+- For each gateway, list ALL outgoing branches (from gateway_branches input) with rates summing to 100
+- Base estimates on the transcript where possible; otherwise use industry norms for the process type
+- Only include IDs that exist in the input process`;
+
+const TOBE_METRICS_PROMPT = `You are a business process improvement analyst. Given the AS-IS operational metrics and the approved improvements, estimate new TO-BE metrics.
+Return ONLY a valid JSON object — no explanation, no markdown, no preamble.
+
+Use the same schema as AS-IS metrics:
+{
+  "activities": [
+    { "id": "act_1", "duration_value": 15, "duration_unit": "min", "backlog": 50 }
+  ],
+  "gateways": [
+    { "id": "gw_1", "branches": [
+      { "condition": "Documents available", "rate": 90 },
+      { "condition": "Missing documents", "rate": 10 }
+    ]}
+  ]
+}
+
+Rules:
+- Reflect the realistic impact of each selected improvement on duration, backlog, and gateway rates
+- Automation typically reduces duration by 50–80% and backlog by 60–80%
+- Quality/validation improvements typically push gateway success rates up by 10–30 percentage points
+- Only include IDs that exist in the TO-BE BPMN input
+- Gateway branch rates must sum to 100 per gateway`;
+
+export async function extractProcessMetrics(parsed, transcript, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
+
+  const gatewayBranches = {};
+  for (const gw of parsed.gateways || []) {
+    const outgoing = (parsed.sequence_flows || []).filter(f => f.from === gw.id && f.condition);
+    gatewayBranches[gw.id] = outgoing.map(f => f.condition);
+  }
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2000,
+    system: METRICS_PROMPT,
+    messages: [{ role: 'user', content: JSON.stringify({ process: parsed, gateway_branches: gatewayBranches, transcript: transcript || '' }) }],
+  });
+
+  const text = message.content[0].text.trim();
+  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  try { return JSON.parse(cleaned); } catch { return null; }
+}
+
+export async function estimateToBeMetrics(asParsed, toBeParsed, asIsMetrics, improvements, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
+
+  const gatewayBranches = {};
+  for (const gw of (toBeParsed?.gateways || [])) {
+    const outgoing = (toBeParsed?.sequence_flows || []).filter(f => f.from === gw.id && f.condition);
+    gatewayBranches[gw.id] = outgoing.map(f => f.condition);
+  }
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2000,
+    system: TOBE_METRICS_PROMPT,
+    messages: [{ role: 'user', content: JSON.stringify({
+      as_is_process: asParsed,
+      as_is_metrics: asIsMetrics,
+      tobe_process: toBeParsed,
+      tobe_gateway_branches: gatewayBranches,
+      selected_improvements: improvements.map(i => ({ title: i.title, description: i.description, category: i.category })),
+    }) }],
+  });
+
+  const text = message.content[0].text.trim();
+  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  try { return JSON.parse(cleaned); } catch { return null; }
 }
 
 // ── Ailean Interview Follow-up ────────────────────────────────────────────────

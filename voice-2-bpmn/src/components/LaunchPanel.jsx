@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import VimplExportModal from './VimplExportModal.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
+import { inviteCollaborator } from '../services/vimplService.js';
+
+const BACKEND_URL = 'https://backend-eight-rho-46.vercel.app';
 
 function riskLevel(p, c, t) {
   const score = p * c;
@@ -58,15 +61,69 @@ function RiskForm({ initial = BLANK_RISK, onSave, onCancel, saveLabel }) {
   );
 }
 
-export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, sessionBoardUrl, onNewFlow }) {
+function InviteSection({ boardId, vimplToken }) {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState(null); // null | 'sending' | 'ok' | 'error'
+  const [errorMsg, setErrorMsg] = useState('');
+
+  async function handleInvite() {
+    if (!email.trim() || !boardId || !vimplToken) return;
+    setStatus('sending');
+    setErrorMsg('');
+    try {
+      const stored = JSON.parse(localStorage.getItem('voice2bpmn_vimpl_config') || '{}');
+      const baseUrl = stored.baseUrl || BACKEND_URL;
+      await inviteCollaborator(boardId, email.trim(), { baseUrl, token: vimplToken });
+      setStatus('ok');
+      setEmail('');
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg(err.message || 'Invite failed');
+    }
+  }
+
+  return (
+    <div className="px-4 pb-4 border-t border-gray-100">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-3 mb-2">Invite collaborator</p>
+      <div className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setStatus(null); }}
+          onKeyDown={e => e.key === 'Enter' && handleInvite()}
+          placeholder="colleague@company.com"
+          className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+        />
+        <button
+          onClick={handleInvite}
+          disabled={!email.trim() || status === 'sending'}
+          className="text-xs bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors shrink-0"
+        >
+          {status === 'sending' ? '…' : 'Invite'}
+        </button>
+      </div>
+      {status === 'ok' && (
+        <p className="text-[10px] text-green-600 mt-1.5">Invite sent ✓</p>
+      )}
+      {status === 'error' && (
+        <p className="text-[10px] text-red-500 mt-1.5">{errorMsg}</p>
+      )}
+      <p className="text-[10px] text-gray-400 mt-1">
+        They'll receive a link to open this board in vimpl.
+      </p>
+    </div>
+  );
+}
+
+export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, boardUrl, boardId, onNewFlow }) {
   const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
   const [showAddRisk, setShowAddRisk] = useState(false);
   const [editingRiskId, setEditingRiskId] = useState(null);
 
-  function handleExportDone(boardId, boardUrl) {
+  function handleExportDone(id, url) {
     setShowExport(false);
-    onExported?.(boardId, boardUrl);
+    onExported?.(id, url);
   }
 
   if (!projectPlan) {
@@ -192,12 +249,12 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
 
       {/* ── Export CTA ───────────────────────────────────────────────── */}
       <div className="px-4 py-4 border-t border-gray-100 shrink-0 space-y-2">
-        {sessionBoardUrl ? (
+        {boardUrl ? (
           <>
             <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
               <span className="text-green-500 text-sm shrink-0">✓</span>
               <a
-                href={sessionBoardUrl}
+                href={boardUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-green-700 font-medium hover:underline flex-1 truncate"
@@ -221,6 +278,11 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
           </button>
         )}
       </div>
+
+      {/* ── Collaborator invite (shown after board is created) ───────── */}
+      {boardUrl && boardId && vimplToken && (
+        <InviteSection boardId={boardId} vimplToken={vimplToken} />
+      )}
 
       {showExport && (
         <VimplExportModal

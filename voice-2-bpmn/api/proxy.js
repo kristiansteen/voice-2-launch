@@ -1,11 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-nonce');
-  res.setHeader('Access-Control-Expose-Headers', 'x-session-nonce, x-session-created');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
@@ -18,91 +16,12 @@ export default async function handler(req, res) {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!meRes.ok) return res.status(401).json({ error: 'Invalid token' });
-  const { user } = await meRes.json();
-  const userId = user.id;
-  const userEmail = user.email;
-
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY,
-  );
-
-  // ── Admin reset ─────────────────────────────────────────────────
-  const { _reset } = req.body || {};
-  if (_reset) {
-    if (userEmail !== 'kristian.steen@vimpl.com') {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    await supabase.from('free_sessions').delete().eq('user_id', userId);
-    return res.status(200).json({ ok: true });
-  }
-
-  // ── Mark session complete with board_id ─────────────────────────
-  const { _complete, board_id, board_url } = req.body || {};
-  if (_complete && board_id) {
-    const clientNonce = req.headers['x-session-nonce'];
-    await supabase
-      .from('free_sessions')
-      .update({ board_id, board_url: board_url || null })
-      .eq('user_id', userId)
-      .eq('session_nonce', clientNonce);
-    return res.status(200).json({ ok: true });
-  }
-
-  // ── Session nonce check ─────────────────────────────────────────
-  const { _check } = req.body || {};
-  const clientNonce = req.headers['x-session-nonce'];
-
-  const { data: existing } = await supabase
-    .from('free_sessions')
-    .select('session_nonce, board_id, board_url, created_at')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  let sessionNonce;
-
-  if (!existing) {
-    // First use — create a session
-    const nonce = crypto.randomUUID();
-    const { error: insertErr } = await supabase
-      .from('free_sessions')
-      .insert({ user_id: userId, session_nonce: nonce });
-    if (insertErr) return res.status(500).json({ error: 'Failed to create session' });
-    sessionNonce = nonce;
-  } else if (_check) {
-    // Re-sync: client lost its nonce (new tab / cleared storage).
-    // Return the stored nonce so the client can resume the session.
-    sessionNonce = existing.session_nonce;
-    res.setHeader('x-session-created', existing.created_at);
-  } else if (clientNonce && existing.session_nonce === clientNonce) {
-    // Continuing a valid existing session
-    sessionNonce = clientNonce;
-    res.setHeader('x-session-created', existing.created_at);
-  } else {
-    // Nonce mismatch on a real request — session belongs to a different browser session
-    return res.status(403).json({
-      error: 'free_session_used',
-      board_id: existing.board_id || null,
-      board_url: existing.board_url || null,
-      created_at: existing.created_at,
-    });
-  }
-
-  // ── Session check (no Anthropic call needed) ───────────────────
-  if (_check) {
-    res.setHeader('x-session-nonce', sessionNonce);
-    return res.status(200).json({ ok: true });
-  }
 
   // ── Forward to Anthropic ────────────────────────────────────────
-  // Set nonce header before the async call so it's always present
-  res.setHeader('x-session-nonce', sessionNonce);
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const { model, system, messages, max_tokens } = req.body;
-
     const message = await client.messages.create({ model, system, messages, max_tokens });
-
     res.json(message);
   } catch (err) {
     res.status(500).json({ error: err.message });

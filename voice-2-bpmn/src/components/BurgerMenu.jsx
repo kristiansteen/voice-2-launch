@@ -22,25 +22,18 @@ function Section({ title, children, defaultOpen = false }) {
 
 export default function BurgerMenu({
   open, onClose,
-  apiKey, onApiKeyChange,
   elevenLabsKey, onElevenLabsKeyChange,
-  vimplToken, vimplUser, onLoginGoogle, onLoginVimpl, onLogout, onResetSession,
+  vimplToken, vimplUser, onLogout,
   parsed, processContext,
   customTaxonomyNodes, onTaxonomyChange,
-  sessionStatus, sessionBoardUrl, sessionCreatedAt,
 }) {
   const { t } = useLang();
-  const [draftKey, setDraftKey] = useState(apiKey || '');
   const [draftElKey, setDraftElKey] = useState(elevenLabsKey || '');
   const fileRef = useRef(null);
   const [uploadError, setUploadError] = useState(null);
   const [uploadName, setUploadName] = useState(() => {
     try { return localStorage.getItem(CUSTOM_TAX_KEY + '_name') || null; } catch { return null; }
   });
-
-  function handleSaveKey() {
-    onApiKeyChange(draftKey.trim());
-  }
 
   function handleSaveElKey() {
     onElevenLabsKeyChange(draftElKey.trim());
@@ -102,109 +95,13 @@ export default function BurgerMenu({
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* ── Free session counter ───────────────────────────────── */}
-          <div className="mx-4 mt-3 flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Free sessions</span>
-            <div className="flex items-center gap-1.5">
-              <span className={`text-[10px] font-semibold ${sessionStatus === 'used' ? 'text-orange-500' : 'text-green-600'}`}>
-                {sessionStatus === 'used' ? '0' : '1'} / 1
-              </span>
-              <span className={`inline-block w-1.5 h-1.5 rounded-full ${sessionStatus === 'used' ? 'bg-orange-400' : 'bg-green-500'}`} />
-            </div>
-          </div>
-
-          {/* ── Admin reset (admin only) ──────────────────────────── */}
-          {vimplUser?.email === 'kristian.steen@vimpl.com' && (
-            <div className="mx-4 mt-2">
-              <button
-                onClick={onResetSession}
-                className="w-full text-[10px] text-red-400 hover:text-red-600 border border-red-100 rounded px-3 py-1.5 hover:bg-red-50 transition-colors"
-              >
-                ↺ Reset free session (admin)
-              </button>
-            </div>
-          )}
-
-          {/* ── Session status (only shown when used) ─────────────── */}
-          {sessionStatus === 'used' && (
-            <div className="mx-4 mt-2 text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded px-3 py-2 space-y-1">
-              <p>Free session used. Add your own key below.</p>
-              {sessionBoardUrl && (
-                <a href={sessionBoardUrl} target="_blank" rel="noopener noreferrer"
-                  className="block text-blue-600 hover:underline truncate">
-                  View your board →
-                </a>
-              )}
-              {sessionCreatedAt && (
-                <p className="text-[10px] text-orange-400">
-                  {new Date(sessionCreatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* ── API Keys ──────────────────────────────────────────── */}
-          <Section title="Bring your own key" defaultOpen={!apiKey}>
-            <div className="space-y-4">
-
-              {/* Anthropic */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Anthropic (required)</p>
-                <input
-                  type="password"
-                  value={draftKey}
-                  onChange={e => setDraftKey(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveKey()}
-                  placeholder="sk-ant-..."
-                  className="w-full text-xs border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-green-400 font-mono"
-                />
-                <button
-                  onClick={handleSaveKey}
-                  disabled={!draftKey.trim()}
-                  className="w-full text-xs font-medium bg-vimpl text-black py-2 rounded hover:bg-vimpl-dark hover:text-white disabled:opacity-40 transition-colors"
-                >
-                  {apiKey ? 'Update key' : 'Save key'}
-                </button>
-                {apiKey && (
-                  <p className="text-[10px] text-green-600 text-center">Key set ✓</p>
-                )}
-              </div>
-
-              {/* ElevenLabs */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
-                  ElevenLabs <span className="normal-case font-normal text-gray-400">(for Ailean's voice)</span>
-                </p>
-                <input
-                  type="password"
-                  value={draftElKey}
-                  onChange={e => setDraftElKey(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveElKey()}
-                  placeholder="sk_..."
-                  className="w-full text-xs border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-purple-400 font-mono"
-                />
-                <button
-                  onClick={handleSaveElKey}
-                  disabled={!draftElKey.trim()}
-                  className="w-full text-xs font-medium bg-purple-600 text-white py-2 rounded hover:bg-purple-700 disabled:opacity-40 transition-colors"
-                >
-                  {elevenLabsKey ? 'Update key' : 'Save key'}
-                </button>
-                {elevenLabsKey && (
-                  <p className="text-[10px] text-purple-600 text-center">Key set ✓</p>
-                )}
-                {!elevenLabsKey && (
-                  <p className="text-[10px] text-gray-400">
-                    Optional — without it Ailean uses your browser's built-in voice.
-                  </p>
-                )}
-              </div>
-
-            </div>
-          </Section>
-
           {/* ── Account ───────────────────────────────────────────── */}
-          <Section title="Account" defaultOpen={!vimplToken}>
+          <Section title="Account" defaultOpen>
+            {vimplUser && (
+              <p className="text-xs text-gray-500 mb-3">
+                Signed in as <span className="font-medium text-gray-700">{vimplUser.email}</span>
+              </p>
+            )}
             {vimplToken ? (
               <button
                 onClick={onLogout}
@@ -212,20 +109,39 @@ export default function BurgerMenu({
               >
                 Log out
               </button>
-            ) : (
+            ) : null}
+          </Section>
+
+          {/* ── Voice (ElevenLabs) ─────────────────────────────────── */}
+          <Section title="Voice">
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+                ElevenLabs <span className="normal-case font-normal text-gray-400">(for Ailean's voice)</span>
+              </p>
+              <input
+                type="password"
+                value={draftElKey}
+                onChange={e => setDraftElKey(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveElKey()}
+                placeholder="sk_..."
+                className="w-full text-xs border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-purple-400 font-mono"
+              />
               <button
-                onClick={onLoginGoogle}
-                className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={handleSaveElKey}
+                disabled={!draftElKey.trim()}
+                className="w-full text-xs font-medium bg-purple-600 text-white py-2 rounded hover:bg-purple-700 disabled:opacity-40 transition-colors"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Login with Google
+                {elevenLabsKey ? 'Update key' : 'Save key'}
               </button>
-            )}
+              {elevenLabsKey && (
+                <p className="text-[10px] text-purple-600 text-center">Key set ✓</p>
+              )}
+              {!elevenLabsKey && (
+                <p className="text-[10px] text-gray-400">
+                  Optional — without it Ailean uses your browser's built-in voice.
+                </p>
+              )}
+            </div>
           </Section>
 
           {/* ── Repository ────────────────────────────────────────── */}
