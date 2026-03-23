@@ -585,14 +585,26 @@ export default function App() {
   const [boardUrl, setBoardUrl] = useState(null);
   const [boardId, setBoardId] = useState(null);
 
-  // Fetch vimpl user info on login
-  useEffect(() => {
-    if (!vimplToken) return;
+  // Fetch vimpl user info — on login and whenever the tab regains focus
+  // (so subscription upgrades made on the pricing page are picked up immediately)
+  function refreshVimplUser(token) {
+    if (!token) return;
     fetch(`${BACKEND_URL}/api/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${vimplToken}` },
+      headers: { Authorization: `Bearer ${token}` },
     }).then(r => r.ok ? r.json() : null).then(data => {
       if (data?.user) setVimplUser(data.user);
     }).catch(() => {});
+  }
+
+  useEffect(() => {
+    refreshVimplUser(vimplToken);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vimplToken]);
+
+  useEffect(() => {
+    function onFocus() { refreshVimplUser(vimplToken); }
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vimplToken]);
 

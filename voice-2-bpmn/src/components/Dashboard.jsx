@@ -75,7 +75,6 @@ function FlowCard({ flow, onOpen, onDelete }) {
       onMouseLeave={() => setHovered(false)}
       className="relative bg-white border border-gray-200 hover:border-vimpl/50 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md flex flex-col gap-2"
     >
-      {/* Delete button */}
       <button
         onClick={e => { e.stopPropagation(); onDelete(flow); }}
         className={`absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-all text-xs px-1.5 py-1 rounded hover:bg-red-50 ${hovered ? 'opacity-100' : 'opacity-0'}`}
@@ -84,15 +83,11 @@ function FlowCard({ flow, onOpen, onDelete }) {
         ✕
       </button>
 
-      {/* Process name */}
       <p className="text-sm font-semibold text-gray-800 pr-6 leading-snug">
         {flow.process_name || 'Untitled process'}
       </p>
-
-      {/* Date */}
       <p className="text-xs text-gray-400">{formatDate(flow.updated_at)}</p>
 
-      {/* Progress badges */}
       <div className="flex flex-wrap gap-1">
         <ProgressBadge done={!!flow.processDescription} label="Description" />
         <ProgressBadge done={!!flow.parsed} label="BPMN" />
@@ -100,7 +95,6 @@ function FlowCard({ flow, onOpen, onDelete }) {
         <ProgressBadge done={!!flow.board_url} label="Exported" />
       </div>
 
-      {/* Board link */}
       {flow.board_url && (
         <a
           href={flow.board_url}
@@ -121,27 +115,38 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
   const [deletingFlow, setDeletingFlow] = useState(null);
 
   const sorted = [...flows].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+  const isTrial = !vimplUser || vimplUser.subscriptionTier === 'student';
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="vimpl-wordmark">vimpl</span>
+      <header className="flex items-center justify-between px-6 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
+        <div className="flex items-center gap-4">
+          <span className="ailean-logo" style={{ fontSize: '15px' }}>AILEAN</span>
+          <div className="w-px h-5 bg-gray-200" />
           <span className="text-xs font-semibold text-gray-400 tracking-wide uppercase">Voice to Launch</span>
           <a
-            href="https://www.ailean.dk"
+            href="https://www.vimpl.com"
             target="_blank"
             rel="noopener noreferrer"
             className="ailean-badge"
           >
             <span>Powered by</span>
-            <span className="ailean-logo">AILEAN</span>
+            <span className="vimpl-wordmark" style={{ fontSize: '16px', lineHeight: 1 }}>vimpl</span>
           </a>
         </div>
         {vimplUser && (
           <div className="flex items-center gap-3">
-            {vimplUser.subscriptionTier !== 'student' && (
+            {isTrial ? (
+              <a
+                href={PRICING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium hover:bg-amber-100 transition-colors"
+              >
+                Trial — Upgrade ↗
+              </a>
+            ) : (
               <span className="text-xs bg-vimpl/10 text-vimpl-dark px-2 py-0.5 rounded-full font-medium capitalize border border-vimpl/20">
                 {vimplUser.subscriptionTier}
               </span>
@@ -157,6 +162,27 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
         )}
       </header>
 
+      {/* Trial banner */}
+      {isTrial && (
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-500 text-sm">⚡</span>
+            <p className="text-xs text-amber-800">
+              <span className="font-semibold">Free trial</span> — 1 process flow included.
+              Upgrade for unlimited flows and vimpl boards.
+            </p>
+          </div>
+          <a
+            href={PRICING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 text-xs bg-amber-500 text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors"
+          >
+            See plans ↗
+          </a>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {/* Page title + new flow button */}
         <div className="flex items-center justify-between mb-6">
@@ -164,6 +190,7 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
             <h2 className="text-lg font-semibold text-gray-800">My Processes</h2>
             <p className="text-xs text-gray-400 mt-0.5">
               {flows.length} flow{flows.length !== 1 ? 's' : ''}
+              {isTrial && ' · 1 included in trial'}
             </p>
           </div>
           {canCreate ? (
@@ -178,7 +205,7 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
               href={PRICING_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 border border-green-500/50 text-green-400 text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-500/10 transition-colors"
+              className="flex items-center gap-1.5 bg-amber-500 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors"
             >
               Upgrade to add more ↗
             </a>
@@ -214,20 +241,22 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
           </div>
         )}
 
-        {/* Upgrade notice when limit reached */}
-        {!canCreate && flows.length > 0 && (
-          <div className="mt-6 bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-4 shadow-sm">
+        {/* Upgrade card — shown when trial limit hit */}
+        {!canCreate && isTrial && (
+          <div className="mt-6 bg-white border border-amber-200 rounded-xl p-5 flex items-center justify-between gap-4 shadow-sm">
             <div>
-              <p className="text-xs font-semibold text-gray-700">Your free flow has been used</p>
-              <p className="text-xs text-gray-400 mt-0.5">Subscribe to create unlimited process flows</p>
+              <p className="text-sm font-semibold text-gray-800">Ready to do more?</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Your free flow is active. Upgrade to create unlimited process flows and vimpl boards.
+              </p>
             </div>
             <a
               href={PRICING_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 text-xs bg-green-400 text-black font-semibold px-3 py-1.5 rounded-lg hover:bg-green-300 transition-colors"
+              className="shrink-0 text-sm bg-amber-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors"
             >
-              See plans
+              Upgrade now ↗
             </a>
           </div>
         )}
