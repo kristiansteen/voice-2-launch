@@ -570,7 +570,6 @@ function buildStructuredTranscript(turns, currentDraft) {
 
 export default function App() {
   const { t } = useLang();
-  const [elevenLabsKey, setElevenLabsKey] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showBurger, setShowBurger] = useState(false);
 
@@ -686,7 +685,7 @@ export default function App() {
   const [voiceError, setVoiceError] = useState(null);
 
   // ── Ailean AI Interviewer ──────────────────────────────────────────
-  const ailean = useAileanInterviewer({ apiKey: effectiveApiKey, elevenLabsKey, processContext, proxyAuth: getProxyAuth() });
+  const ailean = useAileanInterviewer({ apiKey: effectiveApiKey, processContext, proxyAuth: getProxyAuth() });
 
   // Panel 2 — Description
   const [processDescription, setProcessDescription] = useState(null);
@@ -1293,7 +1292,7 @@ export default function App() {
               loading={descParsing}
               canParse={!!getEffectiveTranscript().trim() && hasAccess}
               ailean={ailean}
-              hasElevenLabsKey={!!elevenLabsKey}
+              hasElevenLabsKey={!!vimplToken}
               onAileanTurn={() => ailean.askFollowUp(transcript)}
             />
           </PanelShell>
@@ -1407,8 +1406,6 @@ export default function App() {
       <BurgerMenu
         open={showBurger}
         onClose={() => setShowBurger(false)}
-        elevenLabsKey={elevenLabsKey}
-        onElevenLabsKeyChange={key => { setElevenLabsKey(key); }}
         vimplToken={vimplToken}
         vimplUser={vimplUser}
         onLogout={logoutVimpl}

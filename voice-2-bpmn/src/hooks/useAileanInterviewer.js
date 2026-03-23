@@ -23,7 +23,7 @@ function speakBrowser(text) {
   });
 }
 
-export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext, proxyAuth = null }) {
+export function useAileanInterviewer({ apiKey, processContext, proxyAuth = null }) {
   const [enabled, setEnabled]           = useState(false);
   const [thinking, setThinking]         = useState(false);
   const [speaking, setSpeaking]         = useState(false);
@@ -91,17 +91,22 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext, pr
       setThinking(false);
       setSpeaking(true);
 
-      if (elevenLabsKey) {
-        const url = await speakText(question, elevenLabsKey);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        await new Promise(resolve => {
-          audio.onended = resolve;
-          audio.onerror = resolve;
-          audio.play().catch(resolve);
-        });
-        URL.revokeObjectURL(url);
-        audioRef.current = null;
+      if (proxyAuth?.token) {
+        try {
+          const url = await speakText(question, proxyAuth.token);
+          const audio = new Audio(url);
+          audioRef.current = audio;
+          await new Promise(resolve => {
+            audio.onended = resolve;
+            audio.onerror = resolve;
+            audio.play().catch(resolve);
+          });
+          URL.revokeObjectURL(url);
+          audioRef.current = null;
+        } catch {
+          // Fall back to browser TTS if ElevenLabs proxy fails
+          await speakBrowser(question);
+        }
       } else {
         await speakBrowser(question);
       }
@@ -111,7 +116,7 @@ export function useAileanInterviewer({ apiKey, elevenLabsKey, processContext, pr
     } finally {
       setSpeaking(false);
     }
-  }, [enabled, apiKey, elevenLabsKey, thinking, speaking, processContext, proxyAuth]);
+  }, [enabled, apiKey, thinking, speaking, processContext, proxyAuth]);
 
   function toggle() {
     setEnabled(prev => {

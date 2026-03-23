@@ -22,22 +22,15 @@ function Section({ title, children, defaultOpen = false }) {
 
 export default function BurgerMenu({
   open, onClose,
-  elevenLabsKey, onElevenLabsKeyChange,
   vimplToken, vimplUser, onLogout,
   parsed, processContext,
   customTaxonomyNodes, onTaxonomyChange,
 }) {
-  const { t } = useLang();
-  const [draftElKey, setDraftElKey] = useState(elevenLabsKey || '');
   const fileRef = useRef(null);
   const [uploadError, setUploadError] = useState(null);
   const [uploadName, setUploadName] = useState(() => {
     try { return localStorage.getItem(CUSTOM_TAX_KEY + '_name') || null; } catch { return null; }
   });
-
-  function handleSaveElKey() {
-    onElevenLabsKeyChange(draftElKey.trim());
-  }
 
   function handleFileUpload(e) {
     const file = e.target.files[0];
@@ -102,51 +95,18 @@ export default function BurgerMenu({
                 Signed in as <span className="font-medium text-gray-700">{vimplUser.email}</span>
               </p>
             )}
-            {vimplToken ? (
+            {vimplToken && (
               <button
                 onClick={onLogout}
                 className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 rounded px-3 py-2 hover:bg-red-50 transition-colors"
               >
                 Log out
               </button>
-            ) : null}
-          </Section>
-
-          {/* ── Voice (ElevenLabs) ─────────────────────────────────── */}
-          <Section title="Voice">
-            <div className="space-y-2">
-              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
-                ElevenLabs <span className="normal-case font-normal text-gray-400">(for Ailean's voice)</span>
-              </p>
-              <input
-                type="password"
-                value={draftElKey}
-                onChange={e => setDraftElKey(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSaveElKey()}
-                placeholder="sk_..."
-                className="w-full text-xs border border-gray-200 rounded px-3 py-2 focus:outline-none focus:border-purple-400 font-mono"
-              />
-              <button
-                onClick={handleSaveElKey}
-                disabled={!draftElKey.trim()}
-                className="w-full text-xs font-medium bg-purple-600 text-white py-2 rounded hover:bg-purple-700 disabled:opacity-40 transition-colors"
-              >
-                {elevenLabsKey ? 'Update key' : 'Save key'}
-              </button>
-              {elevenLabsKey && (
-                <p className="text-[10px] text-purple-600 text-center">Key set ✓</p>
-              )}
-              {!elevenLabsKey && (
-                <p className="text-[10px] text-gray-400">
-                  Optional — without it Ailean uses your browser's built-in voice.
-                </p>
-              )}
-            </div>
+            )}
           </Section>
 
           {/* ── Repository ────────────────────────────────────────── */}
           <Section title="Repository">
-            {/* Taxonomy source */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-gray-700">Process taxonomy</span>
@@ -202,7 +162,6 @@ export default function BurgerMenu({
               </p>
             </div>
 
-            {/* Taxonomy browser + saved processes */}
             <div className="border border-gray-100 rounded-lg overflow-hidden" style={{ height: 480 }}>
               <TaxonomyPanel parsed={parsed} processContext={processContext} />
             </div>
