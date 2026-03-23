@@ -59,14 +59,14 @@ export default function VoicePanel({
   function handleRecord() {
     if (isRecording) {
       stop();
-      // Give the final transcript 400ms to commit, then let Ailean respond
-      if (ailean?.enabled) {
-        setTimeout(() => onAileanTurn?.(), 400);
-      }
     } else {
-      ailean?.stopSpeaking(); // stop Ailean when user starts speaking
       start(transcript);
     }
+  }
+
+  function handleAileanToggle() {
+    if (ailean?.enabled && isRecording) stop();
+    ailean?.toggle();
   }
 
   const aileanActive   = ailean?.enabled;
@@ -74,6 +74,35 @@ export default function VoicePanel({
   const aileanTurns    = ailean?.turns || [];
   // Text the user has spoken since the last Ailean question (current in-progress turn)
   const currentDraft   = aileanActive ? transcript.slice(ailean?.prevTranscriptLength || 0) : '';
+
+  // Auto-start recording after Ailean finishes speaking/thinking
+  const aileanWasBusy = useRef(false);
+  const startRef = useRef(start);
+  startRef.current = start;
+  const transcriptRef = useRef(transcript);
+  transcriptRef.current = transcript;
+  const isRecordingRef = useRef(isRecording);
+  isRecordingRef.current = isRecording;
+
+  useEffect(() => {
+    if (!aileanActive) { aileanWasBusy.current = false; return; }
+    if (aileanBusy) { aileanWasBusy.current = true; return; }
+    if (aileanWasBusy.current && !isRecordingRef.current) {
+      aileanWasBusy.current = false;
+      startRef.current(transcriptRef.current);
+    }
+  }, [aileanBusy, aileanActive]);
+
+  // Trigger Ailean follow-up when user stops recording
+  const wasRecordingRef = useRef(false);
+  useEffect(() => {
+    if (!aileanActive) { wasRecordingRef.current = false; return; }
+    if (isRecording) { wasRecordingRef.current = true; return; }
+    if (wasRecordingRef.current) {
+      wasRecordingRef.current = false;
+      setTimeout(() => onAileanTurn?.(), 400);
+    }
+  }, [isRecording, aileanActive]);
 
   // Parse "Interviewer: / SME:" labelled transcript into display turns
   function parseTranscriptTurns(text) {
@@ -108,29 +137,29 @@ export default function VoicePanel({
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-center gap-2 shrink-0">
-        <button
-          onClick={handlePaste}
-          title="Paste transcript from clipboard"
-          className={[
-            'w-[30%] flex items-center justify-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
-            pasteFlash
-              ? 'bg-green-50 text-green-700 border-green-300'
-              : 'text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-800',
-          ].join(' ')}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <rect x="9" y="2" width="13" height="13" rx="2" ry="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-          {pasteFlash ? 'Pasted!' : 'Paste'}
-        </button>
 
-        {/* Record / Stop button */}
-        {!supported ? (
-          <p className="text-xs text-orange-500 bg-orange-50 border border-orange-200 rounded px-3 py-2 w-[30%] text-center">
-            {t.recordNotSupported}
-          </p>
-        ) : (
+        {/* Paste — only when Ailean is off */}
+        {!aileanActive && (
+          <button
+            onClick={handlePaste}
+            title="Paste transcript from clipboard"
+            className={[
+              'w-[30%] flex items-center justify-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
+              pasteFlash
+                ? 'bg-green-50 text-green-700 border-green-300'
+                : 'text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-800',
+            ].join(' ')}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <rect x="9" y="2" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            {pasteFlash ? 'Pasted!' : 'Paste'}
+          </button>
+        )}
+
+        {/* Record / Stop — only when Ailean is off */}
+        {!aileanActive && supported && (
           <button
             onClick={handleRecord}
             className={[
@@ -140,35 +169,36 @@ export default function VoicePanel({
                 : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50',
             ].join(' ')}
           >
-            {isRecording ? (
-              <>
-                <span className="w-2 h-2 rounded-sm bg-white shrink-0" />
-                {t.stopRecording}
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                {t.startRecording}
-              </>
-            )}
+            <span className={['w-2 h-2 shrink-0', isRecording ? 'rounded-sm bg-white' : 'rounded-full bg-red-500'].join(' ')} />
+            {isRecording ? 'Stop' : 'Record'}
           </button>
         )}
-        {error && (
-          <p className="text-xs text-red-500">{t.recordError}: {error}</p>
+        {!aileanActive && !supported && (
+          <p className="w-[30%] text-xs text-orange-500 text-center">{t.recordNotSupported}</p>
+        )}
+        {error && <p className="text-xs text-red-500">{t.recordError}: {error}</p>}
+
+        {/* Stop button — only shown during recording in Ailean mode */}
+        {aileanActive && isRecording && (
+          <button
+            onClick={() => stop()}
+            className="w-[30%] flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-md border bg-red-500 text-white border-red-500 hover:bg-red-600 animate-pulse transition-all"
+          >
+            <span className="w-2 h-2 rounded-sm bg-white shrink-0" />
+            Stop
+          </button>
         )}
 
-        {/* Ailean toggle */}
+        {/* Ailean toggle — always visible */}
         {ailean && (
           <button
-            onClick={ailean.toggle}
-            title={aileanActive ? 'Disable Ailean interview mode' : 'Enable Ailean interview mode — she will ask follow-up questions after you speak'}
+            onClick={handleAileanToggle}
+            title={aileanActive ? 'End Ailean interview session' : 'Start a guided Ailean interview'}
             className={[
               'w-[30%] flex items-center justify-center gap-1.5 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
               aileanActive
                 ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
-                : hasElevenLabsKey
-                  ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
-                  : 'text-gray-600 border-gray-200 hover:border-purple-400 hover:text-purple-600',
+                : 'text-gray-600 border-gray-200 hover:border-purple-400 hover:text-purple-600',
             ].join(' ')}
           >
             <svg width="13" height="11" viewBox="0 0 13 11" fill="none" xmlns="http://www.w3.org/2000/svg">
