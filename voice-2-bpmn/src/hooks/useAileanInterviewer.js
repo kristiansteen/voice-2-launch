@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { getInterviewFollowUp } from '../services/anthropicService.js';
 import { speakText } from '../services/elevenLabsService.js';
 
@@ -45,6 +45,19 @@ export function useAileanInterviewer({ apiKey, processContext, proxyAuth = null 
     window.speechSynthesis?.cancel();
     setSpeaking(false);
   }, []);
+
+  const ttsSpeak = useCallback(async (text) => {
+    if (proxyAuth?.token) {
+      const url = await speakText(text, proxyAuth.token);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      await new Promise(resolve => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve); });
+      URL.revokeObjectURL(url);
+      audioRef.current = null;
+    } else {
+      await speakBrowser(text);
+    }
+  }, [proxyAuth]);
 
   const askFollowUp = useCallback(async (transcript) => {
     if (!enabled || (!apiKey && !proxyAuth)) return;
@@ -101,19 +114,6 @@ export function useAileanInterviewer({ apiKey, processContext, proxyAuth = null 
       setSpeaking(false);
     }
   }, [enabled, apiKey, thinking, speaking, processContext, ttsSpeak]);
-
-  const ttsSpeak = useCallback(async (text) => {
-    if (proxyAuth?.token) {
-      const url = await speakText(text, proxyAuth.token);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      await new Promise(resolve => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve); });
-      URL.revokeObjectURL(url);
-      audioRef.current = null;
-    } else {
-      await speakBrowser(text);
-    }
-  }, [proxyAuth]);
 
   const introduceHerself = useCallback(async () => {
     setTurns([{ type: 'ailean', text: INTRO }]);
