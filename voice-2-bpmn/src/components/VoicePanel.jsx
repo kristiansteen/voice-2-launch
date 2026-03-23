@@ -107,7 +107,7 @@ export default function VoicePanel({
     <div className="flex-1 flex flex-col overflow-hidden">
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
-      <div className="px-3 py-2 border-b border-gray-100 flex flex-col items-center gap-1.5 shrink-0">
+      <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-center gap-2 shrink-0">
         <button
           onClick={handlePaste}
           title="Paste transcript from clipboard"
