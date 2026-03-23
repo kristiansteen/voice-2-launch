@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { getInterviewFollowUp } from '../services/anthropicService.js';
 import { speakText } from '../services/elevenLabsService.js';
 
@@ -37,6 +37,8 @@ export function useAileanInterviewer({ apiKey, processContext, proxyAuth = null 
   const audioRef                = useRef(null); // current Audio element
   const lastTranscriptRef       = useRef('');   // last transcript we acted on
   const prevTranscriptLenRef    = useRef(0);    // length of transcript at last Ailean question
+
+  const INTRO = "Hi, I am Ailean, thanks for having me. I will do what I can to get you through the interview and help you find areas prone for improvement in your current process and help you identify good candidates for your AI initiatives. Let's get started!";
 
   const stopSpeaking = useCallback(() => {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
@@ -118,11 +120,38 @@ export function useAileanInterviewer({ apiKey, processContext, proxyAuth = null 
     }
   }, [enabled, apiKey, thinking, speaking, processContext, proxyAuth]);
 
-  function toggle() {
-    setEnabled(prev => {
-      if (prev) stopSpeaking();
-      return !prev;
-    });
+  const introduceHerself = useCallback(async () => {
+    setTurns([{ type: 'ailean', text: INTRO }]);
+    historyRef.current = [{ role: 'assistant', content: INTRO }];
+    setSpeaking(true);
+    try {
+      if (proxyAuth?.token) {
+        try {
+          const url = await speakText(INTRO, proxyAuth.token);
+          const audio = new Audio(url);
+          audioRef.current = audio;
+          await new Promise(resolve => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve); });
+          URL.revokeObjectURL(url);
+          audioRef.current = null;
+        } catch {
+          await speakBrowser(INTRO);
+        }
+      } else {
+        await speakBrowser(INTRO);
+      }
+    } finally {
+      setSpeaking(false);
+    }
+  }, [proxyAuth]);
+
+  async function toggle() {
+    if (enabled) {
+      stopSpeaking();
+      setEnabled(false);
+    } else {
+      setEnabled(true);
+      await introduceHerself();
+    }
     setError(null);
   }
 
