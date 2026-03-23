@@ -1,0 +1,382 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Birthstone&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── vimpl brand tokens ─────────────────────────────────────────── */
+:root {
+  --vimpl-primary:       #65c434;
+  --vimpl-primary-dark:  #3d7a1f;
+  --vimpl-primary-light: #a3e085;
+  --vimpl-secondary:     #0ea5e9;
+  --vimpl-accent:        #f59e0b;
+  --vimpl-dark:          #1e293b;
+  --vimpl-gray-100:      #f1f5f9;
+  --vimpl-gray-200:      #e2e8f0;
+  --vimpl-gray-400:      #94a3b8;
+  --vimpl-gray-500:      #64748b;
+
+  /* Post-it colours */
+  --vimpl-postit-yellow: #fff59d;
+  --vimpl-postit-green:  #a5d6a7;
+  --vimpl-postit-blue:   #90caf9;
+  --vimpl-postit-pink:   #ef9a9a;
+  --vimpl-postit-orange: #ffcc80;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── AILEAN badge (header) ──────────────────────────────────────── */
+.ailean-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  padding: 4px 10px;
+  transition: opacity 0.2s ease;
+}
+
+.ailean-badge:hover {
+  opacity: 0.75;
+}
+
+.ailean-badge span:first-child {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--vimpl-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Inter', sans-serif;
+}
+
+.ailean-logo {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--vimpl-primary) 0%, var(--vimpl-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── vimpl wordmark logo ───────────────────────────────────────── */
+.vimpl-wordmark {
+  font-family: 'Birthstone', cursive;
+  font-size: 32px;
+  font-weight: 400;
+  background: linear-gradient(135deg, var(--vimpl-primary) 0%, var(--vimpl-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+/* ── vimpl-style accents for panel UI ──────────────────────────── */
+.vimpl-btn-primary {
+  background: var(--vimpl-primary);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.vimpl-btn-primary:hover {
+  background: var(--vimpl-primary-dark);
+}
+
+/* ── Language switcher ─────────────────────────────────────────────── */
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: var(--vimpl-gray-200);
+  border: 1px solid var(--vimpl-gray-200);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.lang-btn {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--vimpl-gray-500);
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+
+.lang-btn:hover {
+  color: var(--vimpl-dark);
+  background: var(--vimpl-gray-100);
+}
+
+.lang-btn.active {
+  color: #fff;
+  background: var(--vimpl-primary);
+}
+
+/* ── DiagramPanel toolbar ──────────────────────────────────────────── */
+.bpmn-toolbar {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.bpmn-toolbar-btn {
+  font-size: 11px;
+  font-weight: 500;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+
+.bpmn-toolbar-btn:hover {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+/* ── Save bar (inline below toolbar) ──────────────────────────────── */
+.bpmn-save-bar {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* ── Zoom controls overlay ─────────────────────────────────────────── */
+.bpmn-zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  padding: 4px;
+  z-index: 10;
+}
+
+.bpmn-zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+}
+
+.bpmn-zoom-btn:hover {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.bpmn-zoom-fit {
+  font-size: 13px;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 0;
+  margin: 1px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Modern bpmn-js skin
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Remove Camunda watermark */
+.bjs-powered-by { display: none !important; }
+
+/* ── Canvas ──────────────────────────────────────────────────────── */
+.bpmn-container .djs-container {
+  background-color: #ffffff;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ── Default shape fills / strokes (SVG presentation attrs < CSS) ── */
+
+/* Tasks / sub-processes */
+.djs-visual > rect {
+  fill: #ffffff;
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+  rx: 8;
+  filter: drop-shadow(0 1px 3px rgba(15,23,42,0.08));
+}
+
+/* Event circles */
+.djs-visual > circle {
+  fill: #ffffff;
+  stroke: #64748b;
+  stroke-width: 2;
+}
+
+/* Gateway diamonds */
+.djs-visual > polygon {
+  fill: #fef9c3;
+  stroke: #ca8a04;
+  stroke-width: 1.5;
+}
+
+/* Sequence flow lines */
+.djs-connection .djs-visual path {
+  stroke: #64748b;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+/* ── Labels ──────────────────────────────────────────────────────── */
+.djs-label text,
+.djs-label tspan {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 11px !important;
+  fill: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+/* Activity labels — dark blue text, no border residual */
+[data-element-id^="act_"] .djs-label text,
+[data-element-id^="act_"] .djs-label tspan {
+  fill: #1d4ed8 !important;
+  font-weight: 600 !important;
+}
+
+/* Strip any visible stroke from activity shapes */
+[data-element-id^="act_"] .djs-visual > rect {
+  stroke-width: 0 !important;
+}
+
+/* Gateway labels — amber text */
+[data-element-id^="gw_"] .djs-label text,
+[data-element-id^="gw_"] .djs-label tspan {
+  fill: #92400e !important;
+  font-weight: 600 !important;
+}
+
+/* ── Swimlane pools & lanes ──────────────────────────────────────── */
+.djs-shape.djs-participant .djs-visual rect,
+.djs-shape.djs-lane .djs-visual rect {
+  fill: #f8fafc;
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+}
+
+/* Pool / lane header label */
+.djs-shape.djs-participant .djs-label text,
+.djs-shape.djs-lane .djs-label text {
+  fill: #475569 !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Selection & hover ───────────────────────────────────────────── */
+.djs-element.selected .djs-outline {
+  stroke: #2563eb !important;
+  stroke-width: 2.5px !important;
+  rx: 8;
+}
+
+.djs-element:not(.selected):hover .djs-outline {
+  stroke: #93c5fd !important;
+  stroke-width: 1.5px !important;
+  opacity: 1 !important;
+}
+
+/* ── Palette ─────────────────────────────────────────────────────── */
+.djs-palette {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 24px rgba(15,23,42,0.10), 0 1px 4px rgba(15,23,42,0.06) !important;
+  background: #ffffff !important;
+  padding: 6px !important;
+  top: 16px !important;
+  left: 16px !important;
+}
+
+.djs-palette .entry {
+  border-radius: 8px !important;
+  margin: 2px !important;
+  color: #475569 !important;
+  transition: background 0.12s, color 0.12s !important;
+}
+
+.djs-palette .entry:hover {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  box-shadow: none !important;
+}
+
+.djs-palette .entry.active {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+.djs-palette .separator {
+  background: #e2e8f0 !important;
+  margin: 5px 8px !important;
+}
+
+.djs-palette [data-action="create.subprocess-expanded"],
+.djs-palette [data-action="create.data-object"],
+.djs-palette [data-action="create.data-store"],
+.djs-palette [data-action="create.group"],
+.djs-palette [data-action="create.participant"] {
+  display: none !important;
+}
+
+/* ── Context pad ─────────────────────────────────────────────────── */
+.djs-context-pad {
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06) !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  padding: 4px !important;
+}
+
+.djs-context-pad .entry {
+  border-radius: 6px !important;
+  margin: 1px !important;
+  transition: background 0.10s !important;
+}
+
+.djs-context-pad .entry:hover {
+  background: #eff6ff !important;
+}
+
+.djs-context-pad [data-action="append.text-annotation"] {
+  display: none !important;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────── */
+.djs-tooltip {
+  border-radius: 6px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11px !important;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.12) !important;
+}
