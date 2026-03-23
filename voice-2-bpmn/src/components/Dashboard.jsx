@@ -115,7 +115,7 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
   const [deletingFlow, setDeletingFlow] = useState(null);
 
   const sorted = [...flows].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-  const isTrial = !vimplUser || vimplUser.subscriptionTier === 'student';
+  const isTrial = !vimplUser || (vimplUser.subscriptionTier !== 'commercial' && vimplUser.subscriptionTier !== 'enterprise');
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">

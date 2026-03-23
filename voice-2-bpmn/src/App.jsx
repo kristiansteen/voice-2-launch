@@ -647,7 +647,7 @@ export default function App() {
     return localStorage.getItem(ACTIVE_KEY) || null;
   });
 
-  const isSubscribed = vimplUser && vimplUser.subscriptionTier !== 'student';
+  const isSubscribed = vimplUser && (vimplUser.subscriptionTier === 'commercial' || vimplUser.subscriptionTier === 'enterprise');
   const canCreateFlow = isSubscribed || flows.length === 0;
 
   // ── Carousel state ─────────────────────────────────────────────────
