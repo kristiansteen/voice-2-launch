@@ -107,12 +107,12 @@ export default function VoicePanel({
     <div className="flex-1 flex flex-col overflow-hidden">
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
-      <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-2 shrink-0">
+      <div className="px-3 py-2 border-b border-gray-100 flex flex-col items-center gap-1.5 shrink-0">
         <button
           onClick={handlePaste}
           title="Paste transcript from clipboard"
           className={[
-            'flex-1 flex items-center justify-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
+            'w-[30%] flex items-center justify-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
             pasteFlash
               ? 'bg-green-50 text-green-700 border-green-300'
               : 'text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-800',
@@ -125,13 +125,45 @@ export default function VoicePanel({
           {pasteFlash ? 'Pasted!' : 'Paste'}
         </button>
 
+        {/* Record / Stop button */}
+        {!supported ? (
+          <p className="text-xs text-orange-500 bg-orange-50 border border-orange-200 rounded px-3 py-2 w-[30%] text-center">
+            {t.recordNotSupported}
+          </p>
+        ) : (
+          <button
+            onClick={handleRecord}
+            className={[
+              'w-[30%] flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-md border transition-all',
+              isRecording
+                ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 animate-pulse'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50',
+            ].join(' ')}
+          >
+            {isRecording ? (
+              <>
+                <span className="w-2 h-2 rounded-sm bg-white shrink-0" />
+                {t.stopRecording}
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                {t.startRecording}
+              </>
+            )}
+          </button>
+        )}
+        {error && (
+          <p className="text-xs text-red-500">{t.recordError}: {error}</p>
+        )}
+
         {/* Ailean toggle */}
         {ailean && (
           <button
             onClick={ailean.toggle}
             title={aileanActive ? 'Disable Ailean interview mode' : 'Enable Ailean interview mode — she will ask follow-up questions after you speak'}
             className={[
-              'flex-1 flex items-center justify-center gap-1.5 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
+              'w-[30%] flex items-center justify-center gap-1.5 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
               aileanActive
                 ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
                 : hasElevenLabsKey
@@ -156,40 +188,6 @@ export default function VoicePanel({
 
       {/* ── Main area: transcript ─────────────────────────────────── */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-
-        {/* Record button */}
-        <div className="px-3 pt-3 pb-1 shrink-0">
-          {!supported ? (
-            <p className="text-xs text-orange-500 bg-orange-50 border border-orange-200 rounded px-3 py-2">
-              {t.recordNotSupported}
-            </p>
-          ) : (
-            <button
-              onClick={handleRecord}
-              className={[
-                'w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg border transition-all',
-                isRecording
-                  ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 animate-pulse'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50',
-              ].join(' ')}
-            >
-              {isRecording ? (
-                <>
-                  <span className="w-2.5 h-2.5 rounded-sm bg-white shrink-0" />
-                  {t.stopRecording}
-                </>
-              ) : (
-                <>
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-                  {t.startRecording}
-                </>
-              )}
-            </button>
-          )}
-          {error && (
-            <p className="text-xs text-red-500 mt-1">{t.recordError}: {error}</p>
-          )}
-        </div>
 
         {/* Transcript — structured view when Ailean has turns, plain textarea otherwise */}
         <div className="flex-1 relative overflow-hidden">
