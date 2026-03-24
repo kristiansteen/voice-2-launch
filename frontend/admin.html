@@ -299,7 +299,7 @@
 </div>
 
 <!-- ── App ─────────────────────────────────────────────────────── -->
-<div id="app" hidden>
+<div id="app" style="display:none">
 
   <!-- Sidebar -->
   <nav id="sidebar">
@@ -467,6 +467,17 @@
 <script>
 // ── Config ─────────────────────────────────────────────────────────
 const API = 'https://backend-eight-rho-46.vercel.app/api/v1';
+
+// Accept token from ?token= query param (login returnTo redirect)
+(function () {
+  const params = new URLSearchParams(location.search);
+  const t = params.get('token');
+  if (t) {
+    localStorage.setItem('accessToken', t);
+    history.replaceState(null, '', location.pathname);
+  }
+})();
+
 let token = localStorage.getItem('accessToken');
 let currentUser = null;
 let currentPage = 1;
@@ -478,28 +489,29 @@ let currentView = 'analytics';
 
 // ── Bootstrap ───────────────────────────────────────────────────────
 async function init() {
-  if (!token) { showGuardError('Not signed in. <a href="/login.html">Sign in</a>'); return; }
+  if (!token) { location.href = '/login.html?returnTo=/admin.html'; return; }
 
+  let r;
   try {
-    const r = await apiGet('/auth/me');
-    if (!r.user) throw new Error('No user');
-    if (!r.user.isAdmin) {
-      showGuardError('Access denied — admin only.');
-      return;
-    }
-    currentUser = r.user;
-    document.getElementById('sidebar-email').textContent = r.user.email;
-    document.getElementById('guard').hidden = true;
-    document.getElementById('app').hidden = false;
-    loadStats();
+    r = await fetch(API + '/admin/check', { headers: { Authorization: 'Bearer ' + token } });
   } catch (e) {
-    showGuardError('Authentication failed. <a href="/login.html">Sign in again</a>');
+    showGuardError('Network error: ' + e.message);
+    return;
   }
+
+  if (r.status === 401) { location.href = '/login.html?returnTo=/admin.html'; return; }
+  if (r.status === 403) { showGuardError('Access denied — admin only.'); return; }
+  if (!r.ok) { showGuardError('Server error ' + r.status); return; }
+
+  document.getElementById('guard').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  loadStats();
 }
 
 function showGuardError(msg) {
   const g = document.getElementById('guard');
-  g.querySelector('.spinner').remove();
+  const spinner = g.querySelector('.spinner');
+  if (spinner) spinner.remove();
   g.querySelector('.guard-msg').innerHTML = msg;
 }
 
@@ -552,19 +564,22 @@ async function apiPost(path) {
 }
 
 // ── Analytics ───────────────────────────────────────────────────────
+function renderStats(d) {
+  document.getElementById('s-total').textContent = d.totals.users;
+  document.getElementById('s-trial').textContent = d.totals.trial;
+  document.getElementById('s-commercial').textContent = d.totals.commercial;
+  document.getElementById('s-enterprise').textContent = d.totals.enterprise;
+  document.getElementById('s-dau').textContent = d.activity.dau;
+  document.getElementById('s-wau').textContent = d.activity.activeWeekly;
+  document.getElementById('s-new7').textContent = d.activity.newLast7;
+  document.getElementById('s-new30').textContent = d.activity.newLast30;
+  renderChart(d.signupsByDay);
+  renderTierBars(d.totals);
+}
+
 async function loadStats() {
   try {
-    const d = await apiGet('/admin/stats');
-    document.getElementById('s-total').textContent = d.totals.users;
-    document.getElementById('s-trial').textContent = d.totals.trial;
-    document.getElementById('s-commercial').textContent = d.totals.commercial;
-    document.getElementById('s-enterprise').textContent = d.totals.enterprise;
-    document.getElementById('s-dau').textContent = d.activity.dau;
-    document.getElementById('s-wau').textContent = d.activity.activeWeekly;
-    document.getElementById('s-new7').textContent = d.activity.newLast7;
-    document.getElementById('s-new30').textContent = d.activity.newLast30;
-    renderChart(d.signupsByDay);
-    renderTierBars(d.totals);
+    renderStats(await apiGet('/admin/stats'));
   } catch (e) {
     toast('Failed to load stats: ' + e.message, 'error');
   }

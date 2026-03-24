@@ -8,6 +8,9 @@ const router = Router();
 // Grant admin via DB isAdmin flag or ADMIN_EMAILS env var.
 const guard = [authenticate, requireAdmin];
 
+// ── Admin check (lightweight auth probe) ─────────────────────────────
+router.get('/check', ...guard, (_req, res) => res.json({ ok: true }));
+
 // ── User management ───────────────────────────────────────────────────
 router.get('/users', ...guard, adminController.listUsers);
 router.get('/users/:userId', ...guard, adminController.getUser);
