@@ -1,0 +1,242 @@
+// Prisma schema for vimpl SaaS
+// Database: PostgreSQL
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String?   @map("password_hash")
+  name             String?
+  avatarUrl        String?   @map("avatar_url")
+  authProvider     String    @default("email") @map("auth_provider")
+  authProviderId   String?   @map("auth_provider_id")
+  emailVerified    Boolean   @default(false) @map("email_verified")
+  verificationToken String?  @map("verification_token")
+  resetPasswordToken String? @map("reset_password_token")
+  resetPasswordExpires DateTime? @map("reset_password_expires")
+  
+  // Subscription fields
+  subscriptionTier String    @default("trial") @map("subscription_tier") // 'trial', 'commercial', or 'enterprise'
+  subscriptionStatus String  @default("active") @map("subscription_status") // 'active', 'cancelled', 'expired'
+  subscriptionStartDate DateTime? @map("subscription_start_date")
+  subscriptionEndDate DateTime? @map("subscription_end_date")
+  stripeCustomerId String?   @map("stripe_customer_id")
+  stripeSubscriptionId String? @map("stripe_subscription_id")
+  
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  lastLoginAt      DateTime? @map("last_login_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  isAdmin          Boolean   @default(false) @map("is_admin")
+  sentOnboardingMilestones Int[] @default([]) @map("sent_onboarding_milestones")
+  emailUnsubscribed        Boolean   @default(false) @map("email_unsubscribed")
+
+  // Relations
+  boards           Board[]
+  eventLogs        EventLog[]
+  boardCollaborations BoardCollaborator[]
+  sessionsCreated  Session[]
+  loginAudits      LoginAudit[]
+  bpmnDiagrams     BpmnDiagram[]
+
+  @@map("users")
+}
+
+model Board {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  title            String
+  slug             String    @unique
+  description      String?
+  gridData         Json      @default("{}") @map("grid_data")
+  settings         Json      @default("{}") 
+  version          Int       @default(0)  // Optimistic locking version
+  isPublic         Boolean   @default(false) @map("is_public")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  lastAccessedAt   DateTime  @default(now()) @map("last_accessed_at")
+
+  // Relations
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections         Section[]
+  postits          Postit[]
+  teamMembers      TeamMember[]
+  eventLogs        EventLog[]
+  collaborators    BoardCollaborator[]
+
+  @@index([userId])
+  @@index([slug])
+  @@map("boards")
+}
+
+model Section {
+  id               String    @id @default(uuid())
+  boardId          String    @map("board_id")
+  type             String    // 'text', 'matrix', 'weekplan', 'kpi', 'actions', 'postit-area', 'team'
+  title            String?
+  positionX        Int?      @map("position_x")
+  positionY        Int?      @map("position_y")
+  width            Int?
+  height           Int?
+  content          Json      @default("{}")
+  isLocked         Boolean   @default(false) @map("is_locked")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  board            Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  postits          Postit[]
+
+  @@index([boardId])
+  @@map("sections")
+}
+
+model Postit {
+  id               String    @id @default(uuid())
+  sectionId        String    @map("section_id")
+  boardId          String    @map("board_id")
+  color            String    // 'yellow', 'pink', 'blue', 'green', 'orange'
+  content          String?
+  owner            String?
+  status           String    @default("todo") // 'todo', 'inprogress', 'done'
+  positionX        Float?    @map("position_x")
+  positionY        Float?    @map("position_y")
+  xValue           Int?      @map("x_value") // for matrix
+  yValue           Int?      @map("y_value") // for matrix
+  riskScore        Int?      @map("risk_score") // for matrix
+  mitigation       String?   // for matrix
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  section          Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  board            Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+  @@index([sectionId])
+  @@map("postits")
+}
+
+model TeamMember {
+  id               String    @id @default(uuid())
+  boardId          String    @map("board_id")
+  name             String
+  email            String?
+  role             String?
+  avatarUrl        String?   @map("avatar_url")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  board            Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+  @@map("team_members")
+}
+
+model BoardCollaborator {
+  id               String    @id @default(uuid())
+  boardId          String    @map("board_id")
+  userId           String    @map("user_id")
+  permission       String    @default("view") // 'view', 'edit', 'admin'
+  invitedBy        String?   @map("invited_by")
+  invitedAt        DateTime  @default(now()) @map("invited_at")
+  acceptedAt       DateTime? @map("accepted_at")
+
+  // Relations
+  board            Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@index([userId])
+  @@index([boardId])
+  @@map("board_collaborators")
+}
+
+model EventLog {
+  id               String    @id @default(uuid())
+  boardId          String    @map("board_id")
+  userId           String?   @map("user_id")
+  eventType        String    @map("event_type")
+  elementId        String?   @map("element_id")
+  elementType      String?   @map("element_type")
+  details          Json?
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  board            Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user             User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([boardId])
+  @@map("event_logs")
+}
+
+model Session {
+  id               String    @id
+  userId           String    @map("user_id")
+  expiresAt        DateTime  @map("expires_at")
+  data             Json?
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model LoginAudit {
+  id               String    @id @default(uuid())
+  userId           String?   @map("user_id")
+  email            String
+  loginMethod      String    @map("login_method") // 'email', 'google'
+  success          Boolean   @default(true)
+  ipAddress        String?   @map("ip_address")
+  userAgent        String?   @map("user_agent")
+  errorMessage     String?   @map("error_message")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user             User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([email])
+  @@index([createdAt])
+  @@map("login_audits")
+}
+
+model BpmnDiagram {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  xml         String
+  processName String?  @map("process_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("bpmn_diagrams")
+}
+
+model Lead {
+  id               String    @id @default(uuid())
+  name             String
+  email            String
+  phone            String?
+  selectedDocuments Json     @map("selected_documents")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([email])
+  @@map("leads")
+}
