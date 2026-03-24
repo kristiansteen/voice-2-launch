@@ -65,7 +65,6 @@
 
         .logo span {
             font-weight: 400;
-            opacity: 0.7;
         }
 
         .nav-links {
@@ -450,7 +449,7 @@
         }
 
         .footer-logo span {
-            opacity: 0.5;
+            opacity: 1;
         }
 
         .footer-links {
