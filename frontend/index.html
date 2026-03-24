@@ -13,10 +13,7 @@
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Birthstone&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/fonts.css">
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -39,8 +36,7 @@
     <div class="nav-container">
       <a href="/" class="logo">vimpl<span>.com</span></a>
       <div class="nav-links">
-        <a href="index.html#features" class="nav-link">Features</a>
-        <a href="index.html#api" class="nav-link">API</a>
+        <a href="#features" class="nav-link">Features</a>
         <a href="pricing.html" class="nav-link">Pricing</a>
         <a href="about.html" class="nav-link">About</a>
       </div>
@@ -108,7 +104,7 @@
   </section>
 
   <!-- Features Section -->
-  <section class="features" id="features">
+  <section class="features" id="features" style="scroll-margin-top: 90px;">
     <div class="features-container">
       <div class="section-header">
         <h2>Everything you need to plan visually</h2>
@@ -164,21 +160,40 @@
 
 
   <!-- API Reference Section -->
-  <section id="api" style="padding: 100px 24px 60px; background: var(--gray-100);">
+  <section id="api" style="padding: 60px 24px; background: var(--gray-100);">
     <div style="max-width: 1200px; margin: 0 auto;">
 
-      <!-- Header -->
-      <div class="section-header">
-        <h2>API Reference</h2>
-        <p>Full REST API for integrating Voice-to-BPMN outputs directly into vimpl boards, or building your own tooling on top.
-          Use <strong>Authorize</strong> to add your token, then <strong>Try it out</strong> on any endpoint.</p>
+      <!-- Accordion toggle -->
+      <div id="api-accordion-header"
+        onclick="toggleApiAccordion()"
+        style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:20px 28px; background:white; border-radius:12px; border:1px solid var(--gray-200,#e5e7eb); user-select:none;">
+        <div>
+          <h2 style="margin:0; font-size:1.4rem;">API Reference</h2>
+          <p style="margin:4px 0 0; color:var(--gray-500,#6b7280); font-size:0.9rem;">Full REST API for integrating vimpl into your own tooling</p>
+        </div>
+        <span id="api-accordion-chevron" style="font-size:1.2rem; color:var(--gray-400,#9ca3af); transition:transform 0.25s;">▾</span>
       </div>
 
-      <!-- Swagger UI -->
-      <div id="swagger-ui" style="background: white; border-radius: 12px; overflow: hidden; border: 1px solid var(--gray-200, #e5e7eb);"></div>
+      <!-- Collapsible body -->
+      <div id="api-accordion-body" style="display:none; margin-top:12px;">
+        <p style="margin:0 0 16px; color:var(--gray-600,#4b5563); font-size:0.9rem;">
+          Use <strong>Authorize</strong> to add your token, then <strong>Try it out</strong> on any endpoint.
+        </p>
+        <div id="swagger-ui" style="background:white; border-radius:12px; overflow:hidden; border:1px solid var(--gray-200,#e5e7eb);"></div>
+      </div>
 
     </div>
   </section>
+
+  <script>
+    function toggleApiAccordion() {
+      const body = document.getElementById('api-accordion-body');
+      const chevron = document.getElementById('api-accordion-chevron');
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      chevron.style.transform = open ? '' : 'rotate(180deg)';
+    }
+  </script>
 
   <!-- Footer -->
   <footer class="footer">
@@ -294,6 +309,7 @@
       window.location.reload();
     }
   </script>
+  <script src="assets/js/cookie-banner.js" defer></script>
 </body>
 
 </html>

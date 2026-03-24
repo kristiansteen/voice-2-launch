@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kristian Steen — CV</title>
+    <meta name="description" content="Comprehensive CV of Kristian Steen – AI Transformation Leader, Management Consultant, and Digital Strategist.">
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- vimpl base styles -->
+    <link rel="stylesheet" href="assets/css/fonts.css">
+    <link rel="stylesheet" href="assets/css/index.css">
+
+    <style>
+        /* ── CV page — vimpl light theme ──────────────────────────────── */
+
+        body {
+            background: var(--light);
+            color: var(--dark);
+        }
+
+        /* ── Hero ──────────────────────────────────────────────────────── */
+        .cv-hero {
+            padding: 120px 0 64px;
+            background:
+                radial-gradient(circle at 70% 0%, rgba(101,196,52,0.08), transparent 50%),
+                radial-gradient(circle at 20% 100%, rgba(14,165,233,0.05), transparent 50%),
+                white;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .cv-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px 100px;
+        }
+
+        .cv-header { max-width: 800px; margin: 0 auto; }
+
+        .cv-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin: 0 0 8px;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .cv-subtitle {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .cv-philosophy {
+            font-size: 1rem;
+            font-style: italic;
+            color: var(--gray-600);
+            max-width: 680px;
+            margin: 32px auto;
+            line-height: 1.8;
+            padding: 20px 24px;
+            border-left: 3px solid var(--primary);
+            background: var(--gray-100);
+            border-radius: 0 12px 12px 0;
+            text-align: left;
+        }
+
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 28px;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        .contact-info a {
+            color: var(--gray-500);
+            text-decoration: none;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .contact-info a:hover { color: var(--primary); }
+
+        /* ── Sections ──────────────────────────────────────────────────── */
+        .cv-section { margin-top: 72px; }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .section-header h2 {
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        .section-line {
+            flex-grow: 1;
+            height: 1px;
+            background: var(--gray-200);
+        }
+
+        /* ── Cards ─────────────────────────────────────────────────────── */
+        .experience-grid { display: grid; gap: 20px; }
+
+        .cv-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .cv-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(101,196,52,0.12);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .company-info h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0 0 4px;
+            color: var(--dark);
+        }
+
+        .job-title {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .duration-tag {
+            font-size: 0.8rem;
+            background: rgba(101,196,52,0.08);
+            color: var(--primary-dark);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-weight: 600;
+            white-space: nowrap;
+            border: 1px solid rgba(101,196,52,0.2);
+        }
+
+        .experience-content p {
+            color: var(--gray-500);
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+
+        .bullet-list { list-style: none; padding: 0; margin: 0; }
+
+        .bullet-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 10px;
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+
+        .bullet-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* ── Toolbox / Tech tags ───────────────────────────────────────── */
+        .tech-section {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            padding: 48px;
+            margin: 72px 0;
+            text-align: center;
+        }
+
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .tech-tag {
+            background: white;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-600);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .tech-tag:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(101,196,52,0.25);
+        }
+
+        /* ── Strength items ────────────────────────────────────────────── */
+        .strengths-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .strength-item {
+            padding: 24px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .strength-item i {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .strength-item h4 {
+            margin: 0 0 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .strength-item p {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        /* ── Footer CTA ────────────────────────────────────────────────── */
+        .footer-cta {
+            margin-top: 80px;
+            text-align: center;
+            padding: 64px 40px;
+            background: linear-gradient(135deg, rgba(101,196,52,0.05) 0%, rgba(14,165,233,0.04) 100%);
+            border-radius: 24px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .btn-cv-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            margin-top: 24px;
+        }
+
+        .btn-cv-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-cv-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(101,196,52,0.3);
+        }
+
+        .btn-cv-outline {
+            background: white;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        .btn-cv-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Hide vimpl footer on CV page */
+        .footer { display: none; }
+
+        @media (max-width: 768px) {
+            .cv-title { font-size: 2.5rem; }
+            .card-header { flex-direction: column; align-items: flex-start; }
+            .cv-card { padding: 24px; }
+            .tech-section { padding: 32px 20px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- vimpl Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/" class="logo">vimpl<span>.com</span></a>
+            <div class="nav-auth">
+                <a href="login.html" class="nav-link">Log in</a>
+                <a href="register.html" class="btn-primary-small">Sign up</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="cv-hero">
+        <div class="cv-container" style="padding-bottom: 0;">
+            <div class="cv-header">
+                <p class="cv-subtitle">AI Transformation | Digital Innovation | Operational Excellence</p>
+                <h1 class="cv-title">Kristian Steen</h1>
+                <div class="cv-philosophy">
+                    "My favourite management paradox is, that it is all about setting employees free so their
+                    potential can unfold, within well-defined borders, so success can be measured and acknowledged."
+                </div>
+                <div class="contact-info">
+                    <a href="mailto:kristian.steen@vimpl.com"><i class="fas fa-envelope"></i> kristian.steen@vimpl.com</a>
+                    <span><i class="fas fa-phone"></i> +45 29 86 88 39</span>
+                    <span><i class="fas fa-map-marker-alt"></i> Copenhagen, Denmark</span>
+                    <a href="https://www.linkedin.com/in/kristiansteen/" target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="cv-container">
+
+        <!-- Tech Stack -->
+        <div class="tech-section">
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--dark); margin-bottom: 8px;">The Modern Toolbox</h2>
+            <p style="color: var(--gray-500); max-width: 600px; margin: 0 auto; font-size: 0.95rem;">Strategic thinking powered by a
+                cutting-edge technology stack for rapid prototyping and transformation.</p>
+            <div class="tech-tags">
+                <span class="tech-tag">Openclaw</span>
+                <span class="tech-tag">Antigravity</span>
+                <span class="tech-tag">Vercel</span>
+                <span class="tech-tag">Github</span>
+                <span class="tech-tag">Supabase</span>
+                <span class="tech-tag">Claude</span>
+                <span class="tech-tag">n8n</span>
+            </div>
+        </div>
+
+        <!-- Professional Summary -->
+        <div class="cv-section">
+            <div class="section-header">
+                <h2>The Expertise</h2>
+                <div class="section-line"></div>
+            </div>
+            <div class="cv-card" style="margin-bottom: 20px;">
+                <p style="color: var(--gray-600); font-size: 1rem; margin: 0; line-height: 1.75;">
+                    Business-oriented digital leader bringing senior management capabilities and 20 years of
+                    international experience across AI Automation, Digital & Innovation Strategy, and Process
+                    Optimisation. I work strategically as well as operationally, crafting organizations for growth and
+                    creating a culture where job satisfaction goes hand-in-hand with technological development.
+                </p>
+            </div>
+            <div class="strengths-grid" style="margin-bottom: 16px;">
+                <div class="strength-item">
+                    <i class="fas fa-bridge"></i>
+                    <h4>Bridging Business & IT</h4>
+                    <p>Proven ability to translate complex technical concepts into business value and vice versa.</p>
+                </div>
+                <div class="strength-item">
+                    <i class="fas fa-chart-line"></i>
+                    <h4>Commercial Accountability</h4>
+                    <p>Direct experience managing P&L, budgets, and growth-oriented sales strategies.</p>
+                </div>
+                <div class="strength-item">
+                    <i class="fas fa-users-gear"></i>
+                    <h4>Empathetic Leadership</h4>
+                    <p>Leading multi-national teams with a focus on autonomy, mastery, and psychological safety.</p>
+                </div>
+            </div>
+            <div class="strengths-grid">
+                <div class="strength-item">
+                    <i class="fas fa-comments-dollar"></i>
+                    <h4>Sales & Business Development</h4>
+                    <p>Hands-on commercial experience across the full customer journey, from pitching to account management.</p>
+                </div>
+                <div class="strength-item">
+                    <i class="fas fa-lightbulb"></i>
+                    <h4>Workshop & Solution Design</h4>
+                    <p>Seasoned facilitator converting business challenges into concrete requirements and executable solutions.</p>
+                </div>
+                <div class="strength-item">
+                    <i class="fas fa-globe"></i>
+                    <h4>Cross-Industry Experience</h4>
+                    <p>Track record spanning Banking, Energy, Logistics, Insurance, Media, and the Public Sector.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vertical Expertise -->
+        <div class="cv-section">
+            <div class="section-header">
+                <h2>Vertical Expertise</h2>
+                <div class="section-line"></div>
+            </div>
+            <div class="tech-tags" style="margin-top: 0; justify-content: flex-start;">
+                <span class="tech-tag">Software</span>
+                <span class="tech-tag">Logistics</span>
+                <span class="tech-tag">Banking</span>
+                <span class="tech-tag">Energy</span>
+                <span class="tech-tag">Finance</span>
+                <span class="tech-tag">Insurance</span>
+            </div>
+        </div>
+
+        <!-- Professional Timeline -->
+        <div class="cv-section">
+            <div class="section-header">
+                <h2>Professional Timeline</h2>
+                <div class="section-line"></div>
+            </div>
+            <div class="experience-grid">
+
+                <div class="cv-card">
+                    <div class="card-header">
+                        <div class="company-info">
+                            <h3>Sprint365</h3>
+                            <span class="job-title">Head of Products & AI</span>
+                        </div>
+                        <span class="duration-tag">03/2024 — Present</span>
+                    </div>
+                    <div class="experience-content">
+                        <p>Executing go-to-market strategy across project delivery, product management, and AI operations. Reporting directly to CEO.</p>
+                        <ul class="bullet-list">
+                            <li>Established the Products & AI department from the ground up, scaling to 17 team members.</li>
+                            <li>Successfully launched 2 SaaS products serving more than 600 B2B users.</li>
+                            <li>Increased content development efficiency by 600% through strategic AI integration.</li>
+                            <li>Achieved 91st percentile employee satisfaction across all GAIS dimensions.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="cv-card">
+                    <div class="card-header">
+                        <div class="company-info">
+                            <h3>Independent Management Consultant</h3>
+                            <span class="job-title">Senior Advisor & Transformation Lead</span>
+                        </div>
+                        <span class="duration-tag">09/2021 — 03/2024</span>
+                    </div>
+                    <div class="experience-content">
+                        <p>High-impact advisory roles for major Nordic organizations, focusing on core platform migrations and process transparency.</p>
+                        <ul class="bullet-list">
+                            <li><strong>SOS Rejseforsikring:</strong> Led the migration and transformation of the core insurance platform, ensuring 100% operational continuity.</li>
+                            <li><strong>SDC Banking:</strong> Implementation Manager for a large-scale banking transformation using Camunda BPM.</li>
+                            <li><strong>Ørsted:</strong> Rebranded and remodelled the end-to-end process taxonomy globally for employee onboarding.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="cv-card">
+                    <div class="card-header">
+                        <div class="company-info">
+                            <h3>A.P. Møller - Maersk</h3>
+                            <span class="job-title">Transformation Partner</span>
+                        </div>
+                        <span class="duration-tag">01/2019 — 09/2021</span>
+                    </div>
+                    <div class="experience-content">
+                        <p>Core member of the A-team for the "All the Way" global logistics transformation initiative.</p>
+                        <ul class="bullet-list">
+                            <li>Set up group-wide portfolio governance models and strategy execution frameworks.</li>
+                            <li>Orchestrated the global Business Capability Management framework.</li>
+                            <li>Executed projects enabling integrated logistics across global operations.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="cv-card">
+                    <div class="card-header">
+                        <div class="company-info">
+                            <h3>Danske Bank</h3>
+                            <span class="job-title">Innovation Portfolio Manager</span>
+                        </div>
+                        <span class="duration-tag">07/2018 — 09/2019</span>
+                    </div>
+                    <div class="experience-content">
+                        <p>Driving innovation within Danske Bank New Ventures, focusing on future revenue streams beyond traditional banking.</p>
+                        <ul class="bullet-list">
+                            <li>Led strategy and portfolio management for multiple "Moonshot" initiatives.</li>
+                            <li>Managed early-stage exploration and venture-style product development.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="cv-card">
+                    <div class="card-header">
+                        <div class="company-info">
+                            <h3>Maximize Consulting</h3>
+                            <span class="job-title">Partner & Management Consultant</span>
+                        </div>
+                        <span class="duration-tag">07/2012 — 07/2018</span>
+                    </div>
+                    <div class="experience-content">
+                        <p>Long-term strategic partnership delivering P&L optimization and digital product transformations.</p>
+                        <ul class="bullet-list">
+                            <li><strong>GSV:</strong> Programme Manager for 5 parallel projects, delivering 15–20% profitability improvements.</li>
+                            <li><strong>Totalkredit:</strong> Led the business implementation of "Ny realkredit platform" – a flagship mortgage product.</li>
+                            <li><strong>IKANO Bank:</strong> Track lead for multi-country workforce migration and service center consolidation.</li>
+                            <li><strong>Norlys (STOFA):</strong> Managed integration and customer data migration following major acquisitions.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="cv-card">
+                    <div class="card-header">
+                        <div class="company-info">
+                            <h3>Siemens Wind Power | Implement | Maersk</h3>
+                            <span class="job-title">Leadership & Lean Roots</span>
+                        </div>
+                        <span class="duration-tag">2004 — 2012</span>
+                    </div>
+                    <div class="experience-content">
+                        <ul class="bullet-list">
+                            <li><strong>Siemens:</strong> Department Lead for Lean R&D Engineering. Mentored Six Sigma Green Belts.</li>
+                            <li><strong>Implement:</strong> Service Line Manager. Applied Lean methodology to the Public Sector (Anklagemyndigheden).</li>
+                            <li><strong>Maersk:</strong> General Manager leading BI teams and SAP Global Rollouts.</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Education & Certs -->
+        <div class="cv-section">
+            <div class="strengths-grid">
+                <div class="strength-item" style="background: rgba(101,196,52,0.04); border-color: rgba(101,196,52,0.15);">
+                    <h2 style="font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: var(--dark);">
+                        <i class="fas fa-graduation-cap" style="color: var(--primary); margin-right: 8px;"></i> Academic Foundation
+                    </h2>
+                    <ul class="bullet-list">
+                        <li><strong>Cand.merc.dat (MSc):</strong> CBS | Top 10% | Business & CS</li>
+                        <li><strong>Specialist MBA:</strong> Simon Fraser University, Vancouver | Org Change</li>
+                        <li><strong>HA.dat (BSc):</strong> CBS | Business Administration & CS</li>
+                    </ul>
+                </div>
+                <div class="strength-item">
+                    <h2 style="font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: var(--dark);">
+                        <i class="fas fa-certificate" style="color: var(--primary); margin-right: 8px;"></i> Key Certifications
+                    </h2>
+                    <ul class="bullet-list">
+                        <li>Six Sigma Black Belt (Motorola University, FL)</li>
+                        <li>Agile Portfolio Management (IT-University, CPH)</li>
+                        <li>Prince 2 Practitioner (Metier)</li>
+                        <li>Whole Brain Practitioner (Implement)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Beyond the Boardroom -->
+        <div class="cv-section">
+            <div class="section-header">
+                <h2>Beyond the Boardroom</h2>
+                <div class="section-line"></div>
+            </div>
+            <div class="strengths-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <div class="strength-item" style="text-align: center;">
+                    <i class="fas fa-anchor"></i>
+                    <p style="font-weight: 600; color: var(--dark); margin-bottom: 4px;">Danish Marine Home Guard</p>
+                    <p style="font-size: 0.8rem; color: var(--gray-500);">Serving since 2022</p>
+                </div>
+                <div class="strength-item" style="text-align: center;">
+                    <i class="fas fa-person-running"></i>
+                    <p style="font-weight: 600; color: var(--dark); margin-bottom: 4px;">Marathon Finisher</p>
+                    <p style="font-size: 0.8rem; color: var(--gray-500);">CPH & Vasa Run</p>
+                </div>
+                <div class="strength-item" style="text-align: center;">
+                    <i class="fas fa-person-skiing"></i>
+                    <p style="font-weight: 600; color: var(--dark); margin-bottom: 4px;">Ski Instructor</p>
+                    <p style="font-size: 0.8rem; color: var(--gray-500);">DAPSI since 1998</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer CTA -->
+        <div class="footer-cta">
+            <h2 style="font-size: 2rem; font-weight: 800; color: var(--dark); margin-bottom: 12px;">Let's Lead the Transformation</h2>
+            <p style="color: var(--gray-500); max-width: 560px; margin: 0 auto 8px; font-size: 0.95rem;">
+                I'm open to discussing AI acceleration, product vision, or strategic portfolio management.
+            </p>
+            <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-top: 8px;">
+                <a href="mailto:kristian.steen@vimpl.com?subject=Strategic%20Inquiry%20via%20CV"
+                    class="btn-cv-action btn-cv-outline">
+                    <i class="fas fa-envelope"></i> Contact Kristian
+                </a>
+                <a href="https://www.linkedin.com/in/kristiansteen/" target="_blank"
+                    class="btn-cv-action btn-cv-primary">
+                    <i class="fab fa-linkedin"></i> Connect on LinkedIn
+                </a>
+            </div>
+        </div>
+
+    </div><!-- .cv-container -->
+
+  <script src="assets/js/cookie-banner.js" defer></script>
+</body>
+</html>

@@ -7,16 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pricing - vimpl</title>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Birthstone&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/fonts.css">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/index.css">
     <!-- Stripe Buy Button -->
-    <script async src="https://js.stripe.com/v3/buy-button.js"></script>
     <style>
         .pricing-hero {
             padding: 120px 24px 60px;
@@ -419,14 +415,11 @@
             <div class="pricing-header">
                 <div class="pricing-name">Commercial</div>
                 <div class="pricing-price">
-                    <span class="pricing-currency price-original">£</span>
-                    <span class="pricing-amount price-original">2</span>
-                    <span class="pricing-currency">£</span>
-                    <span class="pricing-amount">0</span>
-                    <span class="price-beta-tag">Beta</span>
-                    <span class="pricing-period">/month</span>
+                    <span class="pricing-currency">$</span>
+                    <span class="pricing-amount">19</span>
+                    <span class="pricing-period">/board/month</span>
                 </div>
-                <div class="pricing-description">For professionals and teams. Free during Beta!</div>
+                <div class="pricing-description">For professionals and teams</div>
             </div>
 
             <ul class="pricing-features">
@@ -435,15 +428,17 @@
                 <li><i class="fas fa-check-circle"></i> All section types</li>
                 <li><i class="fas fa-check-circle"></i> Unlimited post-its</li>
                 <li><i class="fas fa-check-circle"></i> Export to JSON</li>
+                <li><i class="fas fa-check-circle"></i> <strong>Up to 20 collaborators per board</strong></li>
                 <li><i class="fas fa-check-circle"></i> <strong>Board sharing</strong></li>
+                <li><i class="fas fa-check-circle"></i> <strong>1-hour live kick-off session with a lean consultant</strong></li>
                 <li><i class="fas fa-check-circle"></i> <strong>Priority support</strong></li>
                 <li><i class="fas fa-check-circle"></i> <strong>Advanced analytics</strong></li>
             </ul>
 
             <div style="margin: 20px 0;">
-                <stripe-buy-button buy-button-id="buy_btn_1SzGBvQaI3WUOKaCMHaM4PHe"
-                    publishable-key="pk_test_51SzFITQaI3WUOKaCsS0FQ5kyiyDH7b8yWGrTTHyGtiA8fQ47dsVRiFWgAzS7tUZKfyPUDLQ7Mnx4iRMYpSan3VAy00H1dp9EnD">
-                </stripe-buy-button>
+                <a href="https://buy.stripe.com/test_8x25kF4JV8P3dvm8a2co001" class="btn-primary" style="display:block; text-align:center; text-decoration:none;">
+                    Subscribe Now
+                </a>
             </div>
             <p class="pricing-note">Cancel anytime</p>
         </div>
@@ -453,9 +448,9 @@
             <div class="pricing-header">
                 <div class="pricing-name">Enterprise</div>
                 <div class="pricing-price">
-                    <span class="pricing-amount" style="font-size: 36px;">Let's talk</span>
+                    <span class="pricing-amount" style="font-size: 28px;">Not ready yet</span>
                 </div>
-                <div class="pricing-description">For large organizations with custom needs</div>
+                <div class="pricing-description">For large organizations with custom needs<br><em>Let's talk — available by 2027</em></div>
             </div>
 
             <ul class="pricing-features">
@@ -592,6 +587,7 @@
             <div class="footer-copy">© 2025 vimpl. All rights reserved.</div>
         </div>
     </footer>
+    <script src="assets/js/cookie-banner.js" defer></script>
 </body>
 
 </html>

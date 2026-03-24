@@ -7,9 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - vimpl</title>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Birthstone&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/fonts.css">
 
     <style>
         * {
@@ -376,7 +374,7 @@
                     </button>
                 </div>
                 <div class="forgot-password">
-                    <a href="#" onclick="alert('Password reset coming soon!'); return false;" data-i18n="forgotPassword">Forgot password?</a>
+                    <a href="#" onclick="showForgotForm(); return false;" data-i18n="forgotPassword">Forgot password?</a>
                 </div>
             </div>
 
@@ -406,10 +404,25 @@
         <div class="register-link">
             <span data-i18n="noAccount">Don't have an account?</span> <a href="register.html" data-i18n="signUp">Sign up</a>
         </div>
+
+        <!-- Forgot password panel (hidden by default) -->
+        <div id="forgotPanel" style="display:none; margin-top: 24px; border-top: 1px solid #e0e0e0; padding-top: 24px;">
+            <p style="font-size: 14px; color: #333; margin-bottom: 16px; font-weight: 500;">Enter your email and we'll send you a reset link.</p>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <input type="email" id="forgotEmail" placeholder="your.email@example.com" autocomplete="email">
+            </div>
+            <button type="button" class="btn btn-primary" id="forgotBtn" onclick="submitForgot()" style="margin-top: 0;">
+                Send reset link
+            </button>
+            <div style="text-align: center; margin-top: 12px;">
+                <a href="#" onclick="hideForgotForm(); return false;" style="font-size: 13px; color: #666; text-decoration: none;">← Back to login</a>
+            </div>
+        </div>
     </div>
 
     <script src="assets/js/api-client.js"></script>
     <script src="assets/js/lang.js"></script>
+    <script src="assets/js/cookie-banner.js" defer></script>
     <script>
         const apiClient = new ApiClient();
         const urlParams = new URLSearchParams(window.location.search);
@@ -447,7 +460,8 @@
 
                 setTimeout(() => {
                     if (returnTo) {
-                        window.location.href = `${returnTo}?token=${response.accessToken}`;
+                        const sep = returnTo.includes('?') ? '&' : '?';
+                        window.location.href = `${returnTo}${sep}token=${response.accessToken}`;
                     } else {
                         window.location.href = 'dashboard.html';
                     }
@@ -510,6 +524,51 @@
         const error = urlParams.get('error');
         if (error) {
             showError(decodeURIComponent(error));
+        }
+
+        // Check for successful password reset
+        if (urlParams.get('reset') === 'success') {
+            showSuccess('Password reset successfully! You can now log in with your new password.');
+        }
+
+        // Forgot password flow
+        function showForgotForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('forgotPanel').style.display = 'block';
+            hideMessages();
+        }
+
+        function hideForgotForm() {
+            document.getElementById('forgotPanel').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            hideMessages();
+        }
+
+        async function submitForgot() {
+            const email = document.getElementById('forgotEmail').value.trim();
+            if (!email) {
+                showError('Please enter your email address.');
+                return;
+            }
+            const btn = document.getElementById('forgotBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+            hideMessages();
+            try {
+                await fetch(`${apiClient.baseURL}/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                // Always show success regardless of whether email exists
+                hideForgotForm();
+                showSuccess('If that email is registered, a reset link is on its way. Check your inbox.');
+            } catch (err) {
+                showError('Something went wrong. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Send reset link';
+            }
         }
     </script>
 </body>
