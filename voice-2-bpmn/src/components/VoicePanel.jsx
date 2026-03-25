@@ -119,8 +119,8 @@ export default function VoicePanel({
     return turns.length >= 2 ? turns : null;
   }
 
-  // Use Ailean live turns if active, otherwise fall back to parsing the transcript text
-  const displayTurns = aileanActive && aileanTurns.length > 0
+  // Show Ailean turns whenever they exist (even after session ends), else parse raw transcript
+  const displayTurns = aileanTurns.length > 0
     ? aileanTurns
     : parseTranscriptTurns(transcript);
   const isStructured = !!displayTurns;
@@ -178,28 +178,23 @@ export default function VoicePanel({
         )}
         {error && <p className="text-xs text-red-500">{t.recordError}: {error}</p>}
 
-        {/* Stop button — only shown during recording in Ailean mode */}
-        {aileanActive && isRecording && (
+        {/* Ailean mode: submit button lives in the scroll area */}
+        {aileanActive && (
           <button
-            onClick={() => stop()}
-            className="w-[30%] flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-md border bg-red-500 text-white border-red-500 hover:bg-red-600 animate-pulse transition-all"
+            onClick={handleAileanToggle}
+            title="End Ailean interview session"
+            className="w-[30%] flex items-center justify-center gap-1.5 text-xs font-medium px-2 py-1.5 rounded-md border bg-purple-600 text-white border-purple-600 hover:bg-purple-700 transition-all"
           >
-            <span className="w-2 h-2 rounded-sm bg-white shrink-0" />
-            Stop
+            End
           </button>
         )}
 
-        {/* Ailean toggle — always visible */}
-        {ailean && (
+        {/* Ailean toggle — only when not active */}
+        {ailean && !aileanActive && (
           <button
             onClick={handleAileanToggle}
-            title={aileanActive ? 'End Ailean interview session' : 'Start a guided Ailean interview'}
-            className={[
-              'w-[30%] flex items-center justify-center gap-1.5 text-xs font-medium px-2 py-1.5 rounded-md border transition-all',
-              aileanActive
-                ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
-                : 'text-gray-600 border-gray-200 hover:border-purple-400 hover:text-purple-600',
-            ].join(' ')}
+            title="Start a guided Ailean interview"
+            className="w-[30%] flex items-center justify-center gap-1.5 text-xs font-medium px-2 py-1.5 rounded-md border text-gray-600 border-gray-200 hover:border-purple-400 hover:text-purple-600 transition-all"
           >
             <svg width="13" height="11" viewBox="0 0 13 11" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="0"   y="4"   width="2" height="3"  rx="1" fill="currentColor" opacity="0.6"/>
@@ -209,9 +204,6 @@ export default function VoicePanel({
               <rect x="10"  y="4"   width="2" height="3"  rx="1" fill="currentColor" opacity="0.6"/>
             </svg>
             Ailean
-            {aileanActive && aileanBusy && (
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-white animate-pulse ml-0.5" />
-            )}
           </button>
         )}
       </div>
@@ -248,6 +240,20 @@ export default function VoicePanel({
                       <span className="text-gray-400"> {interimText}</span>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Submit button — follows conversation, shown when recording in Ailean mode */}
+              {aileanActive && isRecording && (
+                <div className="flex justify-center pt-1 pb-0.5">
+                  <button
+                    onClick={() => stop()}
+                    title="Submit your answer — Ailean will respond"
+                    className="flex items-center gap-1.5 text-xs font-semibold px-5 py-1.5 rounded-full border bg-red-500 text-white border-red-500 hover:bg-red-600 animate-pulse shadow-sm transition-all"
+                  >
+                    <span className="w-2 h-2 rounded-sm bg-white shrink-0" />
+                    Submit →
+                  </button>
                 </div>
               )}
 
@@ -387,7 +393,7 @@ export default function VoicePanel({
       {/* ── Parse footer ──────────────────────────────────────────── */}
       <div className="px-4 py-3 border-t border-gray-100 shrink-0">
         <button
-          onClick={onParse}
+          onClick={() => { if (isRecording) stop(); onParse(); }}
           disabled={!canParse || loading}
           className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >

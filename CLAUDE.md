@@ -63,6 +63,30 @@ cd backend && npx vercel --prod
 
 **Auth**: JWT tokens + Google OAuth via Passport.js. Subscription tiers: `trial`, `commercial`, `enterprise`.
 
+### Auth endpoints
+- `POST /auth/forgot-password` — sends reset email (always 200, never reveals if email exists)
+- `POST /auth/reset-password` — validates token, hashes new password, clears token
+- Reset tokens: `crypto.randomBytes(32).toString('hex')`, stored on User model, 1-hour expiry
+
+### Board collaboration
+- `POST /boards/:id/share` — grants access if user exists + sends invite email with embedded JWT invite token
+- `POST /boards/accept-invite` — validates JWT invite token, matches to logged-in user's email, creates `BoardCollaborator` record
+- Invite tokens: signed JWT `{ boardId, email, type: 'board_invite' }`, 7-day expiry, embedded in board URL as `?invite=<token>`
+- `BoardCollaborator.userId` is required (non-nullable) — no pending invites without a user account; JWT invite token pattern solves new-user case
+
+### Email sending
+- **All emails must use** `from: 'Ailean from Vimpl <ailean@onboard.vimpl.com>'` — this is the only verified Resend sender domain
+- Using any other domain (e.g. `hello@vimpl.com`) causes silent delivery failure
+- Email templates: `backend/src/email-templates/` (Day0–Day07) — HTML files, copied to `dist/` on build
+- Logo images hosted at `https://frontend-puce-ten-18.vercel.app/assets/images/`
+  - Header: `vimpl.png` at 96px height (dark background)
+  - Footer: `15_vimpl_primary_dark_transparent.png` at 36px height (white background)
+
+### Discord notifications
+- `backend/src/services/discord.service.ts` — posts to Discord via bot token
+- Env vars: `DISCORD_BOT_TOKEN`, `DISCORD_CHANNEL_ID`
+- Fires on: new user signup, new Ailean lead, onboarding email failure
+
 ### Commands (run from `backend/`)
 
 ```bash

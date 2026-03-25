@@ -48,15 +48,17 @@ export function useAileanInterviewer({ apiKey, processContext, proxyAuth = null 
 
   const ttsSpeak = useCallback(async (text) => {
     if (proxyAuth?.token) {
-      const url = await speakText(text, proxyAuth.token);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      await new Promise(resolve => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve); });
-      URL.revokeObjectURL(url);
-      audioRef.current = null;
-    } else {
-      await speakBrowser(text);
+      try {
+        const url = await speakText(text, proxyAuth.token);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        await new Promise(resolve => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve); });
+        URL.revokeObjectURL(url);
+        audioRef.current = null;
+        return;
+      } catch { /* ElevenLabs unavailable — fall back to browser TTS */ }
     }
+    await speakBrowser(text);
   }, [proxyAuth]);
 
   const askFollowUp = useCallback(async (transcript) => {

@@ -292,36 +292,16 @@
             padding: 0 20px;
         }
 
-        .project-title-input {
+        .project-title-label {
             font-size: 18px;
             font-weight: 600;
             color: var(--dark);
-            background: transparent;
-            border: 2px solid transparent;
-            border-radius: 8px;
-            padding: 8px 16px;
             text-align: center;
-            min-width: 200px;
-            max-width: 400px;
-            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 600px;
             font-family: inherit;
-            transition: all 0.2s;
-        }
-
-        .project-title-input:hover {
-            background: var(--gray-100);
-        }
-
-        .project-title-input:focus {
-            outline: none;
-            background: white;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(101, 196, 52, 0.1);
-        }
-
-        .project-title-input::placeholder {
-            color: var(--gray-400);
-            font-weight: 400;
         }
 
         .btn {
@@ -616,9 +596,15 @@
         }
 
         /* Text Section */
+        .section-content:has(.text-content) {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
         .text-content {
+            flex: 1;
             width: 100%;
-            height: 100%;
             border: none;
             resize: none;
             font-size: 13px;
@@ -626,6 +612,9 @@
             outline: none;
             font-family: inherit;
             color: var(--dark);
+            overflow-y: auto;
+            field-sizing: content;
+            min-height: 0;
         }
 
         /* Week Planner Section */
@@ -723,8 +712,8 @@
 
         .week-planner {
             display: flex;
-            height: 100%;
-            overflow: auto;
+            overflow-x: auto;
+            overflow-y: visible;
             position: relative;
         }
 
@@ -850,17 +839,16 @@
         }
 
         .matrix-grid {
-            flex: 1;
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
             margin: 0;
-            /* Remove margins, rely on padding */
             border: 2px solid var(--gray-300);
             border-radius: 8px;
             overflow: hidden;
             position: relative;
-            min-height: 150px;
+            aspect-ratio: 1 / 1;
+            width: 100%;
         }
 
         .matrix-quadrant {
@@ -1709,7 +1697,7 @@
                 font-size: 12px;
             }
 
-            .project-title-input {
+            .project-title-label {
                 font-size: 16px;
                 max-width: 300px;
             }
@@ -1732,7 +1720,7 @@
                 padding: 8px 0 0;
             }
 
-            .project-title-input {
+            .project-title-label {
                 font-size: 15px;
                 padding: 6px 12px;
                 max-width: 100%;

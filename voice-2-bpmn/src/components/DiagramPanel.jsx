@@ -20,6 +20,12 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
   useEffect(() => { if (toBeXml) setActiveTab('tobe'); }, [toBeXml]);
   // Reset to asis when AS-IS is cleared (new session)
   useEffect(() => { if (!asIsXml) setActiveTab('asis'); }, [asIsXml]);
+  // Fit viewport when switching to TO-BE tab (viewer may have initialised while invisible)
+  useEffect(() => {
+    if (activeTab === 'tobe' && toBeViewerRef.current) {
+      setTimeout(() => toBeViewerRef.current?.fitViewport(), 150);
+    }
+  }, [activeTab, toBeXml]);
   const [impLoading, setImpLoading] = useState(false);
   const [impError, setImpError] = useState(null);
 

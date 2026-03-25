@@ -194,16 +194,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     const overlay = document.getElementById('authLoadingOverlay');
     const pageContent = document.getElementById('pageContent');
 
+    // If redirected back from login with ?token=, store it then strip it from URL
+    const _initParams = new URLSearchParams(window.location.search);
+    const _incomingToken = _initParams.get('token');
+    if (_incomingToken) {
+        apiClient.setToken(_incomingToken);
+        _initParams.delete('token');
+        const _cleanSearch = _initParams.toString();
+        const _cleanUrl = window.location.pathname + (_cleanSearch ? '?' + _cleanSearch : '') + window.location.hash;
+        window.history.replaceState(null, '', _cleanUrl);
+    }
+
     if (!apiClient.isAuthenticated()) {
-        window.location.replace('login.html');
+        window.location.replace('login.html?returnTo=' + encodeURIComponent(window.location.href));
         return;
     }
 
     const user = await apiClient.getCurrentUser().catch(() => null);
     if (!user || (!user.user && !user.id)) {
         apiClient.clearToken();
-        window.location.replace('login.html');
+        window.location.replace('login.html?returnTo=' + encodeURIComponent(window.location.href));
         return;
+    }
+
+    // If there's a board invite token, accept it before loading the board
+    const _currentParams = new URLSearchParams(window.location.search);
+    const _inviteToken = _currentParams.get('invite');
+    if (_inviteToken) {
+        await fetch(`${apiClient.baseURL}/boards/accept-invite`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiClient.getToken()}` },
+            body: JSON.stringify({ inviteToken: _inviteToken }),
+        }).catch(() => {});
+        _currentParams.delete('invite');
+        const _cleanSearch = _currentParams.toString();
+        window.history.replaceState(null, '', window.location.pathname + (_cleanSearch ? '?' + _cleanSearch : '') + window.location.hash);
     }
 
     if (overlay) overlay.classList.add('hidden');
@@ -382,5 +407,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('projectTitle').addEventListener('input', scheduleAutoSave);
 });

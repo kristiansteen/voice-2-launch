@@ -98,11 +98,38 @@ function FlowCard({ flow, onOpen, onDelete }) {
       <p className="text-xs text-gray-400">{formatDate(flow.updated_at)}</p>
 
       <div className="flex flex-wrap gap-1">
-        <ProgressBadge done={!!flow.processDescription} label="Description" />
-        <ProgressBadge done={!!flow.parsed} label="BPMN" />
-        <ProgressBadge done={!!flow.projectPlan} label="Plan" />
-        <ProgressBadge done={!!flow.board_url} label="Exported" />
+        <ProgressBadge done={!!flow.processDescription} label="Voiced" />
+        <ProgressBadge done={!!flow.improvements?.length} label="Identified" />
+        <ProgressBadge done={!!flow.parsed} label="Mapped" />
+        <ProgressBadge done={!!flow.projectPlan} label="Planned" />
+        <ProgressBadge done={!!flow.board_url} label="Launched" />
       </div>
+
+      {flow.improvements?.length > 0 && (() => {
+        const CATEGORY_COLOURS = {
+          automation: 'bg-blue-100 text-blue-700',
+          governance: 'bg-purple-100 text-purple-700',
+          clarity:    'bg-yellow-100 text-yellow-700',
+          efficiency: 'bg-green-100 text-green-700',
+          risk:       'bg-red-100 text-red-700',
+        };
+        const tags = [...new Set(flow.improvements.map(i => i.category).filter(Boolean))];
+        const hasAi = flow.improvements.some(i => i.ai_candidate);
+        return tags.length > 0 || hasAi ? (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {tags.map(tag => (
+              <span key={tag} className={`text-xs rounded px-1.5 py-0.5 ${CATEGORY_COLOURS[tag] || 'bg-gray-100 text-gray-600'}`}>
+                {tag}
+              </span>
+            ))}
+            {hasAi && (
+              <span className="text-xs rounded px-1.5 py-0.5 font-semibold text-white" style={{ backgroundColor: '#65c434' }}>
+                ✦ AI
+              </span>
+            )}
+          </div>
+        ) : null;
+      })()}
 
       {flow.board_url && (
         <a
@@ -119,7 +146,7 @@ function FlowCard({ flow, onOpen, onDelete }) {
   );
 }
 
-export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete, canCreate, onLogout, onDemo }) {
+export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete, canCreate, onLogout, onDemo, onBurger }) {
   const { t } = useLang();
   const [deletingFlow, setDeletingFlow] = useState(null);
 
@@ -130,11 +157,10 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
+      <header className="relative flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-sm shrink-0">
         <div className="flex items-center gap-4">
           <span className="ailean-logo" style={{ fontSize: '15px' }}>AILEAN</span>
           <div className="w-px h-5 bg-gray-200" />
-          <span className="text-xs font-semibold text-gray-400 tracking-wide uppercase">Voice to Launch</span>
           <a
             href="https://www.vimpl.com"
             target="_blank"
@@ -142,34 +168,41 @@ export default function Dashboard({ flows, vimplUser, onOpen, onCreate, onDelete
             className="ailean-badge"
           >
             <span>Powered by</span>
-            <span className="vimpl-wordmark" style={{ fontSize: '16px', lineHeight: 1 }}>vimpl</span>
+            <span className="vimpl-wordmark" style={{ fontSize: '22px', lineHeight: 1 }}>vimpl</span>
           </a>
         </div>
-        {vimplUser && (
-          <div className="flex items-center gap-3">
-            {isTrial ? (
-              <a
-                href={PRICING_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium hover:bg-amber-100 transition-colors"
-              >
-                Trial — Upgrade ↗
-              </a>
-            ) : (
-              <span className="text-xs bg-vimpl/10 text-vimpl-dark px-2 py-0.5 rounded-full font-medium capitalize border border-vimpl/20">
-                {vimplUser.subscriptionTier}
-              </span>
-            )}
-            <span className="text-xs text-gray-500">{vimplUser.email}</span>
-            <button
-              onClick={onLogout}
-              className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
-            >
-              Sign out
-            </button>
-          </div>
-        )}
+        <span className="absolute left-1/2 -translate-x-1/2 text-xs font-semibold text-gray-400 tracking-wide uppercase">Voice to Launch</span>
+        <div className="flex items-center gap-3">
+          {vimplUser && (
+            <>
+              {isTrial ? (
+                <a
+                  href={PRICING_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium hover:bg-amber-100 transition-colors"
+                >
+                  Trial — Upgrade ↗
+                </a>
+              ) : (
+                <span className="text-xs bg-vimpl/10 text-vimpl-dark px-2 py-0.5 rounded-full font-medium capitalize border border-vimpl/20">
+                  {vimplUser.subscriptionTier}
+                </span>
+              )}
+</>
+          )}
+          <button
+            onClick={onBurger}
+            className="p-1.5 rounded hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
+            title="Menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="2" y="4" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+              <rect x="2" y="8.25" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+              <rect x="2" y="12.5" width="14" height="1.5" rx="0.75" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
       </header>
 
       {/* Trial banner */}

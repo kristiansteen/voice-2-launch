@@ -75,7 +75,7 @@ export async function inviteCollaborator(boardId, email, config) {
  * @param {Array} selectedImprovements - Improvements from the improve panel (with effort_score/impact_score)
  * @returns {{ boardId, boardUrl, sectionId, tasksCreated }}
  */
-export async function exportToVimpl(projectPlan, processName, config, selectedImprovements = [], processDescription = null) {
+export async function exportToVimpl(projectPlan, processName, config, selectedImprovements = [], processDescription = null, invitees = []) {
   const { baseUrl, token } = config;
 
   const res = await fetch(`${baseUrl}/api/v1/boards/import`, {
@@ -94,6 +94,7 @@ export async function exportToVimpl(projectPlan, processName, config, selectedIm
       tasks: (projectPlan.tasks ?? []).map(t => ({ ...t, title: taskTitleToPast(t.title) })),
       risks: projectPlan.risks ?? [],
       improvements: selectedImprovements,
+      invitees,
     }),
   });
 

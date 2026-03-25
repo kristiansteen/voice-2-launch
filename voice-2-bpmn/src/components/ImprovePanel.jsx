@@ -18,7 +18,7 @@ const EFFORT_COLOURS = {
   high:   'bg-red-50 text-red-600',
 };
 
-const BLANK_IDEA = { title: '', description: '', category: 'efficiency', effort: 'medium' };
+const BLANK_IDEA = { title: '', description: '', category: 'efficiency', effort: 'medium', ai_candidate: false };
 
 // ── Inline idea edit form ────────────────────────────────────────────────────
 function IdeaForm({ initial = BLANK_IDEA, onSave, onCancel, saveLabel }) {
@@ -51,6 +51,18 @@ function IdeaForm({ initial = BLANK_IDEA, onSave, onCancel, saveLabel }) {
           {EFFORTS.map(e => <option key={e} value={e}>{e} {t.effort}</option>)}
         </select>
       </div>
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={!!v.ai_candidate}
+          onChange={e => setV(p => ({ ...p, ai_candidate: e.target.checked }))}
+          className="accent-green-500"
+        />
+        <span className="text-xs text-gray-600">Mark as AI candidate</span>
+        {v.ai_candidate && (
+          <span className="text-xs rounded px-1.5 py-0.5 font-semibold text-white" style={{backgroundColor: '#65c434'}}>✦ AI</span>
+        )}
+      </label>
       <div className="flex gap-2 pt-1">
         <button onClick={() => v.title.trim() && onSave(v)} disabled={!v.title.trim()}
           className="flex-1 text-xs bg-green-500 text-white rounded px-3 py-1.5 hover:bg-green-600 disabled:opacity-40 transition-colors">
@@ -67,9 +79,10 @@ function IdeaForm({ initial = BLANK_IDEA, onSave, onCancel, saveLabel }) {
 // ── Main component ───────────────────────────────────────────────────────────
 export default function ImprovePanel({
   parsed, apiKey,
-  improvements, onGetImprovements, onAddImprovement, onUpdateImprovement,
+  improvements, onGetImprovements, onAddImprovement, onUpdateImprovement, onDeleteImprovement,
   selectedIds, onToggleSelect,
   projectPlan, onGeneratePlan, planLoading,
+  planDurationWeeks = 14, onDurationChange,
 }) {
   const { t } = useLang();
   const [impError, setImpError]   = useState(null);
@@ -103,7 +116,7 @@ export default function ImprovePanel({
               <div key={imp.id}>
                 {editingImpId === imp.id ? (
                   <IdeaForm
-                    initial={{ title: imp.title, description: imp.description || '', category: imp.category || 'efficiency', effort: imp.effort || 'medium' }}
+                    initial={{ title: imp.title, description: imp.description || '', category: imp.category || 'efficiency', effort: imp.effort || 'medium', ai_candidate: !!imp.ai_candidate }}
                     onSave={v => { onUpdateImprovement({ ...imp, ...v }); setEditingImpId(null); }}
                     onCancel={() => setEditingImpId(null)}
                     saveLabel={t.saveChanges}
@@ -144,6 +157,11 @@ export default function ImprovePanel({
                               {t.impactLabel} {imp.impact_score}/100
                             </span>
                           )}
+                          {imp.ai_candidate && (
+                            <span className="text-xs rounded px-1.5 py-0.5 font-semibold text-white" style={{backgroundColor: '#65c434'}} title="AI development candidate">
+                              ✦ AI
+                            </span>
+                          )}
                         </div>
                         {imp.description && <p className="text-xs text-gray-600">{imp.description}</p>}
                         {imp.benefit && <p className="text-xs text-gray-400 mt-1 italic">{t.benefit} {imp.benefit}</p>}
@@ -156,6 +174,16 @@ export default function ImprovePanel({
                       >
                         ✎
                       </button>
+                      {/* Delete button — custom ideas only */}
+                      {imp._custom && (
+                        <button
+                          onClick={e => { e.stopPropagation(); onDeleteImprovement(imp.id); }}
+                          className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 text-xs px-1 transition-opacity shrink-0"
+                          title="Delete idea"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -184,6 +212,29 @@ export default function ImprovePanel({
             </button>
           )}
         </div>
+
+        {/* ── Duration slider ──────────────────────────────────────── */}
+        {hasImprovements && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Project duration</label>
+              <span className="text-xs font-semibold text-gray-700">{planDurationWeeks} weeks</span>
+            </div>
+            <input
+              type="range"
+              min={4}
+              max={52}
+              step={1}
+              value={planDurationWeeks}
+              onChange={e => onDurationChange?.(Number(e.target.value))}
+              className="w-full accent-green-500"
+            />
+            <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+              <span>4 wks</span>
+              <span>52 wks</span>
+            </div>
+          </div>
+        )}
 
         {/* ── Generate plan ────────────────────────────────────────── */}
         {hasImprovements && (

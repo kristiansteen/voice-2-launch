@@ -424,7 +424,7 @@
         </button>
 
         <div class="login-link">
-            <span data-i18n="alreadyAccount">Already have an account?</span> <a href="login.html" data-i18n="logIn">Log in</a>
+            <span data-i18n="alreadyAccount">Already have an account?</span> <a id="loginLink" href="login.html" data-i18n="logIn">Log in</a>
         </div>
     </div>
 
@@ -434,9 +434,22 @@
     <script>
         const apiClient = new ApiClient();
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnTo = urlParams.get('returnTo');
+
+        if (returnTo) {
+            const loginLink = document.getElementById('loginLink');
+            if (loginLink) loginLink.href = `login.html?returnTo=${encodeURIComponent(returnTo)}`;
+        }
+
         // Check if already logged in
         if (apiClient.isAuthenticated()) {
-            window.location.href = 'dashboard.html';
+            if (returnTo) {
+                const sep = returnTo.includes('?') ? '&' : '?';
+                window.location.href = `${returnTo}${sep}token=${apiClient.getToken()}`;
+            } else {
+                window.location.href = 'dashboard.html';
+            }
         }
 
         // Password strength checker
@@ -496,9 +509,14 @@
                 // Show success message
                 showSuccess('Account created! Redirecting...');
 
-                // Redirect to dashboard after brief delay
+                // Redirect after brief delay
                 setTimeout(() => {
-                    window.location.href = 'dashboard.html';
+                    if (returnTo) {
+                        const sep = returnTo.includes('?') ? '&' : '?';
+                        window.location.href = `${returnTo}${sep}token=${response.accessToken}`;
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
                 }, 1000);
 
             } catch (error) {
@@ -537,6 +555,7 @@
         function signUpWithGoogle() {
             // Redirect to backend Google OAuth endpoint
             const baseUrl = apiClient.baseURL.replace('/api/v1', ''); // Get root URL
+            if (returnTo) sessionStorage.setItem('vimpl_oauth_return', returnTo);
             const state = btoa(window.location.origin);
             window.location.href = `${baseUrl}/api/v1/auth/google?state=${state}`;
         }

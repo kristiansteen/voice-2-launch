@@ -92,7 +92,11 @@ function createMatrixSection(title = 'Risk Matrix', xLabel = 'Probability', yLab
     `;
 }
 
-function createWeekPlanSection(title = 'Week Plan', numWeeks = 12, numTracks = 5) {
+function createWeekPlanSection(title = 'Week Plan', numWeeks = 12, tracks = 5) {
+    const trackNames = Array.isArray(tracks)
+        ? tracks
+        : Array.from({ length: tracks }, (_, i) => `Track ${i + 1}`);
+    const numTracks = trackNames.length;
     const today = new Date().toISOString().split('T')[0];
     let weeksHtml = '';
     for (let i = 0; i < numWeeks; i++) {
@@ -106,9 +110,9 @@ function createWeekPlanSection(title = 'Week Plan', numWeeks = 12, numTracks = 5
         `;
     }
     let tracksHtml = '';
-    for (let i = 1; i <= numTracks; i++) {
-        tracksHtml += `<div class="track-item"><input type="text" value="Track ${i}" /></div>`;
-    }
+    trackNames.forEach(name => {
+        tracksHtml += `<div class="track-item"><input type="text" value="${name}" /></div>`;
+    });
     const extraBtns = `
         <button class="section-btn toggle-view-btn" title="Switch to Kanban"><i class="fas fa-exchange-alt"></i></button>
         <button class="section-btn add-week-btn" title="Add Week"><i class="fas fa-plus"></i></button>
@@ -251,16 +255,14 @@ function addSection(type, options = {}) {
 }
 
 function createDefaultBoard() {
+    const DEFAULT_TRACKS = ['Process', 'Technology', 'People'];
     const widgets = [
-        { x: 0, y: 0, w: 2, h: 2, content: createTextSection('Project Name') },
-        { x: 0, y: 2, w: 2, h: 2, content: createTeamSection('Team') },
-        { x: 0, y: 4, w: 2, h: 2, content: createTextSection('Purpose') },
-        { x: 0, y: 6, w: 2, h: 2, content: createTextSection('Success Criteria') },
-        { x: 2, y: 0, w: 8, h: 6, content: createWeekPlanSection('Week Plan') },
-        { x: 2, y: 6, w: 8, h: 3, content: createActionsSection('Actions') },
-        { x: 10, y: 0, w: 2, h: 3, content: createKPISection("Project KPI's") },
-        { x: 10, y: 3, w: 2, h: 3, content: createMatrixSection('Project Risk', 'Probability', 'Consequence') },
-        { x: 10, y: 6, w: 2, h: 3, content: createMatrixSection('Improvement Ideas', 'Ease', 'Impact') },
+        { x: 0, y: 0, w: 2, h: 3, content: createTextSection('Overview') },
+        { x: 0, y: 3, w: 2, h: 2, content: createTextSection('Scope') },
+        { x: 0, y: 5, w: 2, h: 3, content: createTeamSection('Team') },
+        { x: 2, y: 0, w: 8, h: 5, content: createWeekPlanSection('Week Plan', 12, DEFAULT_TRACKS) },
+        { x: 2, y: 5, w: 4, h: 4, content: createMatrixSection('Risk Matrix', 'Probability', 'Consequence') },
+        { x: 6, y: 5, w: 4, h: 4, content: createMatrixSection('Ideas Matrix', 'Effort', 'Impact') },
     ];
 
     widgets.forEach(w => AppState.grid.addWidget({ id: generateId('section'), ...w }));

@@ -23,6 +23,7 @@ function Section({ title, children, defaultOpen = false }) {
 export default function BurgerMenu({
   open, onClose,
   vimplToken, vimplUser, onLogout,
+  onNewFlow, onOverview,
   parsed, processContext,
   customTaxonomyNodes, onTaxonomyChange,
 }) {
@@ -76,7 +77,12 @@ export default function BurgerMenu({
       <div className="fixed top-0 right-0 z-50 h-full w-[420px] bg-white shadow-2xl flex flex-col overflow-hidden">
         {/* Drawer header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0 bg-gray-900">
-          <span className="text-sm font-semibold text-white">Settings</span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-semibold text-white">Settings</span>
+            {vimplUser?.email && (
+              <span className="text-xs text-gray-400">{vimplUser.email}</span>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors text-sm px-1"
@@ -87,6 +93,28 @@ export default function BurgerMenu({
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
+
+          {/* ── Navigation ────────────────────────────────────────── */}
+          <div className="px-4 py-3 border-b border-gray-100 space-y-1">
+            <button
+              onClick={() => { onOverview?.(); onClose(); }}
+              className="flex items-center gap-2 w-full text-xs text-gray-600 hover:text-gray-900 py-1.5 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/>
+              </svg>
+              Overview
+            </button>
+            <button
+              onClick={() => { onNewFlow?.(); onClose(); }}
+              className="flex items-center gap-2 w-full text-xs text-gray-600 hover:text-gray-900 py-1.5 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              Start new process
+            </button>
+          </div>
 
           {/* ── Account ───────────────────────────────────────────── */}
           <Section title="Account" defaultOpen>

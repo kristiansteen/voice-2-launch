@@ -82,7 +82,8 @@
         } else if (token) {
             localStorage.setItem('accessToken', token);
             if (returnTo) {
-                window.location.href = `${returnTo}?token=${token}`;
+                const sep = returnTo.includes('?') ? '&' : '?';
+                window.location.href = `${returnTo}${sep}token=${token}`;
             } else {
                 window.location.href = 'dashboard.html';
             }

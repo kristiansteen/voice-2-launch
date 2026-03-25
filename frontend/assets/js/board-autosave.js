@@ -113,7 +113,7 @@ function gatherBoardState() {
         }
     });
 
-    const projectTitle = document.getElementById('projectTitle')?.value || 'Project name';
+    const projectTitle = document.getElementById('projectTitle')?.textContent || 'Project name';
     updateTeamMembersFromTable();
 
     return {
@@ -135,7 +135,7 @@ async function saveBoardState() {
 
     try {
         const state = gatherBoardState();
-        const projectTitle = document.getElementById('projectTitle')?.value || 'Project name';
+        const projectTitle = document.getElementById('projectTitle')?.textContent || 'Project name';
 
         const response = await apiClient.updateBoard(currentBoardId, {
             title: projectTitle,
@@ -163,7 +163,7 @@ window.addEventListener('beforeunload', () => {
     if (currentBoardId && AppState.autoSaveTimeout) {
         clearTimeout(AppState.autoSaveTimeout);
         const state = gatherBoardState();
-        const projectTitle = document.getElementById('projectTitle')?.value || 'Project name';
+        const projectTitle = document.getElementById('projectTitle')?.textContent || 'Project name';
         saveToLocalBackup();
 
         const url = `${apiClient.baseURL}/boards/${currentBoardId}`;
@@ -213,8 +213,8 @@ async function loadBoardState() {
         applyRoleRestrictions();
 
         if (board.title) {
-            const titleInput = document.getElementById('projectTitle');
-            if (titleInput) titleInput.value = board.title;
+            const titleEl = document.getElementById('projectTitle');
+            if (titleEl) titleEl.textContent = board.title;
         }
 
         const state = board.gridData;
@@ -228,7 +228,7 @@ async function loadBoardState() {
         AppState.teamMembers = state.teamMembers || [];
 
         if (state.projectTitle) {
-            document.getElementById('projectTitle').value = state.projectTitle;
+            document.getElementById('projectTitle').textContent = state.projectTitle;
         }
 
         setTimeout(() => {

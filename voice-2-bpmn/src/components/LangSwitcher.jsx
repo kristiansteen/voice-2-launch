@@ -8,6 +8,7 @@ export default function LangSwitcher() {
         className={`lang-btn${lang === 'en' ? ' active' : ''}`}
         onClick={() => setLang('en')}
       >EN</button>
+      <span className="lang-divider" />
       <button
         className={`lang-btn${lang === 'da' ? ' active' : ''}`}
         onClick={() => setLang('da')}

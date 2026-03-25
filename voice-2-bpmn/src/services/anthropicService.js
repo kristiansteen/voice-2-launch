@@ -67,12 +67,14 @@ Each object must follow this exact schema:
   "benefit": "string",
   "effort": "low|medium|high",
   "effort_score": 50,
-  "impact_score": 70
+  "impact_score": 70,
+  "ai_candidate": false
 }
 
 Rules:
 - effort_score: integer 0-100 (low ≈ 25, medium ≈ 50, high ≈ 75), representing implementation effort
 - impact_score: integer 0-100, representing estimated business impact
+- ai_candidate: true if the improvement could leverage AI/ML technologies such as machine learning, NLP, computer vision, predictive analytics, LLMs, or generative AI — not just rule-based automation
 - Return 4-8 improvements covering different categories.`;
 
 const PROJECT_PLAN_PROMPT = `You are a project planning expert. Generate a project plan for implementing the following process improvements.

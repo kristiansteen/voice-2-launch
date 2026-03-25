@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import VimplExportModal from './VimplExportModal.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
-import { inviteCollaborator } from '../services/vimplService.js';
-
-const BACKEND_URL = 'https://backend-eight-rho-46.vercel.app';
 
 function riskLevel(p, c, t) {
   const score = p * c;
@@ -61,65 +58,21 @@ function RiskForm({ initial = BLANK_RISK, onSave, onCancel, saveLabel }) {
   );
 }
 
-function InviteSection({ boardId, vimplToken }) {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState(null); // null | 'sending' | 'ok' | 'error'
-  const [errorMsg, setErrorMsg] = useState('');
 
-  async function handleInvite() {
-    if (!email.trim() || !boardId || !vimplToken) return;
-    setStatus('sending');
-    setErrorMsg('');
-    try {
-      const stored = JSON.parse(localStorage.getItem('voice2bpmn_vimpl_config') || '{}');
-      const baseUrl = stored.baseUrl || BACKEND_URL;
-      await inviteCollaborator(boardId, email.trim(), { baseUrl, token: vimplToken });
-      setStatus('ok');
-      setEmail('');
-    } catch (err) {
-      setStatus('error');
-      setErrorMsg(err.message || 'Invite failed');
-    }
-  }
-
-  return (
-    <div className="px-4 pb-4 border-t border-gray-100">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-3 mb-2">Invite collaborator</p>
-      <div className="flex gap-2">
-        <input
-          type="email"
-          value={email}
-          onChange={e => { setEmail(e.target.value); setStatus(null); }}
-          onKeyDown={e => e.key === 'Enter' && handleInvite()}
-          placeholder="colleague@company.com"
-          className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
-        />
-        <button
-          onClick={handleInvite}
-          disabled={!email.trim() || status === 'sending'}
-          className="text-xs bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors shrink-0"
-        >
-          {status === 'sending' ? '…' : 'Invite'}
-        </button>
-      </div>
-      {status === 'ok' && (
-        <p className="text-[10px] text-green-600 mt-1.5">Invite sent ✓</p>
-      )}
-      {status === 'error' && (
-        <p className="text-[10px] text-red-500 mt-1.5">{errorMsg}</p>
-      )}
-      <p className="text-[10px] text-gray-400 mt-1">
-        They'll receive a link to open this board in vimpl.
-      </p>
-    </div>
-  );
-}
-
-export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, boardUrl, boardId, onNewFlow }) {
+export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, boardUrl, boardId, onNewFlow, isDemoFlow }) {
   const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
   const [showAddRisk, setShowAddRisk] = useState(false);
   const [editingRiskId, setEditingRiskId] = useState(null);
+  const [inviteeInput, setInviteeInput] = useState('');
+  const [invitees, setInvitees] = useState([]);
+
+  function addInvitee() {
+    const email = inviteeInput.trim().toLowerCase();
+    if (!email || !email.includes('@') || invitees.includes(email)) { setInviteeInput(''); return; }
+    setInvitees(prev => [...prev, email]);
+    setInviteeInput('');
+  }
 
   function handleExportDone(id, url) {
     setShowExport(false);
@@ -248,7 +201,7 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
       </div>
 
       {/* ── Export CTA ───────────────────────────────────────────────── */}
-      <div className="px-4 py-4 border-t border-gray-100 shrink-0 space-y-2">
+      <div className="px-4 py-4 border-t border-gray-100 shrink-0 space-y-3">
         {boardUrl ? (
           <>
             <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
@@ -262,27 +215,50 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
                 Open board in vimpl
               </a>
             </div>
-            <button
-              onClick={onNewFlow}
-              className="w-full border border-gray-300 text-gray-600 text-sm font-medium py-2.5 rounded-lg hover:border-vimpl hover:text-black transition-colors flex items-center justify-center gap-2"
-            >
-              🔄 Start new process
-            </button>
           </>
         ) : (
-          <button
-            onClick={() => setShowExport(true)}
-            className="w-full bg-vimpl text-black text-sm font-semibold py-2.5 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors flex items-center justify-center gap-2"
-          >
-            🚀 {t.exportToVimpl}
-          </button>
+          <>
+            {/* ── Collaborators ──────────────────────────────────────── */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Invite collaborators</p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={inviteeInput}
+                  onChange={e => setInviteeInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addInvitee(); } }}
+                  placeholder="colleague@company.com"
+                  className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-vimpl"
+                />
+                <button
+                  onClick={addInvitee}
+                  disabled={!inviteeInput.trim()}
+                  className="text-xs bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 disabled:opacity-40 transition-colors shrink-0 font-medium"
+                >
+                  Add
+                </button>
+              </div>
+              {invitees.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {invitees.map(email => (
+                    <span key={email} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">
+                      {email}
+                      <button onClick={() => setInvitees(prev => prev.filter(e => e !== email))} className="text-gray-400 hover:text-gray-700 leading-none">✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowExport(true)}
+              className="w-full bg-vimpl text-black text-sm font-semibold py-2.5 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors flex items-center justify-center gap-2"
+            >
+              🚀 {t.exportToVimpl}
+            </button>
+          </>
         )}
       </div>
-
-      {/* ── Collaborator invite (shown after board is created) ───────── */}
-      {boardUrl && boardId && vimplToken && (
-        <InviteSection boardId={boardId} vimplToken={vimplToken} />
-      )}
 
       {showExport && (
         <VimplExportModal
@@ -290,6 +266,7 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
           processName={parsed?.process_name || 'Process Plan'}
           selectedImprovements={(improvements || []).filter(i => selectedIds.includes(i.id))}
           processDescription={processDescription}
+          invitees={invitees}
           onClose={() => setShowExport(false)}
           onExported={handleExportDone}
           vimplToken={vimplToken}
