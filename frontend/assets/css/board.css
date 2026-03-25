@@ -1,3 +1,39 @@
+        /* ── Language switcher ──────────────────────────────────────────── */
+        .lang-switcher {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 2px;
+        }
+
+        .lang-btn {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            padding: 3px 9px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+
+        .lang-btn:hover {
+            color: #65c434;
+            background: rgba(101, 196, 52, 0.08);
+        }
+
+        .lang-btn.active {
+            color: white;
+            background: #65c434;
+            box-shadow: 0 1px 3px rgba(101, 196, 52, 0.35);
+        }
+
         :root {
             /* Modern Color Palette (Restored) */
             --primary: #65c434;
