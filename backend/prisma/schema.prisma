@@ -48,6 +48,7 @@ model User {
   sessionsCreated  Session[]
   loginAudits      LoginAudit[]
   bpmnDiagrams     BpmnDiagram[]
+  flows            Flow[]
 
   @@map("users")
 }
@@ -227,6 +228,20 @@ model BpmnDiagram {
 
   @@index([userId])
   @@map("bpmn_diagrams")
+}
+
+model Flow {
+  id        String   @id  // client-generated UUID kept as PK
+  userId    String   @map("user_id")
+  name      String   // process_name for display
+  data      Json     // full flow state blob
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("flows")
 }
 
 model Lead {

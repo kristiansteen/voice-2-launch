@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import HelpModal from './components/HelpModal.jsx';
 import LangSwitcher from './components/LangSwitcher.jsx';
 import BurgerMenu from './components/BurgerMenu.jsx';
@@ -20,6 +20,7 @@ import {
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
+import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 
 const DEMO_TRANSCRIPT = `Interviewer: Can you walk me through the accounts payable invoice processing workflow from start to finish?
 
@@ -623,10 +624,12 @@ export default function App() {
     setBoardId(exportedBoardId);
     if (currentFlowId) {
       setFlows(prev => {
-        const updated = prev.map(f => f.id === currentFlowId
-          ? { ...f, board_id: exportedBoardId, board_url: url, updated_at: new Date().toISOString() }
-          : f
-        );
+        const updated = prev.map(f => {
+          if (f.id !== currentFlowId) return f;
+          const updatedFlow = { ...f, board_id: exportedBoardId, board_url: url, updated_at: new Date().toISOString() };
+          if (vimplToken && !f._demo) upsertFlow(vimplToken, updatedFlow).catch(() => {});
+          return updatedFlow;
+        });
         try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
         return updated;
       });
@@ -656,6 +659,21 @@ export default function App() {
   const [currentFlowId, setCurrentFlowId] = useState(() => {
     return localStorage.getItem(ACTIVE_KEY) || null;
   });
+
+  // ── Load flows from API on login ───────────────────────────────────
+  useEffect(() => {
+    if (!vimplToken) return;
+    fetchFlows(vimplToken).then(apiFlows => {
+      const remoteFlows = apiFlows.map(f => ({ ...f.data, id: f.id, updated_at: f.updatedAt }));
+      setFlows(prev => {
+        const remoteIds = new Set(remoteFlows.map(f => f.id));
+        const localOnly = prev.filter(f => !remoteIds.has(f.id) && !f._demo);
+        const merged = [...remoteFlows, ...localOnly];
+        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(merged)); } catch {}
+        return merged;
+      });
+    }).catch(() => {});
+  }, [vimplToken]); // eslint-disable-line
 
   const isSubscribed = vimplUser && (vimplUser.subscriptionTier === 'commercial' || vimplUser.subscriptionTier === 'enterprise');
   const canCreateFlow = isSubscribed || flows.filter(f => !f._demo).length === 0;
@@ -706,6 +724,7 @@ export default function App() {
   });
 
   // Panel 1 — Voice
+  const apiSaveTimer = useRef(null);
   const [transcript, setTranscript] = useState('');
   const [descParsing, setDescParsing] = useState(false);
   const [voiceError, setVoiceError] = useState(null);
@@ -850,27 +869,32 @@ export default function App() {
   useEffect(() => {
     if (!currentFlowId) return;
     if (!transcript && !xml && !parsed) return;
+    const base = flows.find(f => f.id === currentFlowId) || {};
+    const updatedFlow = {
+      ...base,
+      process_name: parsed?.process_name || processDescription?.process_name || base.process_name,
+      updated_at: new Date().toISOString(),
+      transcript, processDescription, parsed, xml,
+      improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
+      asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics,
+    };
     setFlows(prev => {
-      const updated = prev.map(f => f.id === currentFlowId
-        ? {
-            ...f,
-            process_name: parsed?.process_name || processDescription?.process_name || f.process_name,
-            updated_at: new Date().toISOString(),
-            transcript, processDescription, parsed, xml,
-            improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-            asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics,
-          }
-        : f
-      );
+      const updated = prev.map(f => f.id === currentFlowId ? updatedFlow : f);
       try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
+    // Debounced API sync (skip demo flows)
+    if (vimplToken && !base._demo) {
+      clearTimeout(apiSaveTimer.current);
+      apiSaveTimer.current = setTimeout(() => {
+        upsertFlow(vimplToken, updatedFlow).catch(() => {});
+      }, 2000);
+    }
   }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleOpenFlow(flowId) {
-    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
-    const flow = stored.find(f => f.id === flowId);
+    const flow = flows.find(f => f.id === flowId);
     if (!flow) return;
     loadFlowIntoState(flow);
     setCurrentFlowId(flowId);
@@ -899,6 +923,7 @@ export default function App() {
       try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
+    if (vimplToken) upsertFlow(vimplToken, newFlow).catch(() => {});
     // Reset all content state
     setTranscript('');
     setProcessDescription(null);
@@ -957,14 +982,14 @@ export default function App() {
   }
 
   async function handleDeleteFlow(flowId, deleteBoard) {
-    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
-    const flow = stored.find(f => f.id === flowId);
+    const flow = flows.find(f => f.id === flowId);
     if (deleteBoard && flow?.board_id && vimplToken) {
       await fetch(`${BACKEND_URL}/api/v1/boards/${flow.board_id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${vimplToken}` },
       }).catch(() => {});
     }
+    if (vimplToken && !flow?._demo) apiDeleteFlow(vimplToken, flowId).catch(() => {});
     setFlows(prev => {
       const updated = prev.filter(f => f.id !== flowId);
       try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
