@@ -36,3 +36,6 @@ prisma/*.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Local clones of related repos (not part of this repo)
+vimpl-backend/
