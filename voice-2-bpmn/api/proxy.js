@@ -20,9 +20,33 @@ async function validateToken(token) {
   }
 
   const meData = await meRes.json().catch(() => ({}));
-  const tier = meData?.user?.subscriptionTier ?? 'trial';
+  const tier = meData?.user?.subscriptionTier ?? 'student';
   authCache.set(token, { tier, expiresAt: now + AUTH_CACHE_TTL_MS });
   return tier;
+}
+
+// ── Usage check — enforce daily per-user limits ───────────────────────────────
+// Fire-and-forget if the usage endpoint is unavailable (fail open so a logging
+// outage never blocks paying users). Returns false only on an explicit 429.
+async function checkUsageLimit(token) {
+  try {
+    const res = await fetch(`${process.env.VIMPL_BACKEND_URL}/api/v1/usage/check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ endpoint: 'proxy' }),
+    });
+    if (res.status === 429) {
+      const body = await res.json().catch(() => ({}));
+      return { allowed: false, message: body.message || 'Daily limit reached.' };
+    }
+    return { allowed: true };
+  } catch {
+    // Usage service unavailable — fail open
+    return { allowed: true };
+  }
 }
 
 export default async function handler(req, res) {
@@ -40,12 +64,18 @@ export default async function handler(req, res) {
   const tier = await validateToken(token);
   if (tier === null) return res.status(401).json({ error: 'Invalid token' });
 
-  // ── Quota enforcement for trial users ───────────────────────────
-  if (tier === 'trial') {
+  // ── Quota enforcement for student (free) users ───────────────────
+  if (tier === 'student') {
     const flowCount = parseInt(req.headers['x-flow-count'] || '0', 10);
     if (flowCount > 1) {
       return res.status(402).json({ error: 'Flow limit reached. Upgrade to create more flows.' });
     }
+  }
+
+  // ── Daily usage limit check ──────────────────────────────────────
+  const usage = await checkUsageLimit(token);
+  if (!usage.allowed) {
+    return res.status(429).json({ error: usage.message });
   }
 
   // ── Forward to Anthropic ────────────────────────────────────────
