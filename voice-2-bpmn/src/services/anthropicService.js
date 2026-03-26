@@ -29,6 +29,35 @@ function makeClient(apiKey, proxyAuth = null) {
   };
 }
 
+// ── JSON parse with single auto-retry ─────────────────────────────────────────
+// If Claude's response isn't valid JSON, send one follow-up asking it to fix the
+// output, then try again. Throws on second failure.
+async function parseJsonWithRetry(client, params, rawText) {
+  const cleaned = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Retry: ask Claude to return only the JSON
+    const retryMessage = await client.messages.create({
+      ...params,
+      messages: [
+        ...params.messages,
+        { role: 'assistant', content: rawText },
+        { role: 'user', content: 'Your response was not valid JSON. Return ONLY the JSON object/array with no explanation, markdown, or preamble.' },
+      ],
+    });
+    const retryText = retryMessage.content[0].text.trim();
+    const retryCleaned = retryText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+    try {
+      return JSON.parse(retryCleaned);
+    } catch {
+      const err = new Error('Failed to parse Claude response as JSON after retry');
+      err.rawResponse = retryText;
+      throw err;
+    }
+  }
+}
+
 const SUGGESTIONS_PROMPT = `You are a BPMN process improvement expert. Analyse the following BPMN process JSON and provide concise, actionable improvement suggestions.
 
 Focus on:
@@ -160,25 +189,14 @@ export async function parseTranscript(transcript, apiKey, processContext = {}, p
       system;
   }
 
-  const message = await client.messages.create({
+  const params = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4000,
     system,
     messages: [{ role: 'user', content: transcript }],
-  });
-
-  const text = message.content[0].text.trim();
-
-  // Strip markdown code fences if present
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse LLM response as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  return parseJsonWithRetry(client, params, message.content[0].text.trim());
 }
 
 export async function getSuggestions(parsed, apiKey, proxyAuth = null) {
@@ -209,23 +227,14 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
       system;
   }
 
-  const message = await client.messages.create({
+  const params = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 3000,
     system,
     messages: [{ role: 'user', content: transcript }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse description as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  return parseJsonWithRetry(client, params, message.content[0].text.trim());
 }
 
 export async function parseToBpmn(description, apiKey, processContext = {}, proxyAuth = null) {
@@ -239,45 +248,27 @@ export async function parseToBpmn(description, apiKey, processContext = {}, prox
       system;
   }
 
-  const message = await client.messages.create({
+  const params = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4000,
     system,
     messages: [{ role: 'user', content: `Extract BPMN elements from this structured process description:\n\n${JSON.stringify(description, null, 2)}` }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse BPMN JSON from description');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  return parseJsonWithRetry(client, params, message.content[0].text.trim());
 }
 
 export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null) {
   const client = makeClient(apiKey, proxyAuth);
 
-  const message = await client.messages.create({
+  const params = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 3000,
     system: IMPROVEMENTS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(parsed, null, 2) }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse improvements as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  return parseJsonWithRetry(client, params, message.content[0].text.trim());
 }
 
 export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null, startDate = null, durationWeeks = 14) {
@@ -291,23 +282,14 @@ export async function generateProjectPlan(parsed, selectedImprovements, apiKey, 
     ...(knownRisks.length > 0 ? { known_risks: knownRisks } : {}),
   };
 
-  const message = await client.messages.create({
+  const params = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4000,
     system: PROJECT_PLAN_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse project plan as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  return parseJsonWithRetry(client, params, message.content[0].text.trim());
 }
 
 // ── TO-BE BPMN Generation ─────────────────────────────────────────────────────
@@ -335,23 +317,14 @@ export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAu
     improvements: improvements.map(i => ({ title: i.title, description: i.description, category: i.category })),
   };
 
-  const message = await client.messages.create({
+  const params = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4000,
     system: TO_BE_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse TO-BE BPMN as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  return parseJsonWithRetry(client, params, message.content[0].text.trim());
 }
 
 // ── Process Metrics Extraction ────────────────────────────────────────────────
