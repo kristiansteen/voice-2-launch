@@ -5,6 +5,35 @@ import Anthropic from '@anthropic-ai/sdk';
 const MODEL_SONNET = 'claude-sonnet-4-20250514';
 const MODEL_HAIKU  = 'claude-haiku-4-5-20251001';
 
+// ── Response cache ─────────────────────────────────────────────────────────────
+// Caches parsed Claude responses in localStorage keyed by a hash of the inputs.
+// TTL: 24 hours. Prevents redundant API calls when the same inputs are re-submitted.
+const CACHE_PREFIX = 'voice2bpmn_llm_cache_';
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function _hashKey(input) {
+  const str = JSON.stringify(input);
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return CACHE_PREFIX + Math.abs(h).toString(36);
+}
+
+function _readCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const { result, expiresAt } = JSON.parse(raw);
+    if (Date.now() > expiresAt) { localStorage.removeItem(key); return null; }
+    return result;
+  } catch { return null; }
+}
+
+function _writeCache(key, result) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ result, expiresAt: Date.now() + CACHE_TTL_MS }));
+  } catch { /* storage quota exceeded — skip caching */ }
+}
+
 // ── Client factory ────────────────────────────────────────────────────────────
 // Returns either a real Anthropic client (BYOK) or a proxy shim (vimpl auth).
 function makeClient(apiKey, proxyAuth = null) {
@@ -222,6 +251,9 @@ export async function getSuggestions(parsed, apiKey, proxyAuth = null) {
 }
 
 export async function parseVoiceToDescription(transcript, apiKey, processContext = {}, proxyAuth = null) {
+  const ck = _hashKey({ fn: 'parseVoiceToDescription', transcript, processContext });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   let system = DESCRIPTION_PROMPT;
@@ -243,10 +275,15 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
     messages: [{ role: 'user', content: transcript }],
   };
   const message = await client.messages.create(params);
-  return parseJsonWithRetry(client, params, message.content[0].text.trim());
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 export async function parseToBpmn(description, apiKey, processContext = {}, proxyAuth = null) {
+  const ck = _hashKey({ fn: 'parseToBpmn', description, processContext });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   let system = SYSTEM_PROMPT;
@@ -264,10 +301,15 @@ export async function parseToBpmn(description, apiKey, processContext = {}, prox
     messages: [{ role: 'user', content: `Extract BPMN elements from this structured process description:\n\n${JSON.stringify(description, null, 2)}` }],
   };
   const message = await client.messages.create(params);
-  return parseJsonWithRetry(client, params, message.content[0].text.trim());
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null) {
+  const ck = _hashKey({ fn: 'getStructuredImprovements', parsed });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   const params = {
@@ -277,10 +319,15 @@ export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null
     messages: [{ role: 'user', content: JSON.stringify(parsed, null, 2) }],
   };
   const message = await client.messages.create(params);
-  return parseJsonWithRetry(client, params, message.content[0].text.trim());
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null, startDate = null, durationWeeks = 14) {
+  const ck = _hashKey({ fn: 'generateProjectPlan', parsed, selectedImprovements, knownRisks, startDate, durationWeeks });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   const input = {
@@ -298,7 +345,9 @@ export async function generateProjectPlan(parsed, selectedImprovements, apiKey, 
     messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
   };
   const message = await client.messages.create(params);
-  return parseJsonWithRetry(client, params, message.content[0].text.trim());
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 // ── TO-BE BPMN Generation ─────────────────────────────────────────────────────
@@ -319,6 +368,9 @@ Rules:
 - Set process_name to the original name suffixed with " — TO-BE"`;
 
 export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAuth = null) {
+  const ck = _hashKey({ fn: 'generateToBeBpmn', asIsParsed, improvements });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   const input = {
@@ -333,7 +385,9 @@ export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAu
     messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
   };
   const message = await client.messages.create(params);
-  return parseJsonWithRetry(client, params, message.content[0].text.trim());
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 // ── Process Metrics Extraction ────────────────────────────────────────────────
