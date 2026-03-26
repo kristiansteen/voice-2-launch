@@ -14,13 +14,17 @@ function makeClient(apiKey, proxyAuth = null) {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${proxyAuth.token}`,
+            ...(proxyAuth.flowCount != null ? { 'X-Flow-Count': String(proxyAuth.flowCount) } : {}),
           },
           body: JSON.stringify(params),
         });
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || 'Proxy error');
+          const message = res.status === 402
+            ? (err.error || 'Flow limit reached. Upgrade your plan to create more flows.')
+            : (err.error || 'Proxy error');
+          throw new Error(message);
         }
 
         return res.json();

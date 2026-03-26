@@ -624,7 +624,9 @@ export default function App() {
   }
 
   function getProxyAuth() {
-    return vimplToken ? { token: vimplToken } : null;
+    if (!vimplToken) return null;
+    const nonDemoFlowCount = flows.filter(f => !f._demo).length;
+    return { token: vimplToken, flowCount: nonDemoFlowCount };
   }
 
   const effectiveApiKey = null;
