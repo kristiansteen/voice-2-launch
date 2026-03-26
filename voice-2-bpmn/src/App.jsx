@@ -709,6 +709,7 @@ export default function App() {
   const [processDescription, setProcessDescription] = useState(null);
   const [bpmnParsing, setBpmnParsing] = useState(false);
   const lastParsedDescriptionRef = useRef(null);
+  const prefetchedImprovementsRef = useRef(null);
 
   // Panel 3 — Diagram (parsed BPMN JSON + XML)
   const [parsed, setParsed] = useState(null);
@@ -1030,6 +1031,7 @@ export default function App() {
     setSelectedImprovementIds([]);
     setProjectPlan(null);
     lastParsedDescriptionRef.current = null;
+    prefetchedImprovementsRef.current = null;
     try {
       const desc = await parseVoiceToDescription(getEffectiveTranscript(), effectiveApiKey, processContext, getProxyAuth());
       setProcessDescription(desc);
@@ -1070,16 +1072,20 @@ export default function App() {
       const generatedXml = generateBpmnXml(bpmnJson);
       setXml(generatedXml);
       lastParsedDescriptionRef.current = descriptionKey;
+      prefetchedImprovementsRef.current = null;
       setActivePanel(3);
-      // Background: extract AS-IS metrics from transcript
+      // Background: extract AS-IS metrics + pre-fetch improvements in parallel
       const _transcript = getEffectiveTranscript();
       const _apiKey = effectiveApiKey;
       const _proxyAuth = getProxyAuth();
       setMetricsLoading(true);
-      extractProcessMetrics(bpmnJson, _transcript, _apiKey, _proxyAuth)
-        .then(m => { if (m) setAsIsMetrics(m); })
-        .catch(() => {})
-        .finally(() => setMetricsLoading(false));
+      Promise.all([
+        extractProcessMetrics(bpmnJson, _transcript, _apiKey, _proxyAuth).catch(() => null),
+        getStructuredImprovements(bpmnJson, _apiKey, _proxyAuth).catch(() => null),
+      ]).then(([metrics, improvements]) => {
+        if (metrics) setAsIsMetrics(metrics);
+        if (improvements) prefetchedImprovementsRef.current = improvements;
+      }).finally(() => setMetricsLoading(false));
     } finally {
       setBpmnParsing(false);
     }
@@ -1092,7 +1098,9 @@ export default function App() {
       setActivePanel(4);
       return;
     }
-    const result = await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth());
+    const result = prefetchedImprovementsRef.current
+      || await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth());
+    prefetchedImprovementsRef.current = null;
     setImprovements(result);
     setSelectedImprovementIds([]);
     setActivePanel(4);
