@@ -706,6 +706,7 @@ export default function App() {
   // Panel 2 — Description
   const [processDescription, setProcessDescription] = useState(null);
   const [bpmnParsing, setBpmnParsing] = useState(false);
+  const lastParsedDescriptionRef = useRef(null);
 
   // Panel 3 — Diagram (parsed BPMN JSON + XML)
   const [parsed, setParsed] = useState(null);
@@ -1026,6 +1027,7 @@ export default function App() {
     setImprovements(null);
     setSelectedImprovementIds([]);
     setProjectPlan(null);
+    lastParsedDescriptionRef.current = null;
     try {
       const desc = await parseVoiceToDescription(getEffectiveTranscript(), effectiveApiKey, processContext, getProxyAuth());
       setProcessDescription(desc);
@@ -1047,6 +1049,11 @@ export default function App() {
       setActivePanel(3);
       return;
     }
+    const descriptionKey = JSON.stringify(processDescription);
+    if (lastParsedDescriptionRef.current === descriptionKey && parsed && xml) {
+      setActivePanel(3);
+      return;
+    }
     setBpmnParsing(true);
     setParsed(null);
     setXml(null);
@@ -1060,6 +1067,7 @@ export default function App() {
       setParsed(bpmnJson);
       const generatedXml = generateBpmnXml(bpmnJson);
       setXml(generatedXml);
+      lastParsedDescriptionRef.current = descriptionKey;
       setActivePanel(3);
       // Background: extract AS-IS metrics from transcript
       const _transcript = getEffectiveTranscript();
