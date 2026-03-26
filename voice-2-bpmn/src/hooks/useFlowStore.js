@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const FLOWS_KEY = 'voice2bpmn_flows';
 const ACTIVE_KEY = 'voice2bpmn_active';
 const BACKEND_URL = 'https://backend-eight-rho-46.vercel.app';
 const PRICING_URL = 'https://frontend-puce-ten-18.vercel.app/pricing';
+const FLOWS_API = '/api/flows';
+const REMOTE_SAVE_DEBOUNCE_MS = 2000;
 
 function blankFlowState() {
   return {
@@ -26,6 +28,38 @@ function blankFlowState() {
     board_id: null,
   };
 }
+
+// ── Remote helpers ────────────────────────────────────────────────────────────
+
+async function apiFetchFlows(token) {
+  const res = await fetch(FLOWS_API, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  return res.json().catch(() => null);
+}
+
+async function apiUpsertFlow(token, flow) {
+  const { id, process_name, created_at, updated_at, _demo, ...data } = flow;
+  if (_demo) return; // never persist demo flows to server
+  await fetch(FLOWS_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ id, process_name, created_at, updated_at, ...data }),
+  }).catch(() => {}); // fire-and-forget; localStorage is source of truth
+}
+
+async function apiDeleteFlow(token, flowId) {
+  await fetch(`${FLOWS_API}?id=${encodeURIComponent(flowId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => {});
+}
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
 
 // Owns all flow data state, persistence, and flow navigation.
 // UI-only state (loading spinners, modal visibility, active panel) stays in App.jsx.
@@ -62,6 +96,9 @@ export function useFlowStore({ vimplToken, vimplUser }) {
   const [toBeMetrics, setToBeMetrics] = useState(null);
   const [boardUrl, setBoardUrl] = useState(null);
   const [boardId, setBoardId] = useState(null);
+
+  // ── Remote sync ref (debounce timer) ─────────────────────────────
+  const remoteSaveTimer = useRef(null);
 
   // ── Derived values ────────────────────────────────────────────────
   const currentFlow = flows.find(f => f.id === currentFlowId);
@@ -128,7 +165,36 @@ export function useFlowStore({ vimplToken, vimplUser }) {
     if (flow) loadFlowIntoState(flow);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Fetch flows from server when token becomes available ──────────
+  // Merges server flows with any local-only flows (e.g. created offline).
+  useEffect(() => {
+    if (!vimplToken) return;
+    apiFetchFlows(vimplToken).then(serverFlows => {
+      if (!Array.isArray(serverFlows)) return;
+      setFlows(prev => {
+        // Build a map of server flows by id
+        const serverMap = new Map(serverFlows.map(f => [f.id, f]));
+        // Preserve local-only flows (demo flows or flows not yet pushed)
+        const localOnly = prev.filter(f => f._demo || !serverMap.has(f.id));
+        // Server flows take precedence for shared ids
+        const merged = [...serverFlows, ...localOnly];
+        // Sort by updated_at desc
+        merged.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(merged)); } catch {}
+
+        // If the active flow came from the server, refresh its content state
+        const activeId = localStorage.getItem(ACTIVE_KEY);
+        if (activeId) {
+          const refreshed = serverMap.get(activeId);
+          if (refreshed) loadFlowIntoState(refreshed);
+        }
+        return merged;
+      });
+    });
+  }, [vimplToken]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Auto-save current flow whenever content state changes ─────────
+  // Writes to localStorage immediately; debounces the remote upsert 2s.
   useEffect(() => {
     if (!currentFlowId) return;
     if (!transcript && !xml && !parsed) return;
@@ -145,6 +211,18 @@ export function useFlowStore({ vimplToken, vimplUser }) {
         : f
       );
       try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+
+      // Debounced remote save — only when authenticated
+      if (vimplToken) {
+        if (remoteSaveTimer.current) clearTimeout(remoteSaveTimer.current);
+        const flow = updated.find(f => f.id === currentFlowId);
+        if (flow) {
+          remoteSaveTimer.current = setTimeout(() => {
+            apiUpsertFlow(vimplToken, flow);
+          }, REMOTE_SAVE_DEBOUNCE_MS);
+        }
+      }
+
       return updated;
     });
   }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics]); // eslint-disable-line
@@ -192,6 +270,10 @@ export function useFlowStore({ vimplToken, vimplUser }) {
           : f
         );
         try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        if (vimplToken) {
+          const flow = updated.find(f => f.id === currentFlowId);
+          if (flow) apiUpsertFlow(vimplToken, flow);
+        }
         return updated;
       });
     }
@@ -205,6 +287,10 @@ export function useFlowStore({ vimplToken, vimplUser }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${vimplToken}` },
       }).catch(() => {});
+    }
+    // Delete from server (if authenticated and not a demo flow)
+    if (vimplToken && !flow?._demo) {
+      apiDeleteFlow(vimplToken, flowId);
     }
     setFlows(prev => {
       const updated = prev.filter(f => f.id !== flowId);
@@ -227,6 +313,10 @@ export function useFlowStore({ vimplToken, vimplUser }) {
           : f
         );
         try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        if (vimplToken) {
+          const flow = updated.find(f => f.id === currentFlowId);
+          if (flow) apiUpsertFlow(vimplToken, flow);
+        }
         return updated;
       });
     }
