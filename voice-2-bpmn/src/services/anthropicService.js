@@ -1,5 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+// ── Model selection ────────────────────────────────────────────────────────────
+// Sonnet for high-fidelity extraction; Haiku for estimation / conversational tasks
+const MODEL_SONNET = 'claude-sonnet-4-20250514';
+const MODEL_HAIKU  = 'claude-haiku-4-5-20251001';
+
 // ── Client factory ────────────────────────────────────────────────────────────
 // Returns either a real Anthropic client (BYOK) or a proxy shim (vimpl auth).
 function makeClient(apiKey, proxyAuth = null) {
@@ -194,7 +199,7 @@ export async function parseTranscript(transcript, apiKey, processContext = {}, p
   }
 
   const params = {
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_SONNET,
     max_tokens: 4000,
     system,
     messages: [{ role: 'user', content: transcript }],
@@ -207,7 +212,7 @@ export async function getSuggestions(parsed, apiKey, proxyAuth = null) {
   const client = makeClient(apiKey, proxyAuth);
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_SONNET,
     max_tokens: 2000,
     system: SUGGESTIONS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(parsed, null, 2) }],
@@ -232,7 +237,7 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
   }
 
   const params = {
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_SONNET,
     max_tokens: 3000,
     system,
     messages: [{ role: 'user', content: transcript }],
@@ -253,7 +258,7 @@ export async function parseToBpmn(description, apiKey, processContext = {}, prox
   }
 
   const params = {
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_SONNET,
     max_tokens: 4000,
     system,
     messages: [{ role: 'user', content: `Extract BPMN elements from this structured process description:\n\n${JSON.stringify(description, null, 2)}` }],
@@ -266,7 +271,7 @@ export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null
   const client = makeClient(apiKey, proxyAuth);
 
   const params = {
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_SONNET,
     max_tokens: 3000,
     system: IMPROVEMENTS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(parsed, null, 2) }],
@@ -287,7 +292,7 @@ export async function generateProjectPlan(parsed, selectedImprovements, apiKey, 
   };
 
   const params = {
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_SONNET,
     max_tokens: 4000,
     system: PROJECT_PLAN_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
@@ -322,7 +327,7 @@ export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAu
   };
 
   const params = {
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_SONNET,
     max_tokens: 4000,
     system: TO_BE_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
@@ -389,7 +394,7 @@ export async function extractProcessMetrics(parsed, transcript, apiKey, proxyAut
   }
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_HAIKU,
     max_tokens: 2000,
     system: METRICS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify({ process: parsed, gateway_branches: gatewayBranches, transcript: transcript || '' }) }],
@@ -410,7 +415,7 @@ export async function estimateToBeMetrics(asParsed, toBeParsed, asIsMetrics, imp
   }
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_HAIKU,
     max_tokens: 2000,
     system: TOBE_METRICS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify({
@@ -484,7 +489,7 @@ General guidelines:
   ];
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_HAIKU,
     max_tokens: 120,
     system: systemPrompt,
     messages,
