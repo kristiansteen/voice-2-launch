@@ -1,5 +1,39 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+// ── Model selection ────────────────────────────────────────────────────────────
+// Sonnet for high-fidelity extraction; Haiku for estimation / conversational tasks
+const MODEL_SONNET = 'claude-sonnet-4-20250514';
+const MODEL_HAIKU  = 'claude-haiku-4-5-20251001';
+
+// ── Response cache ─────────────────────────────────────────────────────────────
+// Caches parsed Claude responses in localStorage keyed by a hash of the inputs.
+// TTL: 24 hours. Prevents redundant API calls when the same inputs are re-submitted.
+const CACHE_PREFIX = 'voice2bpmn_llm_cache_';
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function _hashKey(input) {
+  const str = JSON.stringify(input);
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return CACHE_PREFIX + Math.abs(h).toString(36);
+}
+
+function _readCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const { result, expiresAt } = JSON.parse(raw);
+    if (Date.now() > expiresAt) { localStorage.removeItem(key); return null; }
+    return result;
+  } catch { return null; }
+}
+
+function _writeCache(key, result) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ result, expiresAt: Date.now() + CACHE_TTL_MS }));
+  } catch { /* storage quota exceeded — skip caching */ }
+}
+
 // ── Client factory ────────────────────────────────────────────────────────────
 // Returns either a real Anthropic client (BYOK) or a proxy shim (vimpl auth).
 function makeClient(apiKey, proxyAuth = null) {
@@ -14,19 +48,52 @@ function makeClient(apiKey, proxyAuth = null) {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${proxyAuth.token}`,
+            ...(proxyAuth.flowCount != null ? { 'X-Flow-Count': String(proxyAuth.flowCount) } : {}),
           },
           body: JSON.stringify(params),
         });
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || 'Proxy error');
+          const message = res.status === 402
+            ? (err.error || 'Flow limit reached. Upgrade your plan to create more flows.')
+            : (err.error || 'Proxy error');
+          throw new Error(message);
         }
 
         return res.json();
       },
     },
   };
+}
+
+// ── JSON parse with single auto-retry ─────────────────────────────────────────
+// If Claude's response isn't valid JSON, send one follow-up asking it to fix the
+// output, then try again. Throws on second failure.
+async function parseJsonWithRetry(client, params, rawText) {
+  const cleaned = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Retry: ask Claude to return only the JSON
+    const retryMessage = await client.messages.create({
+      ...params,
+      messages: [
+        ...params.messages,
+        { role: 'assistant', content: rawText },
+        { role: 'user', content: 'Your response was not valid JSON. Return ONLY the JSON object/array with no explanation, markdown, or preamble.' },
+      ],
+    });
+    const retryText = retryMessage.content[0].text.trim();
+    const retryCleaned = retryText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+    try {
+      return JSON.parse(retryCleaned);
+    } catch {
+      const err = new Error('Failed to parse Claude response as JSON after retry');
+      err.rawResponse = retryText;
+      throw err;
+    }
+  }
 }
 
 const SUGGESTIONS_PROMPT = `You are a BPMN process improvement expert. Analyse the following BPMN process JSON and provide concise, actionable improvement suggestions.
@@ -160,32 +227,21 @@ export async function parseTranscript(transcript, apiKey, processContext = {}, p
       system;
   }
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const params = {
+    model: MODEL_SONNET,
     max_tokens: 4000,
     system,
     messages: [{ role: 'user', content: transcript }],
-  });
-
-  const text = message.content[0].text.trim();
-
-  // Strip markdown code fences if present
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse LLM response as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  return parseJsonWithRetry(client, params, message.content[0].text.trim());
 }
 
 export async function getSuggestions(parsed, apiKey, proxyAuth = null) {
   const client = makeClient(apiKey, proxyAuth);
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_SONNET,
     max_tokens: 2000,
     system: SUGGESTIONS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(parsed, null, 2) }],
@@ -195,6 +251,9 @@ export async function getSuggestions(parsed, apiKey, proxyAuth = null) {
 }
 
 export async function parseVoiceToDescription(transcript, apiKey, processContext = {}, proxyAuth = null) {
+  const ck = _hashKey({ fn: 'parseVoiceToDescription', transcript, processContext });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   let system = DESCRIPTION_PROMPT;
@@ -209,26 +268,22 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
       system;
   }
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const params = {
+    model: MODEL_SONNET,
     max_tokens: 3000,
     system,
     messages: [{ role: 'user', content: transcript }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse description as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 export async function parseToBpmn(description, apiKey, processContext = {}, proxyAuth = null) {
+  const ck = _hashKey({ fn: 'parseToBpmn', description, processContext });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   let system = SYSTEM_PROMPT;
@@ -239,48 +294,40 @@ export async function parseToBpmn(description, apiKey, processContext = {}, prox
       system;
   }
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const params = {
+    model: MODEL_SONNET,
     max_tokens: 4000,
     system,
     messages: [{ role: 'user', content: `Extract BPMN elements from this structured process description:\n\n${JSON.stringify(description, null, 2)}` }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse BPMN JSON from description');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null) {
+  const ck = _hashKey({ fn: 'getStructuredImprovements', parsed });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const params = {
+    model: MODEL_SONNET,
     max_tokens: 3000,
     system: IMPROVEMENTS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(parsed, null, 2) }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse improvements as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 export async function generateProjectPlan(parsed, selectedImprovements, apiKey, knownRisks = [], proxyAuth = null, startDate = null, durationWeeks = 14) {
+  const ck = _hashKey({ fn: 'generateProjectPlan', parsed, selectedImprovements, knownRisks, startDate, durationWeeks });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   const input = {
@@ -291,23 +338,16 @@ export async function generateProjectPlan(parsed, selectedImprovements, apiKey, 
     ...(knownRisks.length > 0 ? { known_risks: knownRisks } : {}),
   };
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const params = {
+    model: MODEL_SONNET,
     max_tokens: 4000,
     system: PROJECT_PLAN_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse project plan as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 // ── TO-BE BPMN Generation ─────────────────────────────────────────────────────
@@ -328,6 +368,9 @@ Rules:
 - Set process_name to the original name suffixed with " — TO-BE"`;
 
 export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAuth = null) {
+  const ck = _hashKey({ fn: 'generateToBeBpmn', asIsParsed, improvements });
+  const cached = _readCache(ck);
+  if (cached) return cached;
   const client = makeClient(apiKey, proxyAuth);
 
   const input = {
@@ -335,23 +378,16 @@ export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAu
     improvements: improvements.map(i => ({ title: i.title, description: i.description, category: i.category })),
   };
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const params = {
+    model: MODEL_SONNET,
     max_tokens: 4000,
     system: TO_BE_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
-  });
-
-  const text = message.content[0].text.trim();
-  const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const err = new Error('Failed to parse TO-BE BPMN as JSON');
-    err.rawResponse = text;
-    throw err;
-  }
+  };
+  const message = await client.messages.create(params);
+  const result = await parseJsonWithRetry(client, params, message.content[0].text.trim());
+  _writeCache(ck, result);
+  return result;
 }
 
 // ── Process Metrics Extraction ────────────────────────────────────────────────
@@ -412,7 +448,7 @@ export async function extractProcessMetrics(parsed, transcript, apiKey, proxyAut
   }
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_HAIKU,
     max_tokens: 2000,
     system: METRICS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify({ process: parsed, gateway_branches: gatewayBranches, transcript: transcript || '' }) }],
@@ -433,7 +469,7 @@ export async function estimateToBeMetrics(asParsed, toBeParsed, asIsMetrics, imp
   }
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_HAIKU,
     max_tokens: 2000,
     system: TOBE_METRICS_PROMPT,
     messages: [{ role: 'user', content: JSON.stringify({
@@ -507,7 +543,7 @@ General guidelines:
   ];
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: MODEL_HAIKU,
     max_tokens: 120,
     system: systemPrompt,
     messages,

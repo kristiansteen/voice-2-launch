@@ -135,8 +135,16 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={containerRef} className="bpmn-container" style={{ width: '100%', height: '100%' }} />
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 text-sm p-4 text-center">
-          Diagram render error: {error}
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-50 p-6 text-center gap-3">
+          <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-sm font-medium text-red-700">We couldn't render this diagram.</p>
+          <p className="text-xs text-red-500">Try re-generating the diagram from the description panel.</p>
+          <details className="text-xs text-red-400 max-w-xs">
+            <summary className="cursor-pointer hover:text-red-600">Technical details</summary>
+            <p className="mt-1 text-left font-mono break-all">{error}</p>
+          </details>
         </div>
       )}
     </div>

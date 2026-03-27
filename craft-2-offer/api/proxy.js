@@ -1,8 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 // ── In-memory JWT validation cache ───────────────────────────────────────────
-// Keyed by token, value: { tier, expiresAt }. Cuts one round-trip to the vimpl
-// backend per pipeline step after the first call in a session.
 const AUTH_CACHE_TTL_MS = 60_000;
 const authCache = new Map();
 
@@ -16,7 +14,7 @@ async function validateToken(token) {
   });
   if (!meRes.ok) {
     authCache.delete(token);
-    return null; // invalid
+    return null;
   }
 
   const meData = await meRes.json().catch(() => ({}));
@@ -26,8 +24,7 @@ async function validateToken(token) {
 }
 
 // ── Usage check — enforce daily per-user limits ───────────────────────────────
-// Fire-and-forget if the usage endpoint is unavailable (fail open so a logging
-// outage never blocks paying users). Returns false only on an explicit 429.
+// Tracked separately from voice-2-launch using endpoint='aison'
 async function checkUsageLimit(token) {
   try {
     const res = await fetch(`${process.env.VIMPL_BACKEND_URL}/api/v1/usage/check`, {
@@ -36,11 +33,11 @@ async function checkUsageLimit(token) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ endpoint: 'proxy' }),
+      body: JSON.stringify({ endpoint: 'aison' }),
     });
     if (res.status === 429) {
       const body = await res.json().catch(() => ({}));
-      return { allowed: false, message: body.message || 'Daily limit reached.' };
+      return { allowed: false, message: body.message || 'Daglig grænse nået.' };
     }
     return { allowed: true };
   } catch {
@@ -52,25 +49,17 @@ async function checkUsageLimit(token) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Flow-Count');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
   // ── Auth — verify against vimpl backend (cached 60s) ────────────
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  if (!token) return res.status(401).json({ error: 'Ikke autoriseret' });
 
   const tier = await validateToken(token);
-  if (tier === null) return res.status(401).json({ error: 'Invalid token' });
-
-  // ── Quota enforcement for student (free) users ───────────────────
-  if (tier === 'student') {
-    const flowCount = parseInt(req.headers['x-flow-count'] || '0', 10);
-    if (flowCount > 1) {
-      return res.status(402).json({ error: 'Flow limit reached. Upgrade to create more flows.' });
-    }
-  }
+  if (tier === null) return res.status(401).json({ error: 'Ugyldigt token' });
 
   // ── Daily usage limit check ──────────────────────────────────────
   const usage = await checkUsageLimit(token);

@@ -20,6 +20,7 @@ import {
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
+import { useFlowStore } from './hooks/useFlowStore.js';
 
 const DEMO_TRANSCRIPT = `Interviewer: Can you walk me through the accounts payable invoice processing workflow from start to finish?
 
@@ -529,31 +530,6 @@ function PanelShell({ num, label, children }) {
   );
 }
 
-const FLOWS_KEY = 'voice2bpmn_flows';
-const ACTIVE_KEY = 'voice2bpmn_active';
-const PRICING_URL = 'https://frontend-puce-ten-18.vercel.app/pricing';
-
-function blankFlowState() {
-  return {
-    transcript: '',
-    processDescription: null,
-    parsed: null,
-    xml: null,
-    improvements: null,
-    selectedImprovementIds: [],
-    customRisks: [],
-    projectPlan: null,
-    processContext: { apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null },
-    asIsXml: null,
-    asIsParsed: null,
-    toBeXml: null,
-    toBeParsed: null,
-    asIsMetrics: null,
-    toBeMetrics: null,
-    board_url: null,
-    board_id: null,
-  };
-}
 
 // Build a structured "Interviewer / SME" transcript from Ailean conversation turns.
 function buildStructuredTranscript(turns, currentDraft) {
@@ -582,8 +558,6 @@ export default function App() {
     catch { return null; }
   });
   const [vimplUser, setVimplUser] = useState(null);
-  const [boardUrl, setBoardUrl] = useState(null);
-  const [boardId, setBoardId] = useState(null);
 
   // Fetch vimpl user info — on login and whenever the tab regains focus
   // (so subscription upgrades made on the pricing page are picked up immediately)
@@ -608,23 +582,40 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vimplToken]);
 
-  function handleExported(exportedBoardId, url) {
-    setBoardUrl(url);
-    setBoardId(exportedBoardId);
-    if (currentFlowId) {
-      setFlows(prev => {
-        const updated = prev.map(f => f.id === currentFlowId
-          ? { ...f, board_id: exportedBoardId, board_url: url, updated_at: new Date().toISOString() }
-          : f
-        );
-        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
-        return updated;
-      });
-    }
-  }
+  // ── Flow store ─────────────────────────────────────────────────────
+  const {
+    flows, setFlows,
+    currentFlowId, setCurrentFlowId,
+    currentFlow, isDemoFlow, canCreateFlow, isSubscribed,
+    transcript, setTranscript,
+    processDescription, setProcessDescription,
+    processContext, setProcessContext,
+    parsed, setParsed,
+    xml, setXml,
+    improvements, setImprovements,
+    selectedImprovementIds, setSelectedImprovementIds,
+    customRisks, setCustomRisks,
+    projectPlan, setProjectPlan,
+    asIsXml, setAsIsXml,
+    asIsParsed, setAsIsParsed,
+    toBeXml, setToBeXml,
+    toBeParsed, setToBeParsed,
+    asIsMetrics, setAsIsMetrics,
+    toBeMetrics, setToBeMetrics,
+    boardUrl, setBoardUrl,
+    boardId, setBoardId,
+    handleOpenFlow,
+    handleCreateFlow,
+    handleBackToDashboard,
+    handleClearCurrentFlow,
+    handleDeleteFlow,
+    handleExported,
+  } = useFlowStore({ vimplToken, vimplUser });
 
   function getProxyAuth() {
-    return vimplToken ? { token: vimplToken } : null;
+    if (!vimplToken) return null;
+    const nonDemoFlowCount = flows.filter(f => !f._demo).length;
+    return { token: vimplToken, flowCount: nonDemoFlowCount };
   }
 
   const effectiveApiKey = null;
@@ -637,22 +628,6 @@ export default function App() {
       return s ? JSON.parse(s) : null;
     } catch { return null; }
   });
-
-  // ── Multi-flow state ───────────────────────────────────────────────
-  const [flows, setFlows] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]'); }
-    catch { return []; }
-  });
-  const [currentFlowId, setCurrentFlowId] = useState(() => {
-    return localStorage.getItem(ACTIVE_KEY) || null;
-  });
-
-  const isSubscribed = vimplUser && (vimplUser.subscriptionTier === 'commercial' || vimplUser.subscriptionTier === 'enterprise');
-  const canCreateFlow = isSubscribed || flows.filter(f => !f._demo).length === 0;
-
-  // True when the currently-open flow is a demo flow (never consumes trial quota)
-  const currentFlow = flows.find(f => f.id === currentFlowId);
-  const isDemoFlow = !!(currentFlow?._demo);
 
   // ── Carousel state ─────────────────────────────────────────────────
   const [activePanel, setActivePanel] = useState(1);
@@ -690,32 +665,19 @@ export default function App() {
     return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: r };
   }
 
-  // Process context
-  const [processContext, setProcessContext] = useState({
-    apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null,
-  });
-
-  // Panel 1 — Voice
-  const [transcript, setTranscript] = useState('');
+  // Panel 1 — Voice (UI-only state; transcript lives in useFlowStore)
   const [descParsing, setDescParsing] = useState(false);
   const [voiceError, setVoiceError] = useState(null);
 
   // ── Ailean AI Interviewer ──────────────────────────────────────────
   const ailean = useAileanInterviewer({ apiKey: effectiveApiKey, processContext, proxyAuth: getProxyAuth() });
 
-  // Panel 2 — Description
-  const [processDescription, setProcessDescription] = useState(null);
+  // Panel 2 — Description (UI-only state; processDescription lives in useFlowStore)
   const [bpmnParsing, setBpmnParsing] = useState(false);
+  const lastParsedDescriptionRef = useRef(null);
+  const prefetchedImprovementsRef = useRef(null);
 
-  // Panel 3 — Diagram (parsed BPMN JSON + XML)
-  const [parsed, setParsed] = useState(null);
-  const [xml, setXml] = useState(null);
-
-  // Panel 4 — Plan
-  const [improvements, setImprovements] = useState(null);
-  const [selectedImprovementIds, setSelectedImprovementIds] = useState([]);
-  const [customRisks, setCustomRisks] = useState([]);
-  const [projectPlan, setProjectPlan] = useState(null);
+  // Panel 4 — Plan (UI-only state; flow data lives in useFlowStore)
   const [planLoading, setPlanLoading] = useState(false);
 
   // Plan generation prompt modal
@@ -723,16 +685,8 @@ export default function App() {
   const [planStartDate, setPlanStartDate] = useState('');
   const [planDurationWeeks, setPlanDurationWeeks] = useState(14);
 
-  // Panel 3 — AS-IS / TO-BE
-  const [asIsXml, setAsIsXml] = useState(null);
-  const [asIsParsed, setAsIsParsed] = useState(null);
-  const [toBeXml, setToBeXml] = useState(null);
-  const [toBeParsed, setToBeParsed] = useState(null);
+  // AS-IS / TO-BE + metrics (UI-only loading flags; data lives in useFlowStore)
   const [toBeLoading, setToBeLoading] = useState(false);
-
-  // Process metrics (activities: duration + backlog; gateways: branch rates)
-  const [asIsMetrics, setAsIsMetrics] = useState(null);
-  const [toBeMetrics, setToBeMetrics] = useState(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
 
   // ── Auto-login: read token from ?token= (vimpl SSO callback) or #token= (board deep-link) ──
@@ -776,185 +730,7 @@ export default function App() {
     setVimplToken(null);
   }
 
-  // ── Migrate old single-draft format to multi-flow on first run ────
-  useEffect(() => {
-    try {
-      const oldDraft = localStorage.getItem('voice2bpmn_draft');
-      const existingFlows = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
-      if (oldDraft && existingFlows.length === 0) {
-        const draft = JSON.parse(oldDraft);
-        const id = crypto.randomUUID();
-        const now = new Date().toISOString();
-        const migrated = {
-          id,
-          process_name: draft.parsed?.process_name || draft.processDescription?.process_name || 'Migrated flow',
-          created_at: now,
-          updated_at: now,
-          board_url: null,
-          board_id: null,
-          ...draft,
-        };
-        const newFlows = [migrated];
-        localStorage.setItem(FLOWS_KEY, JSON.stringify(newFlows));
-        localStorage.removeItem('voice2bpmn_draft');
-        setFlows(newFlows);
-        if (draft.transcript || draft.parsed) {
-          loadFlowIntoState(migrated);
-          setCurrentFlowId(id);
-          localStorage.setItem(ACTIVE_KEY, id);
-        }
-      }
-    } catch { /* ignore */ }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Restore active flow on mount ───────────────────────────────────
-  useEffect(() => {
-    if (!currentFlowId) return;
-    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
-    const flow = stored.find(f => f.id === currentFlowId);
-    if (flow) loadFlowIntoState(flow);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  function loadFlowIntoState(flow) {
-    setTranscript(flow.transcript || '');
-    setProcessDescription(flow.processDescription || null);
-    setParsed(flow.parsed || null);
-    setXml(flow.xml || null);
-    setImprovements(flow.improvements || null);
-    setSelectedImprovementIds(flow.selectedImprovementIds || []);
-    setCustomRisks(flow.customRisks || []);
-    setProjectPlan(flow.projectPlan || null);
-    setProcessContext(flow.processContext || { apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
-    setAsIsXml(flow.asIsXml || null);
-    setAsIsParsed(flow.asIsParsed || null);
-    setToBeXml(flow.toBeXml || null);
-    setToBeParsed(flow.toBeParsed || null);
-    setAsIsMetrics(flow.asIsMetrics || null);
-    setToBeMetrics(flow.toBeMetrics || null);
-    setBoardUrl(flow.board_url || null);
-    setBoardId(flow.board_id || null);
-  }
-
-  // ── Auto-save current flow whenever key state changes ─────────────
-  useEffect(() => {
-    if (!currentFlowId) return;
-    if (!transcript && !xml && !parsed) return;
-    setFlows(prev => {
-      const updated = prev.map(f => f.id === currentFlowId
-        ? {
-            ...f,
-            process_name: parsed?.process_name || processDescription?.process_name || f.process_name,
-            updated_at: new Date().toISOString(),
-            transcript, processDescription, parsed, xml,
-            improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-            asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics,
-          }
-        : f
-      );
-      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
-      return updated;
-    });
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics]); // eslint-disable-line
-
-  // ── Flow navigation ────────────────────────────────────────────────
-  function handleOpenFlow(flowId) {
-    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
-    const flow = stored.find(f => f.id === flowId);
-    if (!flow) return;
-    loadFlowIntoState(flow);
-    setCurrentFlowId(flowId);
-    localStorage.setItem(ACTIVE_KEY, flowId);
-  }
-
-  function handleCreateFlow() {
-    if (!canCreateFlow) {
-      window.open(PRICING_URL, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const newFlow = { id, process_name: 'New process', created_at: now, updated_at: now, ...blankFlowState() };
-    setFlows(prev => {
-      const updated = [newFlow, ...prev];
-      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
-      return updated;
-    });
-    // Reset all content state
-    setTranscript('');
-    setProcessDescription(null);
-    setParsed(null);
-    setXml(null);
-    setImprovements(null);
-    setSelectedImprovementIds([]);
-    setCustomRisks([]);
-    setProjectPlan(null);
-    setAsIsXml(null);
-    setAsIsParsed(null);
-    setToBeXml(null);
-    setToBeParsed(null);
-    setAsIsMetrics(null);
-    setToBeMetrics(null);
-    setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
-    setBoardUrl(null);
-    setBoardId(null);
-    setCurrentFlowId(id);
-    localStorage.setItem(ACTIVE_KEY, id);
-  }
-
-  function handleBackToDashboard() {
-    setCurrentFlowId(null);
-    localStorage.removeItem(ACTIVE_KEY);
-  }
-
-  function handleClearCurrentFlow() {
-    setTranscript('');
-    setProcessDescription(null);
-    setParsed(null);
-    setXml(null);
-    setImprovements(null);
-    setSelectedImprovementIds([]);
-    setCustomRisks([]);
-    setProjectPlan(null);
-    setAsIsXml(null);
-    setAsIsParsed(null);
-    setToBeXml(null);
-    setToBeParsed(null);
-    setAsIsMetrics(null);
-    setToBeMetrics(null);
-    setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
-    setBoardUrl(null);
-    setBoardId(null);
-    if (currentFlowId) {
-      setFlows(prev => {
-        const updated = prev.map(f => f.id === currentFlowId
-          ? { ...f, ...blankFlowState(), process_name: 'New process', updated_at: new Date().toISOString() }
-          : f
-        );
-        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
-        return updated;
-      });
-    }
-  }
-
-  async function handleDeleteFlow(flowId, deleteBoard) {
-    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
-    const flow = stored.find(f => f.id === flowId);
-    if (deleteBoard && flow?.board_id && vimplToken) {
-      await fetch(`${BACKEND_URL}/api/v1/boards/${flow.board_id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${vimplToken}` },
-      }).catch(() => {});
-    }
-    setFlows(prev => {
-      const updated = prev.filter(f => f.id !== flowId);
-      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
-      return updated;
-    });
-    if (currentFlowId === flowId) {
-      setCurrentFlowId(null);
-      localStorage.removeItem(ACTIVE_KEY);
-    }
-  }
 
   function handleLoadDemo() {
     const flowId = crypto.randomUUID();
@@ -1026,6 +802,8 @@ export default function App() {
     setImprovements(null);
     setSelectedImprovementIds([]);
     setProjectPlan(null);
+    lastParsedDescriptionRef.current = null;
+    prefetchedImprovementsRef.current = null;
     try {
       const desc = await parseVoiceToDescription(getEffectiveTranscript(), effectiveApiKey, processContext, getProxyAuth());
       setProcessDescription(desc);
@@ -1047,6 +825,11 @@ export default function App() {
       setActivePanel(3);
       return;
     }
+    const descriptionKey = JSON.stringify(processDescription);
+    if (lastParsedDescriptionRef.current === descriptionKey && parsed && xml) {
+      setActivePanel(3);
+      return;
+    }
     setBpmnParsing(true);
     setParsed(null);
     setXml(null);
@@ -1060,16 +843,21 @@ export default function App() {
       setParsed(bpmnJson);
       const generatedXml = generateBpmnXml(bpmnJson);
       setXml(generatedXml);
+      lastParsedDescriptionRef.current = descriptionKey;
+      prefetchedImprovementsRef.current = null;
       setActivePanel(3);
-      // Background: extract AS-IS metrics from transcript
+      // Background: extract AS-IS metrics + pre-fetch improvements in parallel
       const _transcript = getEffectiveTranscript();
       const _apiKey = effectiveApiKey;
       const _proxyAuth = getProxyAuth();
       setMetricsLoading(true);
-      extractProcessMetrics(bpmnJson, _transcript, _apiKey, _proxyAuth)
-        .then(m => { if (m) setAsIsMetrics(m); })
-        .catch(() => {})
-        .finally(() => setMetricsLoading(false));
+      Promise.all([
+        extractProcessMetrics(bpmnJson, _transcript, _apiKey, _proxyAuth).catch(() => null),
+        getStructuredImprovements(bpmnJson, _apiKey, _proxyAuth).catch(() => null),
+      ]).then(([metrics, improvements]) => {
+        if (metrics) setAsIsMetrics(metrics);
+        if (improvements) prefetchedImprovementsRef.current = improvements;
+      }).finally(() => setMetricsLoading(false));
     } finally {
       setBpmnParsing(false);
     }
@@ -1082,7 +870,9 @@ export default function App() {
       setActivePanel(4);
       return;
     }
-    const result = await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth());
+    const result = prefetchedImprovementsRef.current
+      || await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth());
+    prefetchedImprovementsRef.current = null;
     setImprovements(result);
     setSelectedImprovementIds([]);
     setActivePanel(4);
