@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { parseInterviewToJobDesc } from '../services/claudeService.js';
 
-export default function JobbeskrivelsePanel({ offer, updateOffer, setStep, token }) {
+export default function JobbeskrivelsePanel({ offer, updateOffer, setStep, token, company }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
@@ -17,7 +17,7 @@ export default function JobbeskrivelsePanel({ offer, updateOffer, setStep, token
     setLoading(true);
     setError('');
     try {
-      const result = await parseInterviewToJobDesc(token, offer.interviewText);
+      const result = await parseInterviewToJobDesc(token, offer.interviewText, company?.fag);
       updateOffer({ jobbeskrivelse: result });
     } catch (err) {
       setError(err.message);

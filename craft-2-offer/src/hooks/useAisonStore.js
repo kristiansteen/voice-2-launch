@@ -8,6 +8,10 @@ const defaultOffer = () => ({
   id: crypto.randomUUID(),
   tilbudsnummer: `T-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
   oprettetDato: new Date().toISOString(),
+  // Customer type affects moms display (B2C: inkl. moms prominent; B2B: ekskl. moms)
+  kundeType: 'b2c', // 'b2c' | 'b2b'
+  // Offer type
+  tilbudsType: 'tilbud', // 'tilbud' (binding) | 'overslag' (non-binding estimate)
   // Step 1: Interview
   interviewText: '',
   // Step 2: Job description
@@ -28,6 +32,7 @@ const defaultCompany = () => ({
   telefon: '',
   email: '',
   hjemmeside: '',
+  fag: 'tømrer', // elektriker | vvs | tømrer | maler | murer | tagdækker | andet
 });
 
 export function useAisonStore() {

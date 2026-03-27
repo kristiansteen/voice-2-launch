@@ -12,8 +12,10 @@ function formatDate(isoStr) {
 
 export function generateTilbudPDF(offer, company) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const { tilbud, jobbeskrivelse, tilbudsnummer, oprettetDato } = offer;
+  const { tilbud, jobbeskrivelse, tilbudsnummer, oprettetDato, kundeType = 'b2c', tilbudsType = 'tilbud' } = offer;
   const kunde = tilbud?.kunde ?? jobbeskrivelse?.kunde ?? {};
+  const isB2C = kundeType === 'b2c';
+  const docLabel = tilbudsType === 'overslag' ? 'OVERSLAG' : 'TILBUD';
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
@@ -25,7 +27,7 @@ export function generateTilbudPDF(offer, company) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text('TILBUD', margin, 20);
+  doc.text(docLabel, margin, 20);
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
@@ -110,9 +112,23 @@ export function generateTilbudPDF(offer, company) {
     return 'Udlæg/Andet';
   };
 
+  // B2C: show total inkl. moms first (legal requirement under markedsføringsloven)
+  // B2B: show subtotal ekskl. moms first
+  const footRows = isB2C
+    ? [
+        ['', '', '', 'Pris inkl. moms', formatDKK(total)],
+        ['', '', '', 'Heraf moms 25%', formatDKK(moms)],
+        ['', '', '', 'Pris ekskl. moms', formatDKK(subtotal)],
+      ]
+    : [
+        ['', '', '', 'Subtotal ekskl. moms', formatDKK(subtotal)],
+        ['', '', '', 'Moms 25%', formatDKK(moms)],
+        ['', '', '', 'Total inkl. moms', formatDKK(total)],
+      ];
+
   doc.autoTable({
     startY: y,
-    head: [['Beskrivelse', 'Antal', 'Enhed', 'Enhedspris', 'Beløb']],
+    head: [['Beskrivelse', 'Antal', 'Enhed', 'Enhedspris ekskl. moms', 'Beløb ekskl. moms']],
     body: linjer.map(l => [
       `${typeLabel(l.type)}: ${l.beskrivelse}`,
       String(l.antal),
@@ -120,11 +136,7 @@ export function generateTilbudPDF(offer, company) {
       formatDKK(l.enhedspris),
       formatDKK(l.beloeb),
     ]),
-    foot: [
-      ['', '', '', 'Subtotal ekskl. moms', formatDKK(subtotal)],
-      ['', '', '', 'Moms 25%', formatDKK(moms)],
-      ['', '', '', 'Total inkl. moms', formatDKK(total)],
-    ],
+    foot: footRows,
     theme: 'striped',
     headStyles: { fillColor: [27, 79, 114], fontSize: 9, fontStyle: 'bold' },
     footStyles: { fontStyle: 'bold', fontSize: 9 },
@@ -156,8 +168,10 @@ export function generateTilbudPDF(offer, company) {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  const gyldig = tilbud?.gyldighedsdage ?? 30;
-  doc.text(`Tilbuddet er gyldigt i ${gyldig} dage fra ovenstående dato.`, margin, y);
+  const gyldig = tilbud?.gyldighedsdage ?? 20;
+  const gyldigEnhed = tilbud?.gyldighedsEnhed ?? 'arbejdsdage';
+  const docTypeLabel = tilbudsType === 'overslag' ? 'Overslaget' : 'Tilbuddet';
+  doc.text(`${docTypeLabel} er gyldigt i ${gyldig} ${gyldigEnhed} fra ovenstående dato.`, margin, y);
   y += 5;
   doc.text(`Betalingsbetingelser: ${tilbud?.betalingsbetingelser ?? 'Netto 14 dage'}`, margin, y);
   y += 5;

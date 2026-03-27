@@ -74,6 +74,19 @@ export default function CompanySetup({ company, onSave }) {
                 placeholder="info@hansanel.dk" />
             </div>
             <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Fag *</label>
+              <select name="fag" value={form.fag} onChange={handleChange}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]">
+                <option value="elektriker">Elektriker</option>
+                <option value="vvs">VVS-installatør</option>
+                <option value="tømrer">Tømrer</option>
+                <option value="maler">Maler</option>
+                <option value="murer">Murer</option>
+                <option value="tagdækker">Tagdækker</option>
+                <option value="andet">Andet håndværk</option>
+              </select>
+            </div>
+            <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Hjemmeside</label>
               <input name="hjemmeside" value={form.hjemmeside} onChange={handleChange}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"

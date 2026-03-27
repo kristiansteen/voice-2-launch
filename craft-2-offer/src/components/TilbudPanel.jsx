@@ -24,7 +24,7 @@ export default function TilbudPanel({ offer, updateOffer, setStep, token, compan
     setLoading(true);
     setError('');
     try {
-      const result = await generateTilbud(token, offer.jobbeskrivelse, company);
+      const result = await generateTilbud(token, offer.jobbeskrivelse, company, offer.kundeType);
       updateOffer({ tilbud: result });
     } catch (err) {
       setError(err.message);
@@ -83,8 +83,12 @@ export default function TilbudPanel({ offer, updateOffer, setStep, token, compan
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Tilbud</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Nr. {offer.tilbudsnummer} · Tilbud ekskl. moms</p>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {offer.tilbudsType === 'overslag' ? 'Overslag' : 'Tilbud'}
+          </h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Nr. {offer.tilbudsnummer} · {offer.kundeType === 'b2c' ? 'Forbruger (B2C)' : 'Erhvervskunde (B2B)'} · Priser ekskl. moms
+          </p>
         </div>
         <div className="flex gap-2">
           <button onClick={generate}
@@ -193,6 +197,15 @@ export default function TilbudPanel({ offer, updateOffer, setStep, token, compan
               className="w-full text-sm text-gray-800 focus:outline-none" />
           </div>
         </div>
+
+        {/* Håndværkerfradrag notice for B2C */}
+        {offer.kundeType === 'b2c' && (
+          <div className="bg-green-50 border border-green-100 rounded-xl p-3 mt-3">
+            <p className="text-xs text-green-700">
+              <strong>Håndværkerfradrag:</strong> Arbejdsløn er angivet separat. Kunden kan søge fradrag via BoligJobordningen. Husk at betaling skal ske elektronisk (bankoverfør, MobilePay, dankort).
+            </p>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="bg-white border border-gray-100 rounded-xl p-3 mt-3">

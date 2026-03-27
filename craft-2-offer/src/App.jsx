@@ -143,6 +143,7 @@ export default function App() {
               updateOffer={updateOffer}
               setStep={setStep}
               token={token}
+              company={company}
             />
           )}
           {currentStep === 2 && (

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { generateProjektplan } from '../services/claudeService.js';
 import { downloadTilbudPDF } from '../utils/pdfGenerator.js';
 
-export default function ProjektplanPanel({ offer, updateOffer, setStep, token, company }) {
+export default function ProjektplanPanel({ offer, updateOffer, setStep, token, company = {} }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const plan = offer.projektplan;
@@ -17,7 +17,7 @@ export default function ProjektplanPanel({ offer, updateOffer, setStep, token, c
     setLoading(true);
     setError('');
     try {
-      const result = await generateProjektplan(token, offer.jobbeskrivelse, offer.tilbud);
+      const result = await generateProjektplan(token, offer.jobbeskrivelse, offer.tilbud, company?.fag);
       updateOffer({ projektplan: result });
     } catch (err) {
       setError(err.message);

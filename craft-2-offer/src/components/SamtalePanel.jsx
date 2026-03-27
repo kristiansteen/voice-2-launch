@@ -8,6 +8,8 @@ export default function SamtalePanel({ offer, updateOffer, setStep, token }) {
   const chunksRef = useRef([]);
 
   const interviewText = offer.interviewText;
+  const kundeType = offer.kundeType ?? 'b2c';
+  const tilbudsType = offer.tilbudsType ?? 'tilbud';
 
   async function startRecording() {
     setError('');
@@ -106,6 +108,32 @@ export default function SamtalePanel({ offer, updateOffer, setStep, token }) {
         <p className="text-sm text-gray-500 mt-0.5">
           Beskriv eller optag hvad kunden ønsker — brug dine egne ord.
         </p>
+      </div>
+
+      {/* Offer type & customer type */}
+      <div className="flex gap-3 mb-4">
+        <div className="flex-1">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Dokumenttype</label>
+          <select
+            value={tilbudsType}
+            onChange={e => updateOffer({ tilbudsType: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
+          >
+            <option value="tilbud">Tilbud (bindende)</option>
+            <option value="overslag">Overslag (ikke bindende)</option>
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Kundetype</label>
+          <select
+            value={kundeType}
+            onChange={e => updateOffer({ kundeType: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4F72]"
+          >
+            <option value="b2c">Forbruger (privat)</option>
+            <option value="b2b">Erhvervskunde</option>
+          </select>
+        </div>
       </div>
 
       {error && (
