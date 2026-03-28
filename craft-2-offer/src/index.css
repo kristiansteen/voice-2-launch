@@ -9,6 +9,24 @@
   }
 }
 
+@layer components {
+  .input {
+    @apply w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none
+      focus:border-aison-light focus:ring-1 focus:ring-aison-light transition-colors;
+  }
+  .label {
+    @apply block text-xs text-gray-400 mb-1;
+  }
+  .btn-primary {
+    @apply px-5 py-2 rounded-xl bg-aison text-white text-sm font-semibold
+      hover:bg-aison-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply px-5 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm
+      hover:border-aison-light hover:text-aison transition-colors;
+  }
+}
+
 @layer utilities {
   .step-active {
     @apply bg-aison text-white;
