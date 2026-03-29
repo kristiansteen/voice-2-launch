@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | # | Vercel project | Live URL | Local source folder |
 |---|---|---|---|
-| 1 | `voice-2-launch` | https://voice-2-launch.vercel.app | `voice-2-bpmn/` |
+| 1 | `voice-2-launch` | https://voice-2-launch.vercel.app | `voice-2-launch/` |
 | 2 | `ailean` | (ailean Vercel project) | `ailean/` |
 | 3 | `frontend` | https://frontend-puce-ten-18.vercel.app | `frontend/` |
 | 4 | `backend` | https://backend-eight-rho-46.vercel.app | `backend/` |
@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Deployment commands:**
 ```bash
 # voice-2-launch
-cd voice-2-bpmn && npx vercel --prod
+cd voice-2-launch && npx vercel --prod
 
 # frontend
 cd frontend && npx vercel --prod
@@ -37,7 +37,7 @@ cd backend && npx vercel --prod
 |---|---|---|---|
 | `backend/` | `backend` | Visual planning board API | Node.js/TypeScript + Express + Prisma + Supabase |
 | `frontend/` | `frontend` | Visual planning board UI | Static HTML/CSS/JS |
-| `voice-2-bpmn/` | `voice-2-launch` | Voice-to-Launch app | React + Tailwind + Vite |
+| `voice-2-launch/` | `voice-2-launch` | Voice-to-Launch app | React + Tailwind + Vite |
 | `ailean/` | `ailean` | Lead generation service | Node.js/Express + static HTML |
 | `web-ui/` | — | Browser-use AI agent UI (not deployed) | Python + Gradio |
 
@@ -145,9 +145,9 @@ Docker is also supported via `docker-compose.yml`.
 
 ---
 
-## voice-2-bpmn (deploys to voice-2-launch)
+## voice-2-launch
 
-React + Tailwind single-page app. Entry: `voice-2-bpmn/src/main.jsx`. Build: `npm run dev` / `npm run build` from `voice-2-bpmn/`.
+React + Tailwind single-page app. Entry: `voice-2-launch/src/main.jsx`. Build: `npm run dev` / `npm run build` from `voice-2-launch/`.
 
 ### Auth & API Key Policy
 
