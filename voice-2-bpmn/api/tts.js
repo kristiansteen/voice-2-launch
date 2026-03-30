@@ -48,6 +48,13 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', buffer.length);
     res.end(buffer);
+
+    // Fire-and-forget usage log — don't await, never fail the request
+    fetch(`${process.env.VIMPL_BACKEND_URL}/api/v1/usage/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ provider: 'elevenlabs', endpoint: 'tts', characters: text.length }),
+    }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

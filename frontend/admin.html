@@ -265,6 +265,21 @@
     }
     .form-group select:focus, .form-group input:focus { border-color: var(--primary); }
 
+    /* ── Boards layout ─────────────────────────────────────────────── */
+    #boards-layout { display: flex; gap: 20px; align-items: flex-start; }
+    #boards-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+    #board-detail-panel {
+      width: 420px; flex-shrink: 0;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+      display: none; flex-direction: column; max-height: calc(100vh - 120px); overflow-y: auto;
+    }
+    #board-detail-panel.open { display: flex; }
+    .collab-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 13px; }
+    .collab-row .collab-info { flex: 1; min-width: 0; }
+    .collab-row .collab-email { color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .collab-row .collab-meta { color: var(--text-muted); font-size: 11px; }
+    .badge-permission { padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; background: var(--bg3); color: var(--text-dim); }
+
     /* ── Toast ─────────────────────────────────────────────────────── */
     #toast {
       position: fixed; bottom: 28px; right: 28px; z-index: 200;
@@ -315,6 +330,13 @@
       <div class="nav-item" data-view="users" onclick="showView('users', this)">
         <i class="fas fa-users"></i> Users
       </div>
+      <div class="nav-item" data-view="boards" onclick="showView('boards', this)">
+        <i class="fas fa-th-large"></i> Boards
+      </div>
+      <div class="nav-item" data-view="usage" onclick="showView('usage', this)">
+        <i class="fas fa-microchip"></i> Claude Usage
+      </div>
+
       <div class="nav-section" style="margin-top:16px">Account</div>
       <div class="nav-item" onclick="logout()">
         <i class="fas fa-sign-out-alt"></i> Sign out
@@ -360,6 +382,50 @@
       <div class="chart-card">
         <h3>Tier distribution</h3>
         <div class="tier-breakdown" id="tier-breakdown"></div>
+      </div>
+    </div>
+    <!-- Claude Usage view -->
+    <div class="view" id="view-usage">
+      <div class="toolbar">
+        <select class="filter-select" id="usage-days" onchange="loadUsage()">
+          <option value="7">Last 7 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <h3>Claude API — per user</h3>
+        <table style="width:100%;border-collapse:collapse;margin-top:16px">
+          <thead>
+            <tr style="color:var(--text-muted);font-size:12px;text-align:left">
+              <th style="padding:8px 12px;font-weight:600">User</th>
+              <th style="padding:8px 12px;font-weight:600">Tier</th>
+              <th style="padding:8px 12px;font-weight:600;text-align:right">Calls</th>
+              <th style="padding:8px 12px;font-weight:600;text-align:right">Input tokens</th>
+              <th style="padding:8px 12px;font-weight:600;text-align:right">Output tokens</th>
+            </tr>
+          </thead>
+          <tbody id="usage-body">
+            <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <h3>ElevenLabs TTS — per user</h3>
+        <table style="width:100%;border-collapse:collapse;margin-top:16px">
+          <thead>
+            <tr style="color:var(--text-muted);font-size:12px;text-align:left">
+              <th style="padding:8px 12px;font-weight:600">User</th>
+              <th style="padding:8px 12px;font-weight:600">Tier</th>
+              <th style="padding:8px 12px;font-weight:600;text-align:right">TTS calls</th>
+              <th style="padding:8px 12px;font-weight:600;text-align:right">Characters</th>
+              <th style="padding:8px 12px;font-weight:600;text-align:right">Est. cost (USD)</th>
+            </tr>
+          </thead>
+          <tbody id="elevenlabs-body">
+            <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -414,6 +480,53 @@
       </div>
     </div>
 
+
+    <!-- Boards view -->
+    <div class="view" id="view-boards">
+      <div class="toolbar">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="board-search" placeholder="Search by title…" oninput="debouncedBoardSearch()">
+        </div>
+      </div>
+
+      <div id="boards-layout">
+        <div id="boards-left">
+          <div class="table-wrap">
+            <table id="boards-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Owner</th>
+                  <th>Collaborators</th>
+                  <th>Sections</th>
+                  <th>Updated</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="boards-body">
+                <tr class="loading-row"><td colspan="6">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="page-info" id="board-page-info"></span>
+            <button id="btn-board-prev" onclick="loadBoards(boardPage - 1)" disabled>‹ Prev</button>
+            <button id="btn-board-next" onclick="loadBoards(boardPage + 1)" disabled>Next ›</button>
+          </div>
+        </div>
+
+        <!-- Board detail panel -->
+        <div id="board-detail-panel">
+          <div class="panel-header">
+            <h2>Collaborators</h2>
+            <button class="panel-close" onclick="closeBoardDetail()">✕</button>
+          </div>
+          <div class="panel-body" id="board-detail-body"><!-- filled by JS --></div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -457,6 +570,30 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('del-modal')">Cancel</button>
       <button class="btn btn-danger" onclick="confirmDelete()">Delete permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Collaborator modal ───────────────────────────────────── -->
+<div class="modal-backdrop" id="collab-modal">
+  <div class="modal">
+    <h2>Add Collaborator</h2>
+    <p>Grant access to <strong id="collab-modal-board"></strong>.</p>
+    <div class="form-group">
+      <label>User email</label>
+      <input type="email" id="collab-email" placeholder="user@example.com">
+    </div>
+    <div class="form-group">
+      <label>Permission</label>
+      <select id="collab-permission">
+        <option value="edit">Edit</option>
+        <option value="view">View</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('collab-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCollaborator()">Add collaborator</button>
     </div>
   </div>
 </div>
@@ -522,15 +659,20 @@ function showView(name, el) {
   document.getElementById('view-' + name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   if (el) el.classList.add('active');
-  document.getElementById('topbar-title').textContent =
-    name === 'analytics' ? 'Analytics' : 'Users';
+  const titles = { analytics: 'Analytics', users: 'Users', boards: 'Boards', usage: 'Claude Usage' };
+  document.getElementById('topbar-title').textContent = titles[name] || name;
   if (name === 'users' && document.getElementById('users-body').children[0]?.classList.contains('loading-row')) {
     loadUsers(1);
+  }
+  if (name === 'usage') { loadUsage(); }
+  if (name === 'boards') {
+    loadBoards(1);
   }
 }
 
 function refreshCurrent() {
   if (currentView === 'analytics') loadStats();
+  else if (currentView === 'boards') { loadBoards(boardPage); if (selectedBoardId) openBoardDetail(selectedBoardId); }
   else { loadUsers(currentPage); if (selectedUserId) loadDetail(selectedUserId); }
 }
 
@@ -559,6 +701,16 @@ async function apiDelete(path) {
 
 async function apiPost(path) {
   const r = await fetch(API + path, { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || r.status); }
+  return r.json();
+}
+
+async function apiPostJson(path, body) {
+  const r = await fetch(API + path, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || r.status); }
   return r.json();
 }
@@ -883,6 +1035,165 @@ async function triggerOnboarding(userId, day) {
   }
 }
 
+// ── Boards ──────────────────────────────────────────────────────────
+let boardPage = 1;
+let selectedBoardId = null;
+let selectedBoardData = null;
+let boardSearchTimer;
+
+function debouncedBoardSearch() {
+  clearTimeout(boardSearchTimer);
+  boardSearchTimer = setTimeout(() => loadBoards(1), 350);
+}
+
+async function loadBoards(page = 1) {
+  boardPage = page;
+  const search = document.getElementById('board-search').value.trim();
+  const params = new URLSearchParams({ page, limit: 50 });
+  if (search) params.set('search', search);
+
+  try {
+    const data = await apiGet(`/admin/boards?${params}`);
+    renderBoardsTable(data.boards);
+    document.getElementById('board-page-info').textContent =
+      `${(page - 1) * 50 + 1}–${Math.min(page * 50, data.total)} of ${data.total}`;
+    document.getElementById('btn-board-prev').disabled = page <= 1;
+    document.getElementById('btn-board-next').disabled = page >= data.pages;
+  } catch (e) {
+    document.getElementById('boards-body').innerHTML =
+      `<tr><td colspan="6" style="color:var(--danger)">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+function renderBoardsTable(boards) {
+  const tbody = document.getElementById('boards-body');
+  if (!boards.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-muted)">No boards found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = boards.map(b => `
+    <tr class="clickable${selectedBoardId === b.id ? ' selected' : ''}" onclick="openBoardDetail('${b.id}', '${esc(b.title || '')}', this)">
+      <td class="cell-email">${esc(b.title || '(untitled)')}</td>
+      <td class="cell-meta">${esc((b.user && b.user.email) || '—')}</td>
+      <td class="cell-meta">${b._count.collaborators}</td>
+      <td class="cell-meta">${b._count.sections}</td>
+      <td class="cell-meta">${fmtDate(b.updatedAt)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openCollabModal('${b.id}', '${esc(b.title || 'Board')}')">
+          <i class="fas fa-user-plus"></i> Add
+        </button>
+      </td>
+    </tr>`).join('');
+}
+
+async function openBoardDetail(boardId, boardTitle, rowEl) {
+  selectedBoardId = boardId;
+  document.querySelectorAll('#boards-body tr').forEach(r => r.classList.remove('selected'));
+  if (rowEl) rowEl.classList.add('selected');
+  const panel = document.getElementById('board-detail-panel');
+  panel.classList.add('open');
+  document.getElementById('board-detail-body').innerHTML =
+    '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading…</div>';
+  try {
+    const data = await apiGet('/admin/boards/' + boardId);
+    selectedBoardData = data.board;
+    renderBoardDetail(data.board);
+  } catch (e) {
+    document.getElementById('board-detail-body').innerHTML =
+      '<div style="color:var(--danger)">Error: ' + esc(e.message) + '</div>';
+  }
+}
+
+function renderBoardDetail(b) {
+  if (!b) { document.getElementById('board-detail-body').innerHTML = ''; return; }
+
+  const collabs = b.collaborators || [];
+  const collabRows = collabs.length === 0
+    ? '<div style="color:var(--text-muted);font-size:12px;padding-top:8px">No collaborators yet</div>'
+    : collabs.map(c => `
+        <div class="collab-row">
+          <div class="collab-info">
+            <div class="collab-email">${esc(c.user?.email || '—')}</div>
+            <div class="collab-meta">${c.user?.name ? esc(c.user.name) + ' · ' : ''}${c.acceptedAt ? 'Active' : 'Pending'}</div>
+          </div>
+          <span class="badge-permission">${esc(c.permission)}</span>
+          <button class="btn btn-danger btn-sm" onclick="removeCollaborator('${b.id}', '${c.user?.id}', '${esc(c.user?.email || '')}')" title="Remove">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>`).join('');
+
+  document.getElementById('board-detail-body').innerHTML = `
+    <div class="detail-section">
+      <h4>Board info</h4>
+      <div class="info-row"><span class="key">Title</span><span class="val">${esc(b.title || '(untitled)')}</span></div>
+      <div class="info-row"><span class="key">Owner</span><span class="val">${esc(b.user?.email || '—')}</span></div>
+      <div class="info-row"><span class="key">Sections</span><span class="val">${b._count.sections}</span></div>
+      <div class="info-row"><span class="key">Updated</span><span class="val">${fmtDate(b.updatedAt)}</span></div>
+    </div>
+    <div class="detail-section">
+      <h4>Collaborators (${collabs.length})</h4>
+      ${collabRows}
+      <div style="margin-top:12px">
+        <button class="btn btn-primary btn-sm" onclick="openCollabModal('${b.id}', '${esc(b.title || '')}')">
+          <i class="fas fa-user-plus"></i> Add collaborator
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function closeBoardDetail() {
+  selectedBoardId = null;
+  selectedBoardData = null;
+  document.getElementById('board-detail-panel').classList.remove('open');
+  document.querySelectorAll('#boards-body tr').forEach(r => r.classList.remove('selected'));
+}
+
+// ── Collaborator modal ───────────────────────────────────────────────
+let collabTargetBoardId = null;
+
+function openCollabModal(boardId, boardTitle) {
+  collabTargetBoardId = boardId;
+  document.getElementById('collab-modal-board').textContent = boardTitle;
+  document.getElementById('collab-email').value = '';
+  document.getElementById('collab-permission').value = 'edit';
+  document.getElementById('collab-modal').classList.add('open');
+  setTimeout(() => document.getElementById('collab-email').focus(), 50);
+}
+
+async function saveCollaborator() {
+  const email = document.getElementById('collab-email').value.trim();
+  const permission = document.getElementById('collab-permission').value;
+  if (!email) { toast('Enter an email address', 'error'); return; }
+  try {
+    await apiPostJson(`/admin/boards/${collabTargetBoardId}/collaborators`, { email, permission });
+    closeModal('collab-modal');
+    toast(`${email} added as collaborator`, 'success');
+    loadBoards(boardPage);
+    if (selectedBoardId === collabTargetBoardId) {
+      const data = await apiGet('/admin/boards/' + selectedBoardId);
+      selectedBoardData = data.board;
+      renderBoardDetail(data.board);
+    }
+  } catch (e) {
+    toast('Failed: ' + e.message, 'error');
+  }
+}
+
+async function removeCollaborator(boardId, userId, email) {
+  if (!confirm(`Remove ${email} as collaborator?`)) return;
+  try {
+    await apiDelete(`/admin/boards/${boardId}/collaborators/${userId}`);
+    toast(`${email} removed`, 'success');
+    loadBoards(boardPage);
+    const data = await apiGet('/admin/boards/' + boardId);
+    selectedBoardData = data.board;
+    renderBoardDetail(data.board);
+  } catch (e) {
+    toast('Failed: ' + e.message, 'error');
+  }
+}
+
 // ── Utils ───────────────────────────────────────────────────────────
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function logout() { localStorage.removeItem('accessToken'); location.href = '/login.html'; }
@@ -918,6 +1229,52 @@ document.querySelectorAll('.modal-backdrop').forEach(el => {
 
 // ── Boot ────────────────────────────────────────────────────────────
 init();
+// ── Claude Usage ──────────────────────────────────────────────────────────────
+async function loadUsage() {
+  const days = document.getElementById('usage-days')?.value || 30;
+  const body = document.getElementById('usage-body');
+  const elBody = document.getElementById('elevenlabs-body');
+  body.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</td></tr>';
+  elBody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted)">Loading…</td></tr>';
+
+  const data = await apiGet('/usage/admin?days=' + days);
+
+  // Claude table
+  if (!data?.rows?.length) {
+    body.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted)">No Claude usage yet.</td></tr>';
+  } else {
+    body.innerHTML = data.rows.map(r => `
+      <tr style="border-top:1px solid var(--border)">
+        <td style="padding:10px 12px">
+          <div style="font-weight:500">${esc(r.user.email)}</div>
+          ${r.user.name ? `<div style="font-size:12px;color:var(--text-muted)">${esc(r.user.name)}</div>` : ''}
+        </td>
+        <td style="padding:10px 12px"><span class="badge">${esc(r.user.subscriptionTier || 'student')}</span></td>
+        <td style="padding:10px 12px;text-align:right;font-weight:600">${r.calls}</td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text-dim)">${(r.inputTokens || 0).toLocaleString()}</td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text-dim)">${(r.outputTokens || 0).toLocaleString()}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ElevenLabs table
+  if (!data?.elevenlabs?.length) {
+    elBody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-muted)">No ElevenLabs usage yet.</td></tr>';
+  } else {
+    elBody.innerHTML = data.elevenlabs.map(r => `
+      <tr style="border-top:1px solid var(--border)">
+        <td style="padding:10px 12px">
+          <div style="font-weight:500">${esc(r.user.email)}</div>
+          ${r.user.name ? `<div style="font-size:12px;color:var(--text-muted)">${esc(r.user.name)}</div>` : ''}
+        </td>
+        <td style="padding:10px 12px"><span class="badge">${esc(r.user.subscriptionTier || 'student')}</span></td>
+        <td style="padding:10px 12px;text-align:right;font-weight:600">${r.calls}</td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text-dim)">${(r.characters || 0).toLocaleString()}</td>
+        <td style="padding:10px 12px;text-align:right;color:var(--text-dim)">$${r.estimatedCost?.toFixed(4) ?? '0.0000'}</td>
+      </tr>
+    `).join('');
+  }
+}
 </script>
 </body>
 </html>

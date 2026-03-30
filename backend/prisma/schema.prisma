@@ -49,6 +49,7 @@ model User {
   loginAudits      LoginAudit[]
   bpmnDiagrams     BpmnDiagram[]
   flows            Flow[]
+  apiUsageLogs     ApiUsageLog[]
 
   @@map("users")
 }
@@ -254,4 +255,21 @@ model Lead {
 
   @@index([email])
   @@map("leads")
+}
+
+model ApiUsageLog {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  provider     String   // 'anthropic' | 'elevenlabs'
+  endpoint     String   // 'proxy' | 'tts'
+  inputTokens  Int?     @map("input_tokens")   // Anthropic input tokens
+  outputTokens Int?     @map("output_tokens")  // Anthropic output tokens
+  characters   Int?                            // ElevenLabs characters
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([provider, createdAt])
+  @@map("api_usage_logs")
 }

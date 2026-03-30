@@ -104,6 +104,18 @@ export default async function handler(req, res) {
     const message = await client.messages.create({ model, system, messages, max_tokens });
 
     res.json(message);
+
+    // Fire-and-forget usage log
+    fetch(`${process.env.VIMPL_BACKEND_URL}/api/v1/usage/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        provider: 'anthropic',
+        endpoint: 'proxy',
+        inputTokens: message.usage?.input_tokens ?? 0,
+        outputTokens: message.usage?.output_tokens ?? 0,
+      }),
+    }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
