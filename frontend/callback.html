@@ -63,14 +63,14 @@
     </div>
 
     <script>
-        // This page handles Google OAuth callback
-        // The backend should redirect here with token in URL
+        // Handles Google OAuth callback.
+        // Backend redirects here with ?code=<short_hex> (never a raw JWT in the URL).
+        const BACKEND = 'https://backend-eight-rho-46.vercel.app';
 
         const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
+        const code  = urlParams.get('code');
         const error = urlParams.get('error');
 
-        // Read returnTo from sessionStorage (stored by login.html before Google OAuth redirect)
         let returnTo = null;
         try {
             returnTo = sessionStorage.getItem('vimpl_oauth_return') || null;
@@ -79,18 +79,33 @@
 
         if (error) {
             window.location.href = `login.html?error=${encodeURIComponent(error)}`;
-        } else if (token) {
-            localStorage.setItem('accessToken', token);
-            if (returnTo) {
-                const sep = returnTo.includes('?') ? '&' : '?';
-                window.location.href = `${returnTo}${sep}token=${token}`;
-            } else {
-                window.location.href = 'dashboard.html';
-            }
+        } else if (code) {
+            // Exchange the one-time code for the real JWT
+            fetch(`${BACKEND}/api/v1/auth/exchange-code?code=${encodeURIComponent(code)}`)
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(async ({ token }) => {
+                    localStorage.setItem('accessToken', token);
+                    if (returnTo) {
+                        // Create a fresh one-time code for the destination app
+                        // so the JWT never appears in the destination URL either
+                        const codeRes = await fetch(`${BACKEND}/api/v1/auth/create-code`, {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (codeRes.ok) {
+                            const { code: forwardCode } = await codeRes.json();
+                            const sep = returnTo.includes('?') ? '&' : '?';
+                            window.location.href = `${returnTo}${sep}code=${forwardCode}`;
+                        } else {
+                            window.location.href = returnTo;
+                        }
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                })
+                .catch(() => { window.location.href = 'login.html?error=auth_failed'; });
         } else {
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 2000);
+            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
         }
     </script>
 </body>
