@@ -581,17 +581,27 @@ export default function App() {
   const [loggedOut, setLoggedOut] = useState(false);
   const [vimplToken, setVimplToken] = useState(() => {
     try {
-      // Check URL params first — set by vimpl SSO callback (?token=...)
-      const urlToken = new URLSearchParams(window.location.search).get('token');
-      if (urlToken) {
-        const existing = JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}');
-        localStorage.setItem(VIMPL_STORAGE_KEY, JSON.stringify({ ...existing, token: urlToken }));
-        window.history.replaceState(null, '', window.location.pathname);
-        return urlToken;
-      }
       return JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}').token || null;
     } catch { return null; }
   });
+
+  // Exchange one-time ?code= for JWT on first load (replaces the old ?token= pattern)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (!code) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    fetch(`${BACKEND_URL}/api/v1/auth/exchange-code?code=${encodeURIComponent(code)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.token) {
+          const existing = JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}');
+          localStorage.setItem(VIMPL_STORAGE_KEY, JSON.stringify({ ...existing, token: data.token }));
+          setVimplToken(data.token);
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [vimplUser, setVimplUser] = useState(null);
   const [boardUrl, setBoardUrl] = useState(null);
   const [boardId, setBoardId] = useState(null);
@@ -767,23 +777,18 @@ export default function App() {
   // ── Auto-login: read token from ?token= (vimpl SSO callback) or #token= (board deep-link) ──
   useEffect(() => {
     try {
-      // Query param — set by vimpl login callback
-      const qParams = new URLSearchParams(window.location.search);
-      const qToken = qParams.get('token');
-      // Hash param — set by vimpl board burger menu
+      // Hash param — set by vimpl board burger menu (uses #token= not ?token=)
       const hParams = new URLSearchParams(window.location.hash.slice(1));
       const hToken = hParams.get('token');
       const hBaseUrl = hParams.get('baseUrl');
-      const token = qToken || hToken;
-      if (token) {
+      if (hToken) {
         const existing = JSON.parse(localStorage.getItem(VIMPL_STORAGE_KEY) || '{}');
         localStorage.setItem(VIMPL_STORAGE_KEY, JSON.stringify({
           ...existing,
-          token,
+          token: hToken,
           ...(hBaseUrl ? { baseUrl: hBaseUrl } : {}),
         }));
-        setVimplToken(token);
-        // Clean token from URL
+        setVimplToken(hToken);
         window.history.replaceState(null, '', window.location.pathname);
       }
     } catch { /* ignore */ }
@@ -979,6 +984,19 @@ export default function App() {
         return updated;
       });
     }
+  }
+
+  function handleUpdateFlowRag(flowId, ragStatus) {
+    setFlows(prev => {
+      const updated = prev.map(f => {
+        if (f.id !== flowId) return f;
+        const updatedFlow = { ...f, ragStatus };
+        if (vimplToken && !f._demo) upsertFlow(vimplToken, updatedFlow).catch(() => {});
+        return updatedFlow;
+      });
+      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
   }
 
   async function handleDeleteFlow(flowId, deleteBoard) {
@@ -1282,6 +1300,7 @@ export default function App() {
           onOpen={handleOpenFlow}
           onCreate={handleCreateFlow}
           onDelete={handleDeleteFlow}
+          onUpdateRag={handleUpdateFlowRag}
           canCreate={canCreateFlow}
           onLogout={logoutVimpl}
           onDemo={handleLoadDemo}
@@ -1508,8 +1527,6 @@ export default function App() {
               projectPlan={projectPlan}
               onGeneratePlan={handleGeneratePlanClick}
               planLoading={planLoading}
-              planDurationWeeks={planDurationWeeks}
-              onDurationChange={setPlanDurationWeeks}
             />
           </PanelShell>
           {activePanel !== 4 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
@@ -1572,16 +1589,23 @@ export default function App() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">Duration (weeks)</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">Project duration</label>
+                <span className="text-xs font-semibold text-gray-700">{planDurationWeeks} weeks</span>
+              </div>
               <input
-                type="number"
-                min={1}
-                max={104}
+                type="range"
+                min={4}
+                max={52}
+                step={1}
                 value={planDurationWeeks}
-                onChange={e => setPlanDurationWeeks(Number(e.target.value) || 14)}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-vimpl"
+                onChange={e => setPlanDurationWeeks(Number(e.target.value))}
+                className="w-full accent-green-500"
               />
-              <p className="text-[9px] text-gray-400 mt-0.5">Default is 14 weeks</p>
+              <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+                <span>4 wks</span>
+                <span>52 wks</span>
+              </div>
             </div>
             <div className="flex gap-2 mt-1">
               <button
