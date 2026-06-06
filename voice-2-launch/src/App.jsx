@@ -323,6 +323,7 @@ export default function App() {
   // Panel 2 — Description
   const [processDescription, setProcessDescription] = useState(null);
   const [bpmnParsing, setBpmnParsing] = useState(false);
+  const [showExtendedTokensPrompt, setShowExtendedTokensPrompt] = useState(false);
 
   // Panel 3 — Diagram (parsed BPMN JSON + XML)
   const [parsed, setParsed] = useState(null);
@@ -754,7 +755,7 @@ export default function App() {
     }
   }
 
-  async function handleApproveToBpmn() {
+  async function handleApproveToBpmn(useExtendedTokens = false) {
     if (isDemoFlow) {
       const isDa = lang === 'da';
       const demoParsed = isDa ? DA_DEMO_PARSED : DEMO_PARSED;
@@ -767,7 +768,16 @@ export default function App() {
       setActivePanel(3);
       return;
     }
+
+    // If the description is large, warn before proceeding with standard 4 000-token limit
+    const descSize = JSON.stringify(processDescription).length;
+    if (!useExtendedTokens && descSize > 8000) {
+      setShowExtendedTokensPrompt(true);
+      return;
+    }
+
     setBpmnParsing(true);
+    setShowExtendedTokensPrompt(false);
     setParsed(null);
     setXml(null);
     setImprovements(null);
@@ -776,7 +786,8 @@ export default function App() {
     setAsIsMetrics(null);
     setToBeMetrics(null);
     try {
-      const bpmnJson = await parseToBpmn(processDescription, effectiveApiKey, processContext, getProxyAuth(), lang);
+      const maxTokens = useExtendedTokens ? 8000 : 4000;
+      const bpmnJson = await parseToBpmn(processDescription, effectiveApiKey, processContext, getProxyAuth(), lang, maxTokens);
       setParsed(bpmnJson);
       const generatedXml = await generateBpmnXml(bpmnJson);
       setXml(generatedXml);
@@ -1111,6 +1122,36 @@ export default function App() {
         {/* Panel 2 — Description */}
         <div style={getCarouselStyle(2)} onClick={activePanel !== 2 ? () => setActivePanel(2) : undefined}>
           <PanelShell num="2" label={t.panel2}>
+            {showExtendedTokensPrompt && (
+              <div className="absolute inset-x-0 top-0 z-20 mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-lg">
+                <p className="text-sm font-medium text-amber-900 mb-1">Large process detected</p>
+                <p className="text-xs text-amber-700 mb-3">
+                  This process description exceeds the standard 4 000-token limit and may be truncated,
+                  causing the BPMN generation to fail. Would you like to continue with an extended
+                  8 000-token limit instead?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleApproveToBpmn(true)}
+                    className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                  >
+                    Use extended limit (8 000 tokens)
+                  </button>
+                  <button
+                    onClick={() => handleApproveToBpmn(false)}
+                    className="flex-1 text-xs font-medium py-1.5 rounded-lg bg-white border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors"
+                  >
+                    Continue with standard (4 000)
+                  </button>
+                  <button
+                    onClick={() => setShowExtendedTokensPrompt(false)}
+                    className="px-3 text-xs text-amber-400 hover:text-amber-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
             <DescriptionPanel
               description={processDescription}
               onDescriptionChange={setProcessDescription}
