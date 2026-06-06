@@ -189,17 +189,6 @@ export default function VoicePanel({
           </button>
         )}
 
-        {/* Clear button — after an Ailean session ends, turns still show; let user reset */}
-        {!aileanActive && aileanTurns.length > 0 && (
-          <button
-            onClick={() => { ailean.reset(); setTranscript(''); }}
-            title="Clear conversation and start over"
-            className="w-[30%] flex items-center justify-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md border text-gray-500 border-gray-200 hover:border-red-300 hover:text-red-500 transition-all"
-          >
-            Clear
-          </button>
-        )}
-
         {/* Ailean toggle — only when not active */}
         {ailean && !aileanActive && (
           <button
@@ -365,8 +354,8 @@ export default function VoicePanel({
                 {isRecording ? 'Recording…' : 'Stop recording for Ailean to respond.'}
               </p>
             )}
-            <button onClick={() => { ailean.reset(); setTranscript(''); }} className="text-[10px] text-purple-300 hover:text-purple-600 transition-colors shrink-0 ml-2">
-              Clear &amp; reset
+            <button onClick={ailean.reset} className="text-[10px] text-purple-300 hover:text-purple-600 transition-colors shrink-0 ml-2">
+              Reset
             </button>
           </div>
         )}
