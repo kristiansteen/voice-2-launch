@@ -1,18 +1,1 @@
-import { useLang } from '../i18n/LangContext.jsx';
-
-export default function LangSwitcher() {
-  const { lang, setLang } = useLang();
-  return (
-    <div className="lang-switcher">
-      <button
-        className={`lang-btn${lang === 'en' ? ' active' : ''}`}
-        onClick={() => setLang('en')}
-      >EN</button>
-      <span className="lang-divider" />
-      <button
-        className={`lang-btn${lang === 'da' ? ' active' : ''}`}
-        onClick={() => setLang('da')}
-      >DA</button>
-    </div>
-  );
-}
+{"data":"aW1wb3J0IHsgdXNlTGFuZyB9IGZyb20gJy4uL2kxOG4vTGFuZ0NvbnRleHQuanN4JzsNCg0KZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gTGFuZ1N3aXRjaGVyKCkgew0KICBjb25zdCB7IGxhbmcsIHNldExhbmcgfSA9IHVzZUxhbmcoKTsNCiAgcmV0dXJuICgNCiAgICA8ZGl2IGNsYXNzTmFtZT0ibGFuZy1zd2l0Y2hlciI+DQogICAgICA8YnV0dG9uDQogICAgICAgIGNsYXNzTmFtZT17YGxhbmctYnRuJHtsYW5nID09PSAnZW4nID8gJyBhY3RpdmUnIDogJyd9YH0NCiAgICAgICAgb25DbGljaz17KCkgPT4gc2V0TGFuZygnZW4nKX0NCiAgICAgID5FTjwvYnV0dG9uPg0KICAgICAgPHNwYW4gY2xhc3NOYW1lPSJsYW5nLWRpdmlkZXIiIC8+DQogICAgICA8YnV0dG9uDQogICAgICAgIGNsYXNzTmFtZT17YGxhbmctYnRuJHtsYW5nID09PSAnZGEnID8gJyBhY3RpdmUnIDogJyd9YH0NCiAgICAgICAgb25DbGljaz17KCkgPT4gc2V0TGFuZygnZGEnKX0NCiAgICAgID5EQTwvYnV0dG9uPg0KICAgIDwvZGl2Pg0KICApOw0KfQ0K"}

@@ -1,16 +1,1 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import { LangProvider } from './i18n/LangContext.jsx';
-import './index.css';
-import 'bpmn-js/dist/assets/bpmn-js.css';
-import 'bpmn-js/dist/assets/diagram-js.css';
-import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <LangProvider>
-      <App />
-    </LangProvider>
-  </React.StrictMode>
-);
+{"data":"aW1wb3J0IFJlYWN0IGZyb20gJ3JlYWN0JzsNCmltcG9ydCBSZWFjdERPTSBmcm9tICdyZWFjdC1kb20vY2xpZW50JzsNCmltcG9ydCBBcHAgZnJvbSAnLi9BcHAuanN4JzsNCmltcG9ydCB7IExhbmdQcm92aWRlciB9IGZyb20gJy4vaTE4bi9MYW5nQ29udGV4dC5qc3gnOw0KaW1wb3J0IHsgQ29udmVyc2F0aW9uUHJvdmlkZXIgfSBmcm9tICdAZWxldmVubGFicy9yZWFjdCc7DQppbXBvcnQgJy4vaW5kZXguY3NzJzsNCmltcG9ydCAnYnBtbi1qcy9kaXN0L2Fzc2V0cy9icG1uLWpzLmNzcyc7DQppbXBvcnQgJ2JwbW4tanMvZGlzdC9hc3NldHMvZGlhZ3JhbS1qcy5jc3MnOw0KaW1wb3J0ICdicG1uLWpzL2Rpc3QvYXNzZXRzL2JwbW4tZm9udC9jc3MvYnBtbi1lbWJlZGRlZC5jc3MnOw0KDQpSZWFjdERPTS5jcmVhdGVSb290KGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyb290JykpLnJlbmRlcigNCiAgPFJlYWN0LlN0cmljdE1vZGU+DQogICAgPENvbnZlcnNhdGlvblByb3ZpZGVyPg0KICAgICAgPExhbmdQcm92aWRlcj4NCiAgICAgICAgPEFwcCAvPg0KICAgICAgPC9MYW5nUHJvdmlkZXI+DQogICAgPC9Db252ZXJzYXRpb25Qcm92aWRlcj4NCiAgPC9SZWFjdC5TdHJpY3RNb2RlPg0KKTsNCg=="}
