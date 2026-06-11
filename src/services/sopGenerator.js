@@ -161,29 +161,29 @@ function renderStep(step) {
   if (step.type === 'start') {
     return `<div class="step step-event step-start">
       <div class="step-num">▶</div>
-      <div class="step-body"><strong>${step.label}</strong></div>
+      <div class="step-body"><strong class="editable">${step.label}</strong></div>
     </div>`;
   }
   if (step.type === 'end') {
     return `<div class="step step-event step-end">
       <div class="step-num">■</div>
-      <div class="step-body"><strong>${step.label}</strong></div>
+      <div class="step-body"><strong class="editable">${step.label}</strong></div>
     </div>`;
   }
   if (step.type === 'intermediate') {
     return `<div class="step step-event">
       <div class="step-num">◉</div>
-      <div class="step-body"><strong>${step.label}</strong></div>
+      <div class="step-body"><strong class="editable">${step.label}</strong></div>
     </div>`;
   }
   if (step.type === 'gateway') {
     const branches = (step.branches || []).map(b =>
-      `<li><strong>${b.condition || '—'}</strong></li>`
+      `<li class="editable"><strong>${b.condition || '—'}</strong></li>`
     ).join('');
     return `<div class="step step-gateway">
       <div class="step-num">◇</div>
       <div class="step-body">
-        <strong>${step.step}. ${step.label}</strong>
+        <strong class="editable">${step.step}. ${step.label}</strong>
         ${branches ? `<ul class="branches">${branches}</ul>` : ''}
       </div>
     </div>`;
@@ -192,8 +192,8 @@ function renderStep(step) {
   return `<div class="step step-activity">
     <div class="step-num">${step.step}</div>
     <div class="step-body">
-      <strong>${step.label}</strong>
-      ${step.role ? `<span class="role-badge">${step.role}</span>` : ''}
+      <strong class="editable">${step.label}</strong>
+      ${step.role ? `<span class="role-badge editable">${step.role}</span>` : ''}
     </div>
   </div>`;
 }
@@ -242,25 +242,25 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
   const rolesRows = roles.map(r => {
     const acts = (parsed.activities || []).filter(a => a.performer === r.id);
     return `<tr>
-      <td><strong>${esc(r.name)}</strong></td>
-      <td>${acts.map(a => esc(a.name)).join(', ') || '—'}</td>
+      <td><strong class="editable">${esc(r.name)}</strong></td>
+      <td class="editable">${acts.map(a => esc(a.name)).join(', ') || '—'}</td>
     </tr>`;
   }).join('');
 
-  const prereqList = (content.prerequisites || []).map(p => `<li>${esc(p)}</li>`).join('') || `<li>—</li>`;
-  const equipList  = (content.equipment || []).map(e => `<li>${esc(e)}</li>`).join('') || `<li>—</li>`;
+  const prereqList = (content.prerequisites || []).map(p => `<li class="editable">${esc(p)}</li>`).join('') || `<li class="editable">—</li>`;
+  const equipList  = (content.equipment || []).map(e => `<li class="editable">${esc(e)}</li>`).join('') || `<li class="editable">—</li>`;
 
   const exceptRows = (content.exceptions || []).length
-    ? (content.exceptions || []).map(ex => `<tr><td>${esc(ex.scenario)}</td><td>${esc(ex.action)}</td></tr>`).join('')
-    : `<tr><td colspan="2">${T.noExceptions}</td></tr>`;
+    ? (content.exceptions || []).map(ex => `<tr><td class="editable">${esc(ex.scenario)}</td><td class="editable">${esc(ex.action)}</td></tr>`).join('')
+    : `<tr><td class="editable" colspan="2">${T.noExceptions}</td></tr>`;
 
   const escalRows = (content.escalation || []).length
-    ? (content.escalation || []).map(es => `<tr><td>${esc(es.condition)}</td><td>${esc(es.contact)}</td></tr>`).join('')
+    ? (content.escalation || []).map(es => `<tr><td class="editable">${esc(es.condition)}</td><td class="editable">${esc(es.contact)}</td></tr>`).join('')
     : '';
 
   const refList = (content.references || []).length
-    ? (content.references || []).map(r => `<li>${esc(r)}</li>`).join('')
-    : `<li>${T.noRefs}</li>`;
+    ? (content.references || []).map(r => `<li class="editable">${esc(r)}</li>`).join('')
+    : `<li class="editable">${T.noRefs}</li>`;
 
   const stepsHtml = steps.map(renderStep).join('\n');
 
@@ -271,6 +271,11 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
   const diagramHtml = diagramSvg
     ? `<div class="diagram-wrap">${diagramSvg}</div>`
     : '';
+
+  const editLabel  = da ? '✎ Rediger' : '✎ Edit';
+  const doneLabel  = da ? '✓ Færdig' : '✓ Done editing';
+  const printLabel = da ? '🖨 Udskriv / Gem som PDF' : '🖨 Print / Save as PDF';
+  const editHint   = da ? 'Klik på et felt for at redigere' : 'Click any field to edit';
 
   return `<!DOCTYPE html>
 <html lang="${lang || 'en'}">
@@ -286,12 +291,45 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
     font-size: 11pt;
     line-height: 1.6;
     color: #1a1a2e;
-    background: #fff;
+    background: #f4f2fc;
     padding: 0;
   }
 
+  /* ── Edit toolbar ── */
+  #edit-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #1a0a3c;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  #edit-toolbar .tb-left { display: flex; align-items: center; gap: 10px; }
+  #edit-toolbar .tb-label { font-size: 9pt; color: #b8aee8; letter-spacing: 0.05em; }
+  #edit-toolbar .tb-hint { font-size: 8.5pt; color: #7c6ab0; font-style: italic; display: none; }
+  body.edit-mode #edit-toolbar .tb-hint { display: inline; }
+  #btn-edit {
+    font-size: 9pt; font-weight: 700; padding: 6px 16px;
+    border-radius: 6px; border: none; cursor: pointer;
+    background: #7c5cbf; color: #fff; transition: background 0.15s;
+  }
+  #btn-edit:hover { background: #9d6bcf; }
+  body.edit-mode #btn-edit { background: #2d9a50; }
+  body.edit-mode #btn-edit:hover { background: #3ab860; }
+  #btn-print {
+    font-size: 9pt; font-weight: 600; padding: 6px 16px;
+    border-radius: 6px; border: 1px solid #4a3070; cursor: pointer;
+    background: transparent; color: #c8bbf0; transition: all 0.15s;
+  }
+  #btn-print:hover { background: #2d1a5e; color: #fff; }
+
   /* ── Page layout ── */
-  .page { max-width: 900px; margin: 0 auto; padding: 48px 56px 64px; }
+  .page { max-width: 900px; margin: 0 auto; padding: 40px 56px 64px; background: #fff; box-shadow: 0 0 40px rgba(60,20,120,0.10); }
 
   /* ── Document header ── */
   .doc-header {
@@ -499,24 +537,60 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
     color: #999;
   }
 
+  /* ── Editable elements — idle ── */
+  .editable { outline: none; border-radius: 3px; transition: background 0.12s, box-shadow 0.12s; }
+
+  /* ── Edit mode: highlight editable fields ── */
+  body.edit-mode .editable {
+    background: #f5f0ff;
+    box-shadow: 0 0 0 2px #c4aff0;
+    cursor: text;
+    border-radius: 3px;
+    min-width: 20px;
+    display: inline-block;
+  }
+  body.edit-mode td.editable { display: table-cell; }
+  body.edit-mode li.editable { display: list-item; }
+  body.edit-mode .editable:focus {
+    background: #ede5ff;
+    box-shadow: 0 0 0 2px #7c5cbf;
+    outline: none;
+  }
+  body.edit-mode .editable:hover:not(:focus) { box-shadow: 0 0 0 2px #b8a0e8; }
+
   /* ── Print ── */
   @media print {
-    body { font-size: 10pt; }
-    .page { padding: 0; max-width: 100%; }
+    body { font-size: 10pt; background: #fff; }
+    .page { padding: 0; max-width: 100%; box-shadow: none; }
     .step { break-inside: avoid; }
     .section { break-inside: avoid; }
     .doc-header { break-after: avoid; }
+    #edit-toolbar { display: none !important; }
+    .editable { background: none !important; box-shadow: none !important; }
   }
 </style>
 </head>
 <body>
+
+<!-- Edit toolbar -->
+<div id="edit-toolbar">
+  <div class="tb-left">
+    <span class="tb-label">SOP</span>
+    <span class="tb-hint">${editHint}</span>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button id="btn-edit" onclick="toggleEdit()">${editLabel}</button>
+    <button id="btn-print" onclick="window.print()">${printLabel}</button>
+  </div>
+</div>
+
 <div class="page">
 
   <!-- Document header -->
   <div class="doc-header">
     <div class="doc-title-block">
       <div class="label">Standard Operating Procedure</div>
-      <h1>${esc(processName)}</h1>
+      <h1 class="editable">${esc(processName)}</h1>
     </div>
     ${logoHtml}
   </div>
@@ -528,12 +602,12 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
       <span class="section-title">${T.docControl}</span>
     </div>
     <table class="control-table">
-      <tr><th>${T.title}</th><td>${esc(processName)}</td></tr>
-      <tr><th>${T.docId}</th><td>${esc(docId(processName))}</td></tr>
-      <tr><th>${T.version}</th><td>v1.0</td></tr>
-      <tr><th>${T.effectDate}</th><td>${isoDate()}</td></tr>
-      <tr><th>${T.author}</th><td>—</td></tr>
-      <tr><th>${T.approver}</th><td>—</td></tr>
+      <tr><th>${T.title}</th><td class="editable">${esc(processName)}</td></tr>
+      <tr><th>${T.docId}</th><td class="editable">${esc(docId(processName))}</td></tr>
+      <tr><th>${T.version}</th><td class="editable">v1.0</td></tr>
+      <tr><th>${T.effectDate}</th><td class="editable">${isoDate()}</td></tr>
+      <tr><th>${T.author}</th><td class="editable">—</td></tr>
+      <tr><th>${T.approver}</th><td class="editable">—</td></tr>
     </table>
   </div>
 
@@ -544,9 +618,9 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
       <span class="section-title">${T.purpose}</span>
     </div>
     <h3>${T.purposeH}</h3>
-    <p>${esc(content.purpose || '—')}</p>
+    <p class="editable">${esc(content.purpose || '—')}</p>
     <h3>${T.scopeH}</h3>
-    <p>${esc(content.scope || '—')}</p>
+    <p class="editable">${esc(content.scope || '—')}</p>
   </div>
 
   <!-- Section 3: Roles & Responsibilities -->
@@ -579,7 +653,7 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
       <span class="section-num">05</span>
       <span class="section-title">${T.procedure}</span>
     </div>
-    <p>${T.procDesc}</p>
+    <p class="editable">${T.procDesc}</p>
     ${diagramHtml}
     <div class="steps-container">
       ${stepsHtml}
@@ -620,6 +694,40 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
   </div>
 
 </div>
+
+<script>
+  var editing = false;
+  var editBtn = document.getElementById('btn-edit');
+  var editLabel = '${editLabel}';
+  var doneLabel = '${doneLabel}';
+
+  function toggleEdit() {
+    editing = !editing;
+    document.body.classList.toggle('edit-mode', editing);
+    editBtn.textContent = editing ? doneLabel : editLabel;
+    document.querySelectorAll('.editable').forEach(function(el) {
+      el.contentEditable = editing ? 'true' : 'false';
+    });
+    if (editing) {
+      // Focus the first editable field for quick start
+      var first = document.querySelector('.editable');
+      if (first) { first.focus(); }
+    }
+  }
+
+  // Prevent Enter from inserting <div> — keep it as <br> instead
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && editing) {
+      var el = document.activeElement;
+      if (el && el.classList.contains('editable')) {
+        e.preventDefault();
+        document.execCommand('insertLineBreak');
+      }
+    }
+    // Esc exits edit mode
+    if (e.key === 'Escape' && editing) toggleEdit();
+  });
+</script>
 </body>
 </html>`;
 }
