@@ -97,6 +97,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('lasso', e); }} className="bpmn-zoom-btn" title="Lasso select">⬚</button>
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('space', e); }} className="bpmn-zoom-btn" title="Space tool">⇔</button>
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('connect', e); }} className="bpmn-zoom-btn" title="Connect">⤳</button>
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('participant', e); }} className="bpmn-zoom-btn text-[10px] font-semibold" title="Add swimlane">+▭</button>
         <div className="bpmn-zoom-divider" />
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('start-event', e); }} className="bpmn-zoom-btn" title="Start event">○</button>
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('intermediate-event', e); }} className="bpmn-zoom-btn" title="Intermediate event">⊙</button>

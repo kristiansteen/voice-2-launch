@@ -43,7 +43,12 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
         if (toolName === 'hand')    { m.get('handTool').activateHand(event); return; }
         if (toolName === 'lasso')   { m.get('lassoTool').activateSelection(event); return; }
         if (toolName === 'space')   { m.get('spaceTool').activateSelection(event); return; }
-        if (toolName === 'connect') { m.get('globalConnect').start(event); return; }
+        if (toolName === 'connect')     { m.get('globalConnect').start(event); return; }
+        if (toolName === 'participant') {
+          const shape = m.get('elementFactory').createParticipantShape();
+          m.get('create').start(event, shape);
+          return;
+        }
         const shapeTypes = {
           'start-event':        { type: 'bpmn:StartEvent' },
           'intermediate-event': { type: 'bpmn:IntermediateCatchEvent' },
