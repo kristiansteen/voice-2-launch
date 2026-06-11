@@ -1,5 +1,5 @@
 import { roleColor } from '../bpmn/roleColors.js';
-import { flatLayout, swimlaneLayout, swimlaneRoute } from '../bpmn/elkLayout.js';
+import { flatLayout, swimlaneLayout } from '../bpmn/elkLayout.js';
 
 function escapeXml(str) {
   if (!str) return '';
@@ -373,7 +373,7 @@ ${refs}
     const { x: tx, y: ty } = absPos(f.to);
     const { w: fw, h: fh } = getElementSizeById(f.from, events, activities, gateways);
     const { w: tw, h: th } = getElementSizeById(f.to,   events, activities, gateways);
-    const pts = swimlaneRoute(fx, fy, fw, fh, tx, ty, tw, th);
+    const pts = elkWp[f.id] || orthogonalWaypoints(fx, fy, fw, fh, tx, ty, tw, th, allShapesPositions, f.from, f.to);
     return `      <bpmndi:BPMNEdge id="${f.id}_di" bpmnElement="${f.id}">
 ${waypointsXml(pts)}
       </bpmndi:BPMNEdge>`;

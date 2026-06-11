@@ -205,6 +205,9 @@ Rules:
 - Every event must have a unique id starting with "event_"
 - Every role must have a unique id starting with "role_"
 - sequence_flows must reference valid element ids
+- EVERY element (event, activity, gateway) MUST appear in at least one sequence_flow — no isolated/unconnected nodes
+- There must be exactly one start event and at least one end event
+- Every gateway that splits flow MUST have a matching gateway or end event that joins/closes it
 - If you are uncertain about an element, still include it — mark ambiguous names with a "?" suffix${SAFETY_SUFFIX}`;
 
 export async function parseTranscript(transcript, apiKey, processContext = {}, proxyAuth = null) {
@@ -396,6 +399,8 @@ Rules:
 - Remove steps that the improvements eliminate
 - All ids must be unique; new elements use the next available number (e.g. act_13, role_7)
 - sequence_flows must reference only valid element ids in the output
+- EVERY element MUST appear in at least one sequence_flow — no isolated/unconnected nodes
+- There must be exactly one start event and at least one end event
 - Set process_name to the original name suffixed with " — TO-BE"
 
 Swimlane (role) rules — critical:

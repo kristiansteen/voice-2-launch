@@ -166,10 +166,21 @@ class CustomRenderer extends BaseRenderer {
   }
 
   canRender(element) {
-    return !element.labelTarget;
+    // Intercept label elements for events and gateways so bpmnRenderer
+    // doesn't draw a second copy of the text we already render inline.
+    if (element.labelTarget) {
+      return (
+        is(element.labelTarget, 'bpmn:Event') ||
+        is(element.labelTarget, 'bpmn:Gateway')
+      );
+    }
+    return true;
   }
 
   drawShape(parentNode, element) {
+    // Suppress the separate label element for events/gateways — text is drawn inline.
+    if (element.labelTarget) return svgCreate('g');
+
     if (
       is(element, 'bpmn:Task') ||
       is(element, 'bpmn:UserTask') ||
