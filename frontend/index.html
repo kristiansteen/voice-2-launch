@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<!-- Deployment Heartbeat: 2026-02-07 21:09 -->
+<!-- deployment trigger -->
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vimpl - Visual Project Management Made Simple</title>
+  <meta name="description"
+    content="vimpl is a visual planning board for teams. Manage projects, track risks, and collaborate in real-time with an intuitive drag-and-drop interface.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <link rel="stylesheet" href="assets/css/fonts.css">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/index.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/oidc-client-ts/2.2.0/oidc-client-ts.min.js"></script>
+  <!-- Swagger UI -->
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+  <style>
+    #swagger-ui .swagger-ui .topbar { display: none; }
+    #swagger-ui .swagger-ui { font-family: 'Inter', sans-serif; }
+    #swagger-ui .swagger-ui .info .title { font-family: 'Inter', sans-serif; font-size: 1.4rem; font-weight: 700; }
+    #swagger-ui .swagger-ui .opblock-tag { font-family: 'Inter', sans-serif; font-weight: 600; }
+  </style>
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-container">
+      <a href="/" class="logo">vimpl<span>.com</span></a>
+      <div class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="pricing.html" class="nav-link">Pricing</a>
+        <a href="about.html" class="nav-link">About</a>
+      </div>
+      <div class="nav-auth">
+        <a href="login.html" class="nav-link">Log in</a>
+        <a href="register.html" class="btn-primary-small">Sign up</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <i class="fas fa-sparkles"></i>
+          Start planning today
+        </div>
+        <h1>Visual project planning <span>made simple</span></h1>
+        <p>Plan projects, track risks, and manage your team with an intuitive visual board. Drag, drop, and collaborate
+          — all in your browser.</p>
+        <div class="hero-buttons">
+          <a href="register.html" class="btn-primary">
+            <i class="fas fa-rocket"></i> Get Started Free
+          </a>
+          <a href="#features" class="btn-secondary">
+            <i class="fas fa-play"></i> See how it works
+          </a>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div class="hero-preview">
+          <div class="preview-header">
+            <span class="preview-dot red"></span>
+            <span class="preview-dot yellow"></span>
+            <span class="preview-dot green"></span>
+          </div>
+          <div class="preview-content">
+            <div class="preview-card green">
+              <span class="preview-postit yellow"></span>
+            </div>
+            <div class="preview-card blue">
+              <span class="preview-postit pink"></span>
+              <span class="preview-postit blue"></span>
+            </div>
+            <div class="preview-card green">
+              <span class="preview-postit yellow"></span>
+            </div>
+            <div class="preview-card orange">
+              <span class="preview-postit pink"></span>
+            </div>
+            <div class="preview-card"></div>
+            <div class="preview-card green">
+              <span class="preview-postit blue"></span>
+            </div>
+            <div class="preview-card"></div>
+            <div class="preview-card green">
+              <span class="preview-postit yellow"></span>
+              <span class="preview-postit pink"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features" style="scroll-margin-top: 90px;">
+    <div class="features-container">
+      <div class="section-header">
+        <h2>Everything you need to plan visually</h2>
+        <p>Powerful features wrapped in a simple, intuitive interface that your whole team will love.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-sticky-note"></i>
+          </div>
+          <h3>Drag & Drop Post-its</h3>
+          <p>Add colorful post-it notes anywhere on your board. Double-click to add details, owner, and status.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: var(--secondary);">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <h3>Week Planner</h3>
+          <p>Plan your sprints with a visual week planner. Set start dates and track progress across multiple tracks.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: var(--success);">
+            <i class="fas fa-th-large"></i>
+          </div>
+          <h3>Risk Matrix</h3>
+          <p>Visualize risks with 2x2 matrices. Automatically calculate risk scores based on probability and impact.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: var(--accent);">
+            <i class="fas fa-users"></i>
+          </div>
+          <h3>Team Management</h3>
+          <p>Add team members and assign them as owners to tasks and actions across your board.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: #ec4899;">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3>KPI Tracking</h3>
+          <p>Monitor key performance indicators with visual red/yellow/green status indicators.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: var(--primary);">
+            <i class="fas fa-save"></i>
+          </div>
+          <h3>Auto-Save</h3>
+          <p>Never lose your work. Everything saves automatically to your browser. Export anytime.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- API Reference Section -->
+  <section id="api" style="padding: 60px 24px; background: var(--gray-100);">
+    <div style="max-width: 1200px; margin: 0 auto;">
+
+      <!-- Accordion toggle -->
+      <div id="api-accordion-header"
+        onclick="toggleApiAccordion()"
+        style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:20px 28px; background:white; border-radius:12px; border:1px solid var(--gray-200,#e5e7eb); user-select:none;">
+        <div>
+          <h2 style="margin:0; font-size:1.4rem;">API Reference</h2>
+          <p style="margin:4px 0 0; color:var(--gray-500,#6b7280); font-size:0.9rem;">Full REST API for integrating vimpl into your own tooling</p>
+        </div>
+        <span id="api-accordion-chevron" style="font-size:1.2rem; color:var(--gray-400,#9ca3af); transition:transform 0.25s;">▾</span>
+      </div>
+
+      <!-- Collapsible body -->
+      <div id="api-accordion-body" style="display:none; margin-top:12px;">
+        <p style="margin:0 0 16px; color:var(--gray-600,#4b5563); font-size:0.9rem;">
+          Use <strong>Authorize</strong> to add your token, then <strong>Try it out</strong> on any endpoint.
+        </p>
+        <div id="swagger-ui" style="background:white; border-radius:12px; overflow:hidden; border:1px solid var(--gray-200,#e5e7eb);"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    function toggleApiAccordion() {
+      const body = document.getElementById('api-accordion-body');
+      const chevron = document.getElementById('api-accordion-chevron');
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      chevron.style.transform = open ? '' : 'rotate(180deg)';
+    }
+  </script>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-logo">vimpl<span>.com</span></div>
+      <div class="footer-links">
+        <a href="privacy.html" class="footer-link">Privacy</a>
+        <a href="terms.html" class="footer-link">Terms</a>
+        <a href="https://github.com/kristiansteen/vimpl" class="footer-link" target="_blank">
+          <i class="fab fa-github"></i> GitHub
+        </a>
+      </div>
+      <div class="footer-copy">© 2025 vimpl. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <div id="create-board-modal"
+    style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+    <div
+      style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 400px; border-radius: 8px;">
+      <h2>Create a new board</h2>
+      <p>Please enter a name for your new board.</p>
+      <input type="text" id="board-name-input" placeholder="Board name"
+        style="width: 100%; padding: 12px 20px; margin: 8px 0; display: inline-block; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+      <button id="submit-board-name"
+        style="width: 100%; background-color: #4CAF50; color: white; padding: 14px 20px; margin: 8px 0; border: none; border-radius: 4px; cursor: pointer;">Create
+        Board</button>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const createBoardLinks = document.querySelectorAll('a[href="board.html?new=true"]');
+      const modal = document.getElementById('create-board-modal');
+      const boardNameInput = document.getElementById('board-name-input');
+      const submitBoardNameBtn = document.getElementById('submit-board-name');
+
+      createBoardLinks.forEach(link => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          modal.style.display = 'block';
+        });
+      });
+
+      submitBoardNameBtn.addEventListener('click', () => {
+        const boardName = boardNameInput.value.trim();
+        if (boardName) {
+          const slug = boardName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          window.location.href = `board.html#${slug}`;
+        } else {
+          alert('Please enter a board name.');
+        }
+      });
+
+      window.addEventListener('click', (event) => {
+        if (event.target == modal) {
+          modal.style.display = 'none';
+        }
+      });
+    });
+  </script>
+  <script>
+    function toggleVimplPhil(item) {
+      const body = item.querySelector('.vimpl-phil-body');
+      const chevron = item.querySelector('.vimpl-chevron');
+      const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
+      body.style.maxHeight = isOpen ? '0px' : body.scrollHeight + 'px';
+      chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+      item.style.borderColor = isOpen ? 'rgba(255,255,255,0.08)' : 'rgba(101,196,52,0.4)';
+    }
+  </script>
+  <!-- Swagger UI init -->
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: "https://backend-eight-rho-46.vercel.app/api/docs.json",
+      dom_id: '#swagger-ui',
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+      layout: "BaseLayout",
+      deepLinking: true,
+      persistAuthorization: true,
+    });
+  </script>
+  <script src="assets/js/api-client.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const authContainer = document.querySelector('.nav-auth');
+      const apiClient = new ApiClient();
+
+      if (apiClient.isAuthenticated()) {
+        try {
+          const response = await apiClient.getCurrentUser();
+          const user = response.user || response;
+
+          authContainer.innerHTML = `
+            <div class="user-info" style="display: flex; align-items: center; gap: 12px;">
+              <span class="nav-user" style="font-weight: 500; color: #333;">Hello, ${user.name}</span>
+              <a href="dashboard.html" class="btn-primary-small" style="text-decoration: none;">Dashboard</a>
+              <button onclick="logout()" class="nav-link" style="border: none; background: none; cursor: pointer; color: #666;">Logout</button>
+            </div>
+          `;
+        } catch (e) {
+          // Token invalid, clear it
+          apiClient.clearToken();
+          // Default buttons will show
+        }
+      }
+      // If not authenticated, the default static HTML (Login/Sign up buttons) remains
+    });
+
+    async function logout() {
+      const apiClient = new ApiClient();
+      await apiClient.logout();
+      window.location.reload();
+    }
+  </script>
+  <script src="assets/js/cookie-banner.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Signing in...</title></head>
+<body>
+<script>
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      const existing = JSON.parse(localStorage.getItem('voice2bpmn_vimpl_config') || '{}');
+      localStorage.setItem('voice2bpmn_vimpl_config', JSON.stringify({ ...existing, token }));
+    }
+  } catch (e) {}
+  window.location.replace('/');
+</script>
+</body>
+</html>
