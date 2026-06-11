@@ -104,7 +104,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('gateway', e); }} className="bpmn-zoom-btn" title="Gateway">◇</button>
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('task', e); }} className="bpmn-zoom-btn" title="Task">▭</button>
         <div className="bpmn-zoom-divider" />
-        <button onClick={() => setShowXmlModal(true)} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
+        <button onClick={() => setShowXmlModal(true)} className="text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors whitespace-nowrap">
           {t.bpmnXml}
         </button>
         <div className="bpmn-zoom-divider" />
