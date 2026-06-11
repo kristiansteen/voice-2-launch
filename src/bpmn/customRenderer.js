@@ -524,9 +524,7 @@ function _drawConditionPill(parentNode, label, mx, my) {
     width: pillW, height: pillH,
     rx: 4, ry: 4,
     fill: '#ffffff',
-    stroke: BRAND.purple,
-    'stroke-opacity': 0.5,
-    'stroke-width': 1,
+    stroke: 'none',
   });
   svgAppend(g, pill);
 
