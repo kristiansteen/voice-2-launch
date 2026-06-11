@@ -3,9 +3,10 @@ import BpmnViewer from './BpmnViewer.jsx';
 import BpmnErrorBoundary from './BpmnErrorBoundary.jsx';
 import StepCurtain from './StepCurtain.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
+import { generateSop } from '../services/sopGenerator.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange }) {
-  const { t } = useLang();
+export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey, proxyAuth, companyLogo, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange }) {
+  const { t, lang } = useLang();
   const viewerRef = useRef(null);
   const toBeViewerRef = useRef(null);
   const [activeTab, setActiveTab] = useState('asis'); // 'asis' | 'tobe'
@@ -46,6 +47,31 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
 
   // XML preview modal
   const [showXmlModal, setShowXmlModal] = useState(false);
+
+  // SOP download
+  const [sopLoading, setSopLoading] = useState(false);
+  async function handleDownloadSop() {
+    if (!parsed || sopLoading) return;
+    setSopLoading(true);
+    try {
+      const diagramSvg = await activeRef?.saveSVG() || null;
+      const html = await generateSop({
+        parsed, processDescription, processName,
+        companyLogo, apiKey, proxyAuth,
+        lang,
+        diagramSvg,
+      });
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(processName || 'sop').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-sop.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setSopLoading(false);
+    }
+  }
 
   const activeXml = (asIsXml && activeTab === 'tobe') ? toBeXml : (asIsXml || xml);
   const activeRef = activeTab === 'tobe' ? toBeViewerRef.current : viewerRef.current;
@@ -107,6 +133,16 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         <div className="bpmn-zoom-divider" />
         <button onClick={() => setShowXmlModal(true)} className="text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors whitespace-nowrap">
           {t.bpmnXml}
+        </button>
+        <button
+          onClick={handleDownloadSop}
+          disabled={!parsed || sopLoading}
+          className="text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex items-center gap-1"
+          title="Download SOP document"
+        >
+          {sopLoading
+            ? <><span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-purple-500 rounded-full animate-spin" /> SOP</>
+            : 'SOP'}
         </button>
         <div className="bpmn-zoom-divider" />
         <button onClick={() => activeRef?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>

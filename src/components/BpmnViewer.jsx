@@ -36,6 +36,12 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
     canRedo() {
       try { return modelerRef.current?.get('commandStack').canRedo() ?? false; } catch { return false; }
     },
+    async saveSVG() {
+      try {
+        const { svg } = await modelerRef.current?.saveSVG();
+        return svg || null;
+      } catch { return null; }
+    },
     activateTool(toolName, event) {
       const m = modelerRef.current;
       if (!m) return;

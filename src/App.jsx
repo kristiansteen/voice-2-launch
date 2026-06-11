@@ -1189,6 +1189,8 @@ export default function App() {
               processDescription={processDescription}
               onGetImprovements={handleGetImprovements}
               apiKey={hasAccess ? (effectiveApiKey || 'granted') : (isDemoFlow ? 'demo' : null)}
+              proxyAuth={getProxyAuth()}
+              companyLogo={companyLogo}
               asIsXml={asIsXml}
               toBeXml={toBeXml}
               onToBeXmlChange={setToBeXml}
