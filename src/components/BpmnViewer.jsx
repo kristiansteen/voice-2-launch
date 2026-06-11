@@ -71,8 +71,9 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
       const modeler = new BpmnModeler({ container: containerRef.current, additionalModules: [rendererMod.customRenderModule] });
       modelerRef.current = modeler;
 
-      // Hide the default floating palette — tools are in the top toolbar instead
-      try { modeler.get('palette').close(); } catch { /* CSS fallback handles it */ }
+      // Let bpmn-js initialise the palette normally, then hide it via CSS
+      // (closing without re-opening leaves bpmn-js in a broken state)
+      try { modeler.get('palette').open(); } catch { /* not critical */ }
 
       // Double-click on an element opens the step curtain
       modeler.get('eventBus').on('element.dblclick', (event) => {

@@ -340,13 +340,7 @@ body {
 
 /* ── Palette ─────────────────────────────────────────────────────── */
 .djs-palette {
-  border: none !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 24px rgba(74,44,90,0.12), 0 1px 4px rgba(74,44,90,0.06) !important;
-  background: #ffffff !important;
-  padding: 6px !important;
-  top: 16px !important;
-  left: 16px !important;
+  display: none !important;
 }
 
 .djs-palette .entry {
