@@ -41,17 +41,76 @@ const LANE_OPTS = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.spacing.nodeNode': '30',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '60',
+  'elk.spacing.nodeNode': '40',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '70',
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  // FREE port constraints let ELK spread multiple outgoing edges across
-  // different positions on the node boundary, preventing stacking on gateways.
   'elk.portConstraints': 'FREE',
-  'elk.spacing.edgeEdge': '10',
-  'elk.spacing.edgeNode': '12',
+  'elk.spacing.edgeEdge': '12',
+  'elk.spacing.edgeNode': '16',
   'elk.padding': '[top=25,left=60,bottom=25,right=60]',
 };
+
+// ── Overlap separation ────────────────────────────────────────────────────────
+// After layout, iteratively push apart any two elements whose bounding boxes
+// overlap. Runs up to MAX_ITER times; usually converges in 1–2 passes.
+
+const MAX_ITER = 10;
+const OVERLAP_PAD = 20; // minimum gap between element edges
+
+function getSize(id, events, activities, gateways) {
+  if (activities.find(a => a.id === id)) return SIZES.activity;
+  if (gateways.find(g => g.id === id))   return SIZES.gateway;
+  return SIZES.event;
+}
+
+function separateOverlaps(positions, all, events, activities, gateways, elementLaneId, laneH) {
+  for (let iter = 0; iter < MAX_ITER; iter++) {
+    let moved = false;
+    for (let i = 0; i < all.length; i++) {
+      for (let j = i + 1; j < all.length; j++) {
+        const a = all[i], b = all[j];
+        const pa = positions[a.id], pb = positions[b.id];
+        if (!pa || !pb) continue;
+
+        const sa = getSize(a.id, events, activities, gateways);
+        const sb = getSize(b.id, events, activities, gateways);
+
+        const overlapX = (sa.w + sb.w) / 2 + OVERLAP_PAD - Math.abs(pa.x - pb.x);
+        const overlapY = (sa.h + sb.h) / 2 + OVERLAP_PAD - Math.abs(pa.y - pb.y);
+
+        if (overlapX <= 0 || overlapY <= 0) continue; // no overlap
+
+        moved = true;
+        // Push apart along the axis of least overlap
+        if (overlapX < overlapY) {
+          const shift = overlapX / 2;
+          if (pa.x <= pb.x) { pa.x -= shift; pb.x += shift; }
+          else               { pa.x += shift; pb.x -= shift; }
+        } else {
+          // For swimlanes: clamp Y to stay within the lane bounds
+          const shift = overlapY / 2;
+          if (elementLaneId && laneH) {
+            const laneAY = (Object.keys(elementLaneId).indexOf(a.id) >= 0)
+              ? Math.round(pa.y / laneH) * laneH : 0;
+            const halfLane = laneH / 2 - sa.h / 2 - 10;
+            if (pa.y <= pb.y) {
+              pa.y = Math.max(pa.y - shift, laneAY - halfLane);
+              pb.y = Math.min(pb.y + shift, laneAY + laneH + halfLane);
+            } else {
+              pa.y = Math.min(pa.y + shift, laneAY + laneH + halfLane);
+              pb.y = Math.max(pb.y - shift, laneAY - halfLane);
+            }
+          } else {
+            if (pa.y <= pb.y) { pa.y -= shift; pb.y += shift; }
+            else               { pa.y += shift; pb.y -= shift; }
+          }
+        }
+      }
+    }
+    if (!moved) break;
+  }
+}
 
 // ── Flat (no swimlanes) ───────────────────────────────────────────────────────
 
@@ -78,6 +137,8 @@ export async function flatLayout(parsed) {
   layout.children.forEach(n => {
     positions[n.id] = { x: n.x + n.width / 2, y: n.y + n.height / 2 };
   });
+
+  separateOverlaps(positions, all, events, activities, gateways, null, null);
 
   const waypoints = {};
   (layout.edges || []).forEach(e => {
@@ -126,6 +187,10 @@ export async function swimlaneLayout(parsed, elementLaneId, lanes) {
       y: li * LANE_H + LANE_H / 2,
     };
   });
+
+  // Separate any elements that overlap after Y-snapping.
+  // Elements in the same lane with the same X column get spread vertically.
+  separateOverlaps(positions, all, events, activities, gateways, elementLaneId, LANE_H);
 
   // Lane boxes — all same width, stacked vertically
   const totalW = Math.ceil(layout.width ?? 600);
