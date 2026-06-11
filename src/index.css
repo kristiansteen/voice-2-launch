@@ -271,6 +271,12 @@ body {
   fill: none;
 }
 
+/* ── Connector label background — transparent ────────────────────── */
+.djs-connection .djs-label rect {
+  fill: transparent !important;
+  stroke: none !important;
+}
+
 /* ── Labels ──────────────────────────────────────────────────────── */
 .djs-label text,
 .djs-label tspan {
