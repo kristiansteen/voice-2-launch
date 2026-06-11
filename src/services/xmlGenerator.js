@@ -267,10 +267,11 @@ async function generateSwimlanesXml(parsed) {
   const allElements = [...events, ...activities, ...gateways];
   const roleMap = Object.fromEntries(roles.map(r => [r.id, r]));
 
-  // Assign each element to a lane id
+  // Assign each element to a lane id — always a real role, never a catch-all
+  const firstRole = roles[0]?.id;
   const elementLaneId = {};
   activities.forEach(a => {
-    elementLaneId[a.id] = (a.performer && roleMap[a.performer]) ? a.performer : '_general';
+    elementLaneId[a.id] = (a.performer && roleMap[a.performer]) ? a.performer : firstRole;
   });
   function inferLane(elemId) {
     for (const f of sequence_flows) {
@@ -279,17 +280,14 @@ async function generateSwimlanesXml(parsed) {
     for (const f of sequence_flows) {
       if (f.from === elemId && elementLaneId[f.to]) return elementLaneId[f.to];
     }
-    return '_general';
+    return firstRole;
   }
   events.forEach(e   => { elementLaneId[e.id] = inferLane(e.id); });
   gateways.forEach(g => { elementLaneId[g.id] = inferLane(g.id); });
 
-  // Build ordered lane list — only lanes that are actually used
+  // Build ordered lane list — only real roles, no catch-all lanes
   const usedIds = new Set(Object.values(elementLaneId));
-  const lanes = [
-    ...(usedIds.has('_general') ? [{ id: '_general', name: 'General' }] : []),
-    ...roles.filter(r => usedIds.has(r.id)),
-  ];
+  const lanes = roles.filter(r => usedIds.has(r.id));
 
   // ELK layout — positions are relative to the inner layout area
   const { positions: elkPos, waypoints: elkWp, laneBoxes } =

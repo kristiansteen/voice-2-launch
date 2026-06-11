@@ -208,6 +208,8 @@ Rules:
 - EVERY element (event, activity, gateway) MUST appear in at least one sequence_flow — no isolated/unconnected nodes
 - There must be exactly one start event and at least one end event
 - Every gateway that splits flow MUST have a matching gateway or end event that joins/closes it
+- Every activity MUST have a performer assigned to a real named role — never leave performer as null
+- NEVER create a "General" role or any catch-all/unnamed role; every role must be a specific person or organisational unit
 - If you are uncertain about an element, still include it — mark ambiguous names with a "?" suffix${SAFETY_SUFFIX}`;
 
 export async function parseTranscript(transcript, apiKey, processContext = {}, proxyAuth = null) {
