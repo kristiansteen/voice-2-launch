@@ -11,11 +11,11 @@ export const translations = {
     collapsePanel:  'Collapse panel',
 
     // Panel labels
-    panel1: 'Voice',
-    panel2: 'Identify',
-    panel3: 'Map',
-    panel4: 'Plan',
-    panel5: 'Launch',
+    panel1: 'Describe',
+    panel2: 'Review',
+    panel3: 'Diagram',
+    panel4: 'Improve',
+    panel5: 'Plan',
     panel6: 'Taxonomy DB',
 
     // ── App header ────────────────────────────────────────────────
@@ -477,11 +477,11 @@ export const translations = {
     dashUpgradeBody:      'Opgrader for at oprette ubegrænsede procesflows og vimpl-boards.',
     dashUpgradeBtn:       'Opgrader nu ↗',
 
-    panel1: 'Snak',
-    panel2: 'Identificér',
-    panel3: 'Map',
-    panel4: 'Planlæg',
-    panel5: 'Lancér',
+    panel1: 'Beskriv',
+    panel2: 'Gennemgå',
+    panel3: 'Diagram',
+    panel4: 'Forbedr',
+    panel5: 'Planlæg',
     panel6: 'Taxonomy DB',
 
     // ── VoicePanel ────────────────────────────────────────────────
