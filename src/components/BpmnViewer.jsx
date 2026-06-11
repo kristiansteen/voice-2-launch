@@ -14,7 +14,7 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
   const lastXmlRef = useRef(null);
   const [error, setError] = useState(null);
 
-  // Expose canvas controls to parent via ref
+  // Expose canvas + history controls to parent via ref
   useImperativeHandle(ref, () => ({
     fitViewport() {
       try { modelerRef.current?.get('canvas').zoom('fit-viewport'); } catch { /* not ready */ }
@@ -30,6 +30,18 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
         const canvas = modelerRef.current?.get('canvas');
         if (canvas) canvas.zoom(Math.max(canvas.zoom() / 1.25, 0.2));
       } catch { /* not ready */ }
+    },
+    undo() {
+      try { modelerRef.current?.get('commandStack').undo(); } catch { /* not ready */ }
+    },
+    redo() {
+      try { modelerRef.current?.get('commandStack').redo(); } catch { /* not ready */ }
+    },
+    canUndo() {
+      try { return modelerRef.current?.get('commandStack').canUndo() ?? false; } catch { return false; }
+    },
+    canRedo() {
+      try { return modelerRef.current?.get('commandStack').canRedo() ?? false; } catch { return false; }
     },
   }), []);
 
@@ -117,6 +129,24 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
         setError(err.message || 'Failed to render diagram');
       });
   }, [xml]);
+
+  // ── Global keyboard undo/redo ─────────────────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        try { modelerRef.current?.get('commandStack').undo(); } catch { /* not ready */ }
+      }
+      if ((e.key === 'y') || (e.key === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        try { modelerRef.current?.get('commandStack').redo(); } catch { /* not ready */ }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // ── Respond to panel resize (debounced) ───────────────────────────
   useEffect(() => {

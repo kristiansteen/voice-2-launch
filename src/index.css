@@ -219,6 +219,13 @@ body {
   margin: 1px 0;
 }
 
+.bpmn-zoom-divider {
+  width: 1px;
+  height: 20px;
+  background: #e2e8f0;
+  margin: 4px 2px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    Ailean BPMN skin — brand palette
    ═══════════════════════════════════════════════════════════════════ */

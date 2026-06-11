@@ -159,6 +159,9 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
             />
           )}
           <div className="bpmn-zoom-controls">
+            <button onClick={() => viewerRef.current?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>
+            <button onClick={() => viewerRef.current?.redo()} className="bpmn-zoom-btn" title="Redo (Ctrl+Shift+Z)">↪</button>
+            <div className="bpmn-zoom-divider" />
             <button onClick={() => viewerRef.current?.zoomIn()} className="bpmn-zoom-btn">+</button>
             <button onClick={() => viewerRef.current?.fitViewport()} className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
             <button onClick={() => viewerRef.current?.zoomOut()} className="bpmn-zoom-btn">−</button>
@@ -177,6 +180,9 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
               />
             </BpmnErrorBoundary>
             <div className="bpmn-zoom-controls">
+              <button onClick={() => toBeViewerRef.current?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>
+              <button onClick={() => toBeViewerRef.current?.redo()} className="bpmn-zoom-btn" title="Redo (Ctrl+Shift+Z)">↪</button>
+              <div className="bpmn-zoom-divider" />
               <button onClick={() => toBeViewerRef.current?.zoomIn()} className="bpmn-zoom-btn">+</button>
               <button onClick={() => toBeViewerRef.current?.fitViewport()} className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
               <button onClick={() => toBeViewerRef.current?.zoomOut()} className="bpmn-zoom-btn">−</button>
