@@ -182,6 +182,57 @@ function waypointsXml(points) {
   return points.map(([x, y]) => `        <di:waypoint x="${Math.round(x)}" y="${Math.round(y)}" />`).join('\n');
 }
 
+// Compute explicit label bounds for an edge — positioned at waypoint midpoint,
+// offset 14px perpendicular above the local edge direction so it sits on the
+// line rather than drifting onto nearby shapes.
+function edgeLabelBounds(pts, text) {
+  if (!pts || pts.length < 2 || !text) return null;
+  // Find midpoint along the polyline
+  let totalLen = 0;
+  const segs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const dx = pts[i + 1][0] - pts[i][0];
+    const dy = pts[i + 1][1] - pts[i][1];
+    const len = Math.sqrt(dx * dx + dy * dy);
+    segs.push({ len, dx, dy, x0: pts[i][0], y0: pts[i][1] });
+    totalLen += len;
+  }
+  const half = totalLen / 2;
+  let acc = 0;
+  let mx = pts[0][0], my = pts[0][1], edx = 1, edy = 0;
+  for (const seg of segs) {
+    if (acc + seg.len >= half) {
+      const t = (half - acc) / seg.len;
+      mx = seg.x0 + seg.dx * t;
+      my = seg.y0 + seg.dy * t;
+      edx = seg.dx / seg.len;
+      edy = seg.dy / seg.len;
+      break;
+    }
+    acc += seg.len;
+  }
+  // Perpendicular offset — choose the side that points upward/left
+  const perpX = -edy;
+  const perpY = edx;
+  const OFFSET = 14;
+  // Always offset upward in screen coords (negative Y = up)
+  const sign = perpY < 0 || (perpY === 0 && perpX < 0) ? 1 : -1;
+  const lw = Math.min(Math.max(text.length * 6, 40), 150);
+  const lh = 14;
+  return {
+    x: Math.round(mx + sign * perpX * OFFSET - lw / 2),
+    y: Math.round(my + sign * perpY * OFFSET - lh / 2),
+    w: lw,
+    h: lh,
+  };
+}
+
+function edgeLabelXml(pts, text) {
+  const b = edgeLabelBounds(pts, text);
+  if (!b) return '';
+  return `\n        <bpmndi:BPMNLabel><dc:Bounds x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" /></bpmndi:BPMNLabel>`;
+}
+
 function flowsXml(sequence_flows) {
   return sequence_flows.map(f => {
     const cond = f.condition
@@ -234,8 +285,9 @@ async function generateFlatXml(parsed) {
     const { w: tw, h: th } = getElementSizeById(f.to,   events, activities, gateways);
     const pts = waypoints[f.id] ||
       orthogonalWaypoints(fp.x, fp.y, fw, fh, tp.x, tp.y, tw, th, allShapesPositions, f.from, f.to);
+    const labelText = f.condition || f.name || '';
     return `      <bpmndi:BPMNEdge id="${f.id}_di" bpmnElement="${f.id}">
-${waypointsXml(pts)}
+${waypointsXml(pts)}${edgeLabelXml(pts, labelText)}
       </bpmndi:BPMNEdge>`;
   }).join('\n');
 
@@ -372,8 +424,9 @@ ${refs}
     const { w: fw, h: fh } = getElementSizeById(f.from, events, activities, gateways);
     const { w: tw, h: th } = getElementSizeById(f.to,   events, activities, gateways);
     const pts = elkWp[f.id] || orthogonalWaypoints(fx, fy, fw, fh, tx, ty, tw, th, allShapesPositions, f.from, f.to);
+    const labelText = f.condition || f.name || '';
     return `      <bpmndi:BPMNEdge id="${f.id}_di" bpmnElement="${f.id}">
-${waypointsXml(pts)}
+${waypointsXml(pts)}${edgeLabelXml(pts, labelText)}
       </bpmndi:BPMNEdge>`;
   }).join('\n');
 
