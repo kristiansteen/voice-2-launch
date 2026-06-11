@@ -48,6 +48,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
   const [showXmlModal, setShowXmlModal] = useState(false);
 
   const activeXml = (asIsXml && activeTab === 'tobe') ? toBeXml : (asIsXml || xml);
+  const activeRef = activeTab === 'tobe' ? toBeViewerRef.current : viewerRef.current;
   const activeVariant = (asIsXml && activeTab === 'tobe') ? 'to-be' : 'as-is';
 
   function makeFilename() {
@@ -94,6 +95,13 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         <button onClick={() => setShowXmlModal(true)} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
           {t.bpmnXml}
         </button>
+        <div className="bpmn-zoom-divider" />
+        <button onClick={() => activeRef?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>
+        <button onClick={() => activeRef?.redo()} className="bpmn-zoom-btn" title="Redo (Ctrl+Shift+Z)">↪</button>
+        <div className="bpmn-zoom-divider" />
+        <button onClick={() => activeRef?.zoomIn()} className="bpmn-zoom-btn">+</button>
+        <button onClick={() => activeRef?.fitViewport()} className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
+        <button onClick={() => activeRef?.zoomOut()} className="bpmn-zoom-btn">−</button>
       </div>
 
       {/* ── Tab bar — only when AS-IS is frozen ─────────────────────── */}
@@ -158,14 +166,6 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
               onClose={() => setCurtainElement(null)}
             />
           )}
-          <div className="bpmn-zoom-controls">
-            <button onClick={() => viewerRef.current?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>
-            <button onClick={() => viewerRef.current?.redo()} className="bpmn-zoom-btn" title="Redo (Ctrl+Shift+Z)">↪</button>
-            <div className="bpmn-zoom-divider" />
-            <button onClick={() => viewerRef.current?.zoomIn()} className="bpmn-zoom-btn">+</button>
-            <button onClick={() => viewerRef.current?.fitViewport()} className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
-            <button onClick={() => viewerRef.current?.zoomOut()} className="bpmn-zoom-btn">−</button>
-          </div>
         </div>
 
         {/* TO-BE viewer — visible when tobe tab active */}
@@ -179,14 +179,6 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
                 onElementDblClick={setCurtainElement}
               />
             </BpmnErrorBoundary>
-            <div className="bpmn-zoom-controls">
-              <button onClick={() => toBeViewerRef.current?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>
-              <button onClick={() => toBeViewerRef.current?.redo()} className="bpmn-zoom-btn" title="Redo (Ctrl+Shift+Z)">↪</button>
-              <div className="bpmn-zoom-divider" />
-              <button onClick={() => toBeViewerRef.current?.zoomIn()} className="bpmn-zoom-btn">+</button>
-              <button onClick={() => toBeViewerRef.current?.fitViewport()} className="bpmn-zoom-btn bpmn-zoom-fit">⊡</button>
-              <button onClick={() => toBeViewerRef.current?.zoomOut()} className="bpmn-zoom-btn">−</button>
-            </div>
           </div>
         )}
       </div>
