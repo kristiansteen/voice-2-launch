@@ -91,7 +91,19 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Toolbar ─────────────────────────────────────────────────── */}
-      <div className="bpmn-toolbar px-3 py-2 flex items-center gap-2 shrink-0">
+      <div className="bpmn-toolbar px-3 py-2 flex items-center gap-1.5 shrink-0">
+        {/* Palette tools */}
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('hand', e); }} className="bpmn-zoom-btn" title="Hand tool">☚</button>
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('lasso', e); }} className="bpmn-zoom-btn" title="Lasso select">⬚</button>
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('space', e); }} className="bpmn-zoom-btn" title="Space tool">⇔</button>
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('connect', e); }} className="bpmn-zoom-btn" title="Connect">⤳</button>
+        <div className="bpmn-zoom-divider" />
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('start-event', e); }} className="bpmn-zoom-btn" title="Start event">○</button>
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('intermediate-event', e); }} className="bpmn-zoom-btn" title="Intermediate event">⊙</button>
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('end-event', e); }} className="bpmn-zoom-btn" title="End event">●</button>
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('gateway', e); }} className="bpmn-zoom-btn" title="Gateway">◇</button>
+        <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('task', e); }} className="bpmn-zoom-btn" title="Task">▭</button>
+        <div className="bpmn-zoom-divider" />
         <button onClick={() => setShowXmlModal(true)} className="flex-1 text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors">
           {t.bpmnXml}
         </button>

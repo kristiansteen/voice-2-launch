@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
-const PALETTE_REMOVE = [
-  'create.subprocess-expanded',
-  'create.data-object',
-  'create.data-store',
-  'create.group',
-  'create.participant',
-];
 
 const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementDblClick }, ref) {
   const containerRef = useRef(null);
@@ -43,6 +36,27 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
     canRedo() {
       try { return modelerRef.current?.get('commandStack').canRedo() ?? false; } catch { return false; }
     },
+    activateTool(toolName, event) {
+      const m = modelerRef.current;
+      if (!m) return;
+      try {
+        if (toolName === 'hand')    { m.get('handTool').activateHand(event); return; }
+        if (toolName === 'lasso')   { m.get('lassoTool').activateSelection(event); return; }
+        if (toolName === 'space')   { m.get('spaceTool').activateSelection(event); return; }
+        if (toolName === 'connect') { m.get('globalConnect').start(event); return; }
+        const shapeTypes = {
+          'start-event':        { type: 'bpmn:StartEvent' },
+          'intermediate-event': { type: 'bpmn:IntermediateCatchEvent' },
+          'end-event':          { type: 'bpmn:EndEvent' },
+          'gateway':            { type: 'bpmn:ExclusiveGateway' },
+          'task':               { type: 'bpmn:Task' },
+        };
+        if (shapeTypes[toolName]) {
+          const shape = m.get('elementFactory').createShape(shapeTypes[toolName]);
+          m.get('create').start(event, shape);
+        }
+      } catch { /* not ready */ }
+    },
   }), []);
 
   // ── Create modeler once on mount ─────────────────────────────────
@@ -57,19 +71,8 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
       const modeler = new BpmnModeler({ container: containerRef.current, additionalModules: [rendererMod.customRenderModule] });
       modelerRef.current = modeler;
 
-      // Strip unwanted palette entries
-      try {
-        const pp = modeler.get('paletteProvider');
-        const origGet = pp.getPaletteEntries.bind(pp);
-        pp.getPaletteEntries = (element) => {
-          const entries = origGet(element);
-          PALETTE_REMOVE.forEach(k => delete entries[k]);
-          return entries;
-        };
-        const palette = modeler.get('palette');
-        palette.close();
-        palette.open();
-      } catch { /* CSS fallback handles it */ }
+      // Hide the default floating palette — tools are in the top toolbar instead
+      try { modeler.get('palette').close(); } catch { /* CSS fallback handles it */ }
 
       // Double-click on an element opens the step curtain
       modeler.get('eventBus').on('element.dblclick', (event) => {
