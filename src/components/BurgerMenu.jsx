@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
 
 const BOOK_URL = 'https://calendar.app.google/kwF1TaAHfsXkPn3p6';
@@ -24,10 +24,26 @@ export default function BurgerMenu({
   vimplToken, vimplUser, onLogout,
   onNewFlow, onOverview,
   currentFlowId, flowName,
+  companyLogo, onLogoChange, onLogoRemove,
 }) {
   const { t, lang, setLang } = useLang();
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('idle'); // idle | sending | sent | error
+  const [logoError, setLogoError] = useState(null);
+  const logoInputRef = useRef(null);
+
+  async function handleLogoFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoError(null);
+    try {
+      const dataUrl = await onLogoChange(file);
+      if (!dataUrl) return;
+    } catch (err) {
+      setLogoError(err.message || 'Upload failed');
+    }
+    e.target.value = '';
+  }
 
   if (!open) return null;
 
@@ -155,6 +171,70 @@ export default function BurgerMenu({
                 </button>
               </>
             )}
+          </Section>
+
+          {/* ── Company profile ──────────────────────────────────── */}
+          <Section title={lang === 'da' ? 'Virksomhedsprofil' : 'Company profile'} defaultOpen={!!companyLogo}>
+            <p className="text-xs text-gray-500 mb-3">
+              {lang === 'da'
+                ? 'Upload jeres firmalogo. Det vil blive brugt som header i fremtidige dokumenter (SOP\'er m.m.).'
+                : 'Upload your company logo. It will appear as a header in all downloadable documents (SOPs etc.).'}
+            </p>
+
+            {companyLogo ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                  <img src={companyLogo} alt="Company logo" className="h-10 max-w-[140px] object-contain" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-600 font-medium truncate">
+                      {lang === 'da' ? 'Logo uploadet' : 'Logo uploaded'}
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      {lang === 'da' ? 'Bruges i alle dokumenter' : 'Used in all documents'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => logoInputRef.current?.click()}
+                    className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors text-gray-600"
+                  >
+                    {lang === 'da' ? 'Skift logo' : 'Change logo'}
+                  </button>
+                  <button
+                    onClick={() => { onLogoRemove(); setLogoError(null); }}
+                    className="text-xs border border-red-200 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg px-3 py-2 transition-colors"
+                  >
+                    {lang === 'da' ? 'Fjern' : 'Remove'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => logoInputRef.current?.click()}
+                className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-lg p-5 hover:border-purple-300 hover:bg-purple-50/30 transition-colors group"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 group-hover:text-purple-400 transition-colors">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+                </svg>
+                <span className="text-xs text-gray-400 group-hover:text-purple-500 transition-colors">
+                  {lang === 'da' ? 'Klik for at uploade logo' : 'Click to upload logo'}
+                </span>
+                <span className="text-[11px] text-gray-300">PNG, JPG, SVG</span>
+              </button>
+            )}
+
+            {logoError && (
+              <p className="text-[11px] text-red-500 mt-1">{logoError}</p>
+            )}
+
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleLogoFile}
+            />
           </Section>
 
           {/* ── Account ───────────────────────────────────────────── */}

@@ -34,6 +34,7 @@ import {
   DA_DEMO_PROJECT_PLAN, DA_DEMO_AS_IS_METRICS, DA_DEMO_TO_BE_METRICS,
 } from './data/daDemoFlow.js';
 import ResizeHandle from './components/ResizeHandle.jsx';
+import { useCompanyLogo } from './hooks/useCompanyLogo.js';
 
 const BACKEND_URL = 'https://backend-eight-rho-46.vercel.app';
 
@@ -139,6 +140,7 @@ export default function App() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [vimplUser, setVimplUser] = useState(null);
+  const { logo: companyLogo, setLogo: setCompanyLogo, removeLogo: removeCompanyLogo, loadFile: loadLogoFile } = useCompanyLogo();
   const [boardUrl, setBoardUrl] = useState(null);
   const [boardId, setBoardId] = useState(null);
   const [boardVersion, setBoardVersion] = useState(1);
@@ -975,6 +977,9 @@ export default function App() {
           onOverview={handleBackToDashboard}
           currentFlowId={currentFlowId}
           flowName={currentFlow?.process_name || currentFlow?.name}
+          companyLogo={companyLogo}
+          onLogoChange={async (file) => { const url = await loadLogoFile(file); setCompanyLogo(url); return url; }}
+          onLogoRemove={removeCompanyLogo}
         />
       </>
     );
@@ -1277,6 +1282,9 @@ export default function App() {
         onLogout={logoutVimpl}
         onNewFlow={handleCreateFlow}
         onOverview={handleBackToDashboard}
+        companyLogo={companyLogo}
+        onLogoChange={async (file) => { const url = await loadLogoFile(file); setCompanyLogo(url); return url; }}
+        onLogoRemove={removeCompanyLogo}
       />
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}

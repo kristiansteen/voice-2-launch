@@ -46,7 +46,9 @@
       "Bash(find /Users/ks/ailean/frontend -name \"*.html\" | head -5)",
       "Bash(rm -rf /tmp/v2l-repo && git clone https://github.com/kristiansteen/voice-2-launch.git /tmp/v2l-repo 2>&1)",
       "Read(//Users/ks/craft-2-offer/**)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
