@@ -6,13 +6,17 @@ function stripFences(text) {
   return text.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
 }
 
+// 'granted' and 'demo' are sentinels meaning vimpl auth — not real Anthropic keys
+const SENTINEL_KEYS = new Set(['granted', 'demo', '', null, undefined]);
+
 function makeClient(apiKey, proxyAuth) {
-  if (apiKey) {
-    // Dev only — dynamic import to keep SDK out of prod bundle path
+  if (apiKey && !SENTINEL_KEYS.has(apiKey)) {
+    // Dev BYOK path — dynamic import keeps SDK out of the prod bundle
     return import('@anthropic-ai/sdk').then(({ default: Anthropic }) =>
       new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
     );
   }
+  if (!proxyAuth?.token) throw new Error('No auth token available');
   return Promise.resolve({
     messages: {
       async create(params) {

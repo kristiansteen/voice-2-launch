@@ -50,9 +50,11 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
 
   // SOP download
   const [sopLoading, setSopLoading] = useState(false);
+  const [sopError, setSopError] = useState(null);
   async function handleDownloadSop() {
     if (!parsed || sopLoading) return;
     setSopLoading(true);
+    setSopError(null);
     try {
       const diagramSvg = await activeRef?.saveSVG() || null;
       const html = await generateSop({
@@ -68,6 +70,9 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
       a.download = `${(processName || 'sop').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-sop.html`;
       a.click();
       URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[SOP]', err);
+      setSopError(err.message || 'SOP generation failed');
     } finally {
       setSopLoading(false);
     }
@@ -138,11 +143,11 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
           onClick={handleDownloadSop}
           disabled={!parsed || sopLoading}
           className="text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex items-center gap-1"
-          title="Download SOP document"
+          title={sopError || 'Download SOP document'}
         >
           {sopLoading
             ? <><span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-purple-500 rounded-full animate-spin" /> SOP</>
-            : 'SOP'}
+            : sopError ? '⚠ SOP' : 'SOP'}
         </button>
         <div className="bpmn-zoom-divider" />
         <button onClick={() => activeRef?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>
