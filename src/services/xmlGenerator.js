@@ -408,6 +408,11 @@ ${edgesXml}
 
 export async function generateBpmnXml(parsed) {
   const { roles, activities } = parsed;
-  const hasRolesWithActivities = roles.some(r => activities.some(a => a.performer === r.id));
-  return hasRolesWithActivities ? generateSwimlanesXml(parsed) : generateFlatXml(parsed);
+  const hasRolesWithActivities = roles?.length > 0 && roles.some(r => activities.some(a => a.performer === r.id));
+  try {
+    return hasRolesWithActivities ? await generateSwimlanesXml(parsed) : await generateFlatXml(parsed);
+  } catch (err) {
+    console.error('[generateBpmnXml] layout failed, falling back to flat:', err);
+    return generateFlatXml(parsed);
+  }
 }

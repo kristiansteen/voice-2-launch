@@ -8,6 +8,15 @@ async function getElk() {
   return _elkInstance;
 }
 
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 const SIZES = {
   activity: { w: 140, h: 84 },
   gateway:  { w: 50,  h: 50 },
@@ -114,6 +123,32 @@ function separateOverlaps(positions, all, events, activities, gateways, elementL
 
 // ── Flat (no swimlanes) ───────────────────────────────────────────────────────
 
+// Fallback grid layout when ELK fails — left-to-right topological sort
+function gridFallback(parsed) {
+  const { events, activities, gateways, sequence_flows } = parsed;
+  const all = [...events, ...activities, ...gateways];
+  const inDeg = Object.fromEntries(all.map(e => [e.id, 0]));
+  const out = Object.fromEntries(all.map(e => [e.id, []]));
+  sequence_flows.forEach(f => {
+    if (out[f.from] !== undefined) out[f.from].push(f.to);
+    if (inDeg[f.to] !== undefined) inDeg[f.to]++;
+  });
+  const queue = all.filter(e => inDeg[e.id] === 0).map(e => e.id);
+  const order = [];
+  const visited = new Set(queue);
+  while (queue.length) {
+    const id = queue.shift();
+    order.push(id);
+    (out[id] || []).forEach(nid => {
+      if (!visited.has(nid)) { visited.add(nid); queue.push(nid); }
+    });
+  }
+  all.forEach(e => { if (!visited.has(e.id)) order.push(e.id); });
+  const positions = {};
+  order.forEach((id, i) => { positions[id] = { x: 120 + i * 180, y: 300 }; });
+  return { positions, waypoints: {} };
+}
+
 export async function flatLayout(parsed) {
   const { events, activities, gateways, sequence_flows } = parsed;
   const all = [...events, ...activities, ...gateways];
@@ -131,7 +166,13 @@ export async function flatLayout(parsed) {
       .map(f => ({ id: f.id, sources: [f.from], targets: [f.to] })),
   };
 
-  const layout = await (await getElk()).layout(graph);
+  let layout;
+  try {
+    layout = await withTimeout((await getElk()).layout(graph), 8000, 'ELK flatLayout');
+  } catch (err) {
+    console.error('[elkLayout] ELK failed, using grid fallback:', err);
+    return gridFallback(parsed);
+  }
 
   const positions = {};
   layout.children.forEach(n => {
@@ -165,17 +206,23 @@ export async function swimlaneLayout(parsed, elementLaneId, lanes) {
 
   // Single flat layout — ELK sees every node and every edge, so it assigns
   // consistent X column positions across lanes and separates gateway branches.
-  const layout = await (await getElk()).layout({
-    id: 'root',
-    layoutOptions: {
-      ...LANE_OPTS,
-      'elk.padding': '[top=40,left=80,bottom=40,right=80]',
-    },
-    children: all.map(el => makeNode(el, events, activities, gateways)),
-    edges: sequence_flows
-      .filter(f => ids.has(f.from) && ids.has(f.to))
-      .map(f => ({ id: f.id, sources: [f.from], targets: [f.to] })),
-  });
+  let layout;
+  try {
+    layout = await withTimeout((await getElk()).layout({
+      id: 'root',
+      layoutOptions: {
+        ...LANE_OPTS,
+        'elk.padding': '[top=40,left=80,bottom=40,right=80]',
+      },
+      children: all.map(el => makeNode(el, events, activities, gateways)),
+      edges: sequence_flows
+        .filter(f => ids.has(f.from) && ids.has(f.to))
+        .map(f => ({ id: f.id, sources: [f.from], targets: [f.to] })),
+    }), 8000, 'ELK swimlaneLayout');
+  } catch (err) {
+    console.error('[elkLayout swimlane] ELK failed:', err);
+    throw err; // let generateBpmnXml fallback to flatLayout
+  }
 
   // X from ELK (centre), Y snapped to lane centre
   const laneIdx = Object.fromEntries(lanes.map((l, i) => [l.id, i]));

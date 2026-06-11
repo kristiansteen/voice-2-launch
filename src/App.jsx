@@ -789,7 +789,13 @@ export default function App() {
       const maxTokens = useExtendedTokens ? 8000 : 4000;
       const bpmnJson = await parseToBpmn(processDescription, effectiveApiKey, processContext, getProxyAuth(), lang, maxTokens);
       setParsed(bpmnJson);
-      const generatedXml = await generateBpmnXml(bpmnJson);
+      let generatedXml;
+      try {
+        generatedXml = await generateBpmnXml(bpmnJson);
+      } catch (xmlErr) {
+        console.error('[generateBpmnXml] failed:', xmlErr, bpmnJson);
+        throw new Error(`Diagram generation failed: ${xmlErr.message}`);
+      }
       setXml(generatedXml);
       setActivePanel(3);
       // Background: extract AS-IS metrics from transcript
