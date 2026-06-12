@@ -1,3 +1,5 @@
+import { verifyToken, logUsage } from './_auth.js';
+
 const DEFAULT_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah
 
 export default async function handler(req, res) {
@@ -8,17 +10,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  // ── Auth — verify against vimpl backend ─────────────────────────
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const me = await verifyToken(req, res);
+  if (!me) return;
 
-  const meRes = await fetch(`${process.env.VIMPL_BACKEND_URL}/api/v1/auth/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!meRes.ok) return res.status(401).json({ error: 'Invalid token' });
-  const me = await meRes.json();
-
-  // ── Forward to ElevenLabs ────────────────────────────────────────
   const { text, voiceId = DEFAULT_VOICE_ID } = req.body || {};
   if (!text) return res.status(400).json({ error: 'text is required' });
 
@@ -45,12 +39,7 @@ export default async function handler(req, res) {
       return res.status(elRes.status).json({ error: msg });
     }
 
-    // Fire-and-forget usage log
-    fetch(`${process.env.VIMPL_BACKEND_URL}/api/v1/usage/log`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-usage-secret': process.env.USAGE_LOG_SECRET || '' },
-      body: JSON.stringify({ userId: me.user?.id, provider: 'elevenlabs', characters: text.length }),
-    }).catch(() => {});
+    logUsage(me.user?.id, 'elevenlabs', { characters: text.length });
 
     const buffer = Buffer.from(await elRes.arrayBuffer());
     res.setHeader('Content-Type', 'audio/mpeg');
