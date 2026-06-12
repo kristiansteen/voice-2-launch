@@ -16,6 +16,7 @@ export default async function handler(req, res) {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!meRes.ok) return res.status(401).json({ error: 'Invalid token' });
+  const me = await meRes.json();
 
   // ── Forward to ElevenLabs ────────────────────────────────────────
   const { text, voiceId = DEFAULT_VOICE_ID } = req.body || {};
@@ -43,6 +44,13 @@ export default async function handler(req, res) {
       const msg = await elRes.text().catch(() => String(elRes.status));
       return res.status(elRes.status).json({ error: msg });
     }
+
+    // Fire-and-forget usage log
+    fetch(`${process.env.VIMPL_BACKEND_URL}/api/v1/usage/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-usage-secret': process.env.USAGE_LOG_SECRET || '' },
+      body: JSON.stringify({ userId: me.user?.id, provider: 'elevenlabs', characters: text.length }),
+    }).catch(() => {});
 
     const buffer = Buffer.from(await elRes.arrayBuffer());
     res.setHeader('Content-Type', 'audio/mpeg');
