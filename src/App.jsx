@@ -452,6 +452,7 @@ export default function App() {
   // ── Auto-save current flow whenever key state changes ─────────────
   useEffect(() => {
     if (!currentFlowId) return;
+    clearTimeout(apiSaveTimer.current); // always cancel pending save before deciding what to do
     const hasContent = transcript || processDescription || parsed || xml || improvements || projectPlan || asIsXml || toBeXml;
     if (!hasContent) return;
     const base = flows.find(f => f.id === currentFlowId) || {};
@@ -471,7 +472,6 @@ export default function App() {
     });
     // Debounced API sync (skip demo flows)
     if (vimplToken && !base._demo) {
-      clearTimeout(apiSaveTimer.current);
       clearTimeout(saveStatusTimer.current);
       setSaveStatus('saving');
       apiSaveTimer.current = setTimeout(() => {
@@ -516,6 +516,7 @@ export default function App() {
   function handleOpenFlow(flowId) {
     const flow = flows.find(f => f.id === flowId);
     if (!flow) return;
+    ailean.reset(); // clear interviewer turns so they don't bleed into the new flow
     loadFlowIntoState(flow);
     setCurrentFlowId(flowId);
     setLangConfirmed(false);
@@ -545,6 +546,7 @@ export default function App() {
       return updated;
     });
     if (vimplToken) upsertFlow(vimplToken, newFlow).catch(() => {});
+    ailean.reset(); // clear interviewer turns so they don't bleed into the new flow
     // Reset all content state
     setTranscript('');
     setProcessDescription(null);
