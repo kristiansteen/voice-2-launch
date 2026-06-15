@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useConversation } from '@elevenlabs/react';
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AILEAN_AGENT_ID;
 
 export function useAileanInterviewer(lang = 'en') {
+  const langRef = useRef(lang);
+  langRef.current = lang; // sync update on every render so toggle() always reads latest
+
   const [turns, setTurns]       = useState([]);
   const [error, setError]       = useState(null);
   const [mode, setMode]         = useState('disconnected'); // 'disconnected' | 'listening' | 'speaking'
@@ -77,7 +80,7 @@ export function useAileanInterviewer(lang = 'en') {
         conversation.startSession({
           agentId: AGENT_ID,
           connectionType: 'websocket',
-          overrides: { agent: { language: lang } },
+          overrides: { agent: { language: langRef.current } },
         });
       } catch (err) {
         setConnecting(false);
