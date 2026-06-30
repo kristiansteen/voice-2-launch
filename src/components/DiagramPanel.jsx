@@ -286,8 +286,8 @@ export default function DiagramPanel({
             <span className="truncate max-w-[100px]">{blueprintXml ? processName : 'Add template'}</span>
           </button>
 
-          {/* Compare button — only when on AS-IS or TO-BE and blueprint exists */}
-          {blueprintXml && asIsXml && activeTab !== 'blueprint' && (
+          {/* Compare button — whenever both AS-IS and blueprint exist */}
+          {blueprintXml && asIsXml && (
             <div className="ml-auto flex items-center px-3">
               <button
                 onClick={handleCompare}
