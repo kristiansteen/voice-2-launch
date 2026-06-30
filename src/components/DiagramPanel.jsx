@@ -353,6 +353,8 @@ export default function DiagramPanel({
               <BlueprintEmpty
                 onUpload={handleBlueprintUpload}
                 onCreateBlank={() => onBlueprintXmlChange?.(BLANK_BPMN)}
+                onPromoteAsIs={() => onBlueprintXmlChange?.(asIsXml)}
+                hasAsIs={!!asIsXml}
               />
             )}
           </div>
@@ -361,6 +363,14 @@ export default function DiagramPanel({
         {/* Blueprint toolbar overlay — shown when in blueprint tab and a diagram exists */}
         {activeTab === 'blueprint' && blueprintXml && (
           <div className="absolute top-3 right-3 z-10 flex gap-2">
+            {asIsXml && (
+              <button
+                onClick={() => { if (window.confirm('Replace the blueprint with a copy of the current AS-IS process?')) onBlueprintXmlChange?.(asIsXml); }}
+                className="text-xs font-medium text-violet-700 border border-violet-300 bg-violet-50 hover:bg-violet-100 rounded-lg px-3 py-1.5 transition-colors shadow-sm"
+              >
+                ↑ Promote AS-IS
+              </button>
+            )}
             <label className="cursor-pointer text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:border-violet-400 hover:text-violet-700 transition-colors shadow-sm">
               Upload XML
               <input type="file" accept=".xml,.bpmn" className="hidden" onChange={handleBlueprintUpload} />
@@ -455,7 +465,7 @@ export default function DiagramPanel({
   );
 }
 
-function BlueprintEmpty({ onUpload, onCreateBlank }) {
+function BlueprintEmpty({ onUpload, onCreateBlank, onPromoteAsIs, hasAsIs }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 px-8 text-center">
       <div className="w-16 h-16 rounded-2xl bg-violet-50 border-2 border-dashed border-violet-200 flex items-center justify-center text-2xl">
@@ -464,18 +474,26 @@ function BlueprintEmpty({ onUpload, onCreateBlank }) {
       <div>
         <h3 className="text-base font-semibold text-gray-700 mb-1">Add a Blueprint</h3>
         <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
-          Upload an existing BPMN file or draw a blueprint from scratch.
-          Once added, you can compare the AS-IS process against it.
+          Upload an existing BPMN file, draw a blueprint from scratch, or promote
+          the current AS-IS process as your starting template.
         </p>
       </div>
-      <div className="flex gap-3">
-        <label className="cursor-pointer text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-xl px-5 py-2.5 transition-colors shadow-sm">
+      <div className="flex flex-wrap justify-center gap-3">
+        {hasAsIs && (
+          <button
+            onClick={onPromoteAsIs}
+            className="text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-xl px-5 py-2.5 transition-colors shadow-sm"
+          >
+            ↑ Promote AS-IS as Blueprint
+          </button>
+        )}
+        <label className="cursor-pointer text-sm font-medium text-violet-700 border border-violet-300 bg-violet-50 hover:bg-violet-100 rounded-xl px-5 py-2.5 transition-colors">
           Upload BPMN XML
           <input type="file" accept=".xml,.bpmn" className="hidden" onChange={onUpload} />
         </label>
         <button
           onClick={onCreateBlank}
-          className="text-sm font-medium text-violet-700 border border-violet-300 bg-violet-50 hover:bg-violet-100 rounded-xl px-5 py-2.5 transition-colors"
+          className="text-sm font-medium text-gray-500 border border-gray-200 bg-white hover:border-gray-400 hover:text-gray-700 rounded-xl px-5 py-2.5 transition-colors"
         >
           Draw from scratch
         </button>
