@@ -53,9 +53,16 @@ function PanelShell({ num, label, children }) {
   );
 }
 
-const FLOWS_KEY = 'voice2bpmn_flows';
-const ACTIVE_KEY = 'voice2bpmn_active';
+const FLOWS_KEY_BASE  = 'voice2bpmn_flows';
+const ACTIVE_KEY_BASE = 'voice2bpmn_active';
+const LAST_USER_KEY   = 'voice2bpmn_last_user';
 const PRICING_URL = 'https://ailean.dk/ailean-pricing';
+
+function flowsKey(userId)  { return userId ? `${FLOWS_KEY_BASE}_${userId}`  : FLOWS_KEY_BASE;  }
+function activeKey(userId) { return userId ? `${ACTIVE_KEY_BASE}_${userId}` : ACTIVE_KEY_BASE; }
+
+// Read from the previous session's userId so lazy initialisers can use the correct key before auth resolves
+const storedUserId = (() => { try { return localStorage.getItem(LAST_USER_KEY) || null; } catch { return null; } })();
 
 function blankFlowState() {
   return {
@@ -142,8 +149,9 @@ export default function App() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [vimplUser, setVimplUser] = useState(null);
-  const { logo: companyLogo, setLogo: setCompanyLogo, removeLogo: removeCompanyLogo, loadFile: loadLogoFile } = useCompanyLogo();
-  const { systems: systemRepository, addSystem, removeSystem, importFromText: importSystems } = useSystemRepository();
+  const userId = vimplUser?.id ?? null;
+  const { logo: companyLogo, setLogo: setCompanyLogo, removeLogo: removeCompanyLogo, loadFile: loadLogoFile } = useCompanyLogo(userId);
+  const { systems: systemRepository, addSystem, removeSystem, importFromText: importSystems } = useSystemRepository(userId);
   const [boardUrl, setBoardUrl] = useState(null);
   const [boardId, setBoardId] = useState(null);
   const [boardVersion, setBoardVersion] = useState(1);
@@ -174,6 +182,21 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vimplToken]);
 
+  // ── Persist userId so lazy initialisers can use the correct key next page load ──
+  useEffect(() => {
+    if (!userId) return;
+    try { localStorage.setItem(LAST_USER_KEY, userId); } catch {}
+    // If the lazy init used a different (or no) storedUserId, re-load from the correct key
+    if (userId !== storedUserId) {
+      try {
+        const stored = JSON.parse(localStorage.getItem(flowsKey(userId)) || '[]');
+        if (stored.length > 0) setFlows(stored.map(f => f.id ? f : { ...f, id: crypto.randomUUID() }));
+        const activeId = localStorage.getItem(activeKey(userId));
+        if (activeId) setCurrentFlowId(activeId);
+      } catch {}
+    }
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleExported(exportedBoardId, url, isNewBoard) {
     setBoardUrl(url);
     setBoardId(exportedBoardId);
@@ -187,7 +210,7 @@ export default function App() {
           if (vimplToken && !f._demo) upsertFlow(vimplToken, updatedFlow).catch(() => {});
           return updatedFlow;
         });
-        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
         return updated;
       });
     }
@@ -203,14 +226,14 @@ export default function App() {
   // ── Multi-flow state ───────────────────────────────────────────────
   const [flows, setFlows] = useState(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
-      // Repair any flows that lost their id (race condition during first save)
+      // Use the stored userId (from previous session) so the correct per-user key is read before auth resolves
+      const stored = JSON.parse(localStorage.getItem(flowsKey(storedUserId)) || '[]');
       return stored.map(f => f.id ? f : { ...f, id: crypto.randomUUID() });
     }
     catch { return []; }
   });
   const [currentFlowId, setCurrentFlowId] = useState(() => {
-    return localStorage.getItem(ACTIVE_KEY) || null;
+    return localStorage.getItem(activeKey(storedUserId)) || null;
   });
   const [flowsLoading, setFlowsLoading] = useState(false);
 
@@ -231,7 +254,7 @@ export default function App() {
         const remoteIds = new Set(remoteFlows.map(f => f.id));
         const localOnly = prev.filter(f => !remoteIds.has(f.id) && !f._demo);
         const merged = [...mergedRemote, ...localOnly];
-        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(merged)); } catch {}
+        try { localStorage.setItem(flowsKey(userId), JSON.stringify(merged)); } catch {}
         return merged;
       });
     }).catch(() => {}).finally(() => setFlowsLoading(false));
@@ -389,6 +412,16 @@ export default function App() {
       }
     }
     fetch(`${BACKEND_URL}/api/v1/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+    // Clear per-user and generic localStorage so the next user starts clean
+    try {
+      if (userId) {
+        localStorage.removeItem(flowsKey(userId));
+        localStorage.removeItem(activeKey(userId));
+      }
+      localStorage.removeItem(FLOWS_KEY_BASE);
+      localStorage.removeItem(ACTIVE_KEY_BASE);
+      localStorage.removeItem(LAST_USER_KEY);
+    } catch {}
     setVimplToken(null);
     setLoggedOut(true);
   }
@@ -397,7 +430,7 @@ export default function App() {
   useEffect(() => {
     try {
       const oldDraft = localStorage.getItem('voice2bpmn_draft');
-      const existingFlows = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
+      const existingFlows = JSON.parse(localStorage.getItem(flowsKey(userId)) || '[]');
       if (oldDraft && existingFlows.length === 0) {
         const draft = JSON.parse(oldDraft);
         const id = crypto.randomUUID();
@@ -412,22 +445,23 @@ export default function App() {
           ...draft,
         };
         const newFlows = [migrated];
-        localStorage.setItem(FLOWS_KEY, JSON.stringify(newFlows));
+        localStorage.setItem(flowsKey(userId), JSON.stringify(newFlows));
         localStorage.removeItem('voice2bpmn_draft');
         setFlows(newFlows);
         if (draft.transcript || draft.parsed) {
           loadFlowIntoState(migrated);
           setCurrentFlowId(id);
-          localStorage.setItem(ACTIVE_KEY, id);
+          localStorage.setItem(activeKey(userId), id);
         }
       }
     } catch { /* ignore */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Restore active flow on mount ───────────────────────────────────
+  // Must use storedUserId (not userId) because vimplUser hasn't loaded yet at this point
   useEffect(() => {
     if (!currentFlowId) return;
-    const stored = JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]');
+    const stored = JSON.parse(localStorage.getItem(flowsKey(storedUserId)) || '[]');
     const flow = stored.find(f => f.id === currentFlowId);
     if (flow) loadFlowIntoState(flow);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -472,7 +506,7 @@ export default function App() {
     };
     setFlows(prev => {
       const updated = prev.map(f => f.id === currentFlowId ? updatedFlow : f);
-      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
       return updated;
     });
     // Debounced API sync (skip demo flows)
@@ -492,10 +526,10 @@ export default function App() {
               const newId = crypto.randomUUID();
               const reflowed = { ...updatedFlow, id: newId };
               setCurrentFlowId(newId);
-              localStorage.setItem(ACTIVE_KEY, newId);
+              localStorage.setItem(activeKey(userId), newId);
               setFlows(prev => {
                 const updated = prev.map(f => f.id === updatedFlow.id ? reflowed : f);
-                try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+                try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
                 return updated;
               });
               upsertFlow(vimplToken, reflowed)
@@ -525,7 +559,7 @@ export default function App() {
     loadFlowIntoState(flow);
     setCurrentFlowId(flowId);
     setLangConfirmed(false);
-    localStorage.setItem(ACTIVE_KEY, flowId);
+    localStorage.setItem(activeKey(userId), flowId);
   }
 
   async function handleCreateFlow() {
@@ -547,7 +581,7 @@ export default function App() {
     };
     setFlows(prev => {
       const updated = [newFlow, ...prev];
-      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
       return updated;
     });
     if (vimplToken) upsertFlow(vimplToken, newFlow).catch(() => {});
@@ -572,12 +606,12 @@ export default function App() {
     setBoardId(null);
     setCurrentFlowId(id);
     setLangConfirmed(false);
-    localStorage.setItem(ACTIVE_KEY, id);
+    localStorage.setItem(activeKey(userId), id);
   }
 
   function handleBackToDashboard() {
     setCurrentFlowId(null);
-    localStorage.removeItem(ACTIVE_KEY);
+    localStorage.removeItem(activeKey(userId));
   }
 
   function handleClearCurrentFlow() {
@@ -605,7 +639,7 @@ export default function App() {
           ? { ...f, ...blankFlowState(), process_name: 'New process', updated_at: new Date().toISOString() }
           : f
         );
-        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
         return updated;
       });
     }
@@ -619,7 +653,7 @@ export default function App() {
         if (vimplToken && !f._demo) upsertFlow(vimplToken, updatedFlow).catch(() => {});
         return updatedFlow;
       });
-      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
       return updated;
     });
   }
@@ -635,12 +669,12 @@ export default function App() {
     if (vimplToken && !flow?._demo) apiDeleteFlow(vimplToken, flowId).catch(() => {});
     setFlows(prev => {
       const updated = prev.filter(f => f.id !== flowId);
-      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
       return updated;
     });
     if (currentFlowId === flowId) {
       setCurrentFlowId(null);
-      localStorage.removeItem(ACTIVE_KEY);
+      localStorage.removeItem(activeKey(userId));
     }
   }
 
@@ -652,7 +686,7 @@ export default function App() {
       const newFlow = { id, process_name: 'New process', created_at: now, updated_at: now, ...blankFlowState() };
       setFlows(prev => {
         const updated = [newFlow, ...prev.filter(f => !f._demo)];
-        try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+        try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
         return updated;
       });
       setTranscript(''); setProcessDescription(null); setParsed(null); setXml(null);
@@ -664,7 +698,7 @@ export default function App() {
       setActivePanel(1);
       setCurrentFlowId(id);
       setLangConfirmed(false);
-      localStorage.setItem(ACTIVE_KEY, id);
+      localStorage.setItem(activeKey(userId), id);
     } else {
       handleLoadDemo();
     }
@@ -695,7 +729,7 @@ export default function App() {
     setFlows(prev => {
       const withoutDemo = prev.filter(f => !f._demo);
       const updated = [demoFlow, ...withoutDemo];
-      try { localStorage.setItem(FLOWS_KEY, JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
       return updated;
     });
 
@@ -722,7 +756,7 @@ export default function App() {
 
     setCurrentFlowId(flowId);
     setLangConfirmed(false);
-    localStorage.setItem(ACTIVE_KEY, flowId);
+    localStorage.setItem(activeKey(userId), flowId);
   }
 
   // If Ailean interviewed, build a structured transcript; otherwise use raw text.

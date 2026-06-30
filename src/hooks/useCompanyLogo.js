@@ -1,21 +1,28 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
-const STORAGE_KEY = 'ailean_company_logo';
+function logoKey(userId) {
+  return userId ? `ailean_company_logo_${userId}` : null;
+}
 
-export function useCompanyLogo() {
-  const [logo, setLogoState] = useState(() => {
-    try { return localStorage.getItem(STORAGE_KEY) || null; } catch { return null; }
-  });
+export function useCompanyLogo(userId) {
+  const key = logoKey(userId);
+  const [logo, setLogoState] = useState(null);
+
+  // Reload whenever the logged-in user changes
+  useEffect(() => {
+    if (!key) { setLogoState(null); return; }
+    try { setLogoState(localStorage.getItem(key) || null); } catch { setLogoState(null); }
+  }, [key]);
 
   const setLogo = useCallback((dataUrl) => {
-    try { localStorage.setItem(STORAGE_KEY, dataUrl); } catch { /* quota */ }
+    if (key) { try { localStorage.setItem(key, dataUrl); } catch { /* quota */ } }
     setLogoState(dataUrl);
-  }, []);
+  }, [key]);
 
   const removeLogo = useCallback(() => {
-    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    if (key) { try { localStorage.removeItem(key); } catch {} }
     setLogoState(null);
-  }, []);
+  }, [key]);
 
   // Reads a File and resolves to a data URL, resizing if wider than 800px
   const loadFile = useCallback((file) => {
