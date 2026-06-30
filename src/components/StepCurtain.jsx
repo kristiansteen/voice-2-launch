@@ -91,13 +91,22 @@ function formatDuration(value, unit) {
 
 const DURATION_UNITS = ['min', 'hr', 'day', 'week'];
 
-export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap }) {
+export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap, onAddSystem }) {
   const info = resolveElement(element, parsed, processDescription);
   const activityMetrics = metrics?.activities?.find(m => m.id === info?.id);
 
   const [durationValue, setDurationValue] = useState(activityMetrics?.duration_value ?? '');
   const [durationUnit, setDurationUnit]   = useState(activityMetrics?.duration_unit ?? 'hr');
   const [backlog, setBacklog]             = useState(activityMetrics?.backlog ?? '');
+  const [newSystemInput, setNewSystemInput] = useState('');
+
+  function handleAddSystem() {
+    const name = newSystemInput.trim();
+    if (!name) return;
+    onAddSystem?.(name);           // persist to repository
+    onUpdateSystemMap?.(info?.id, name); // select for this element
+    setNewSystemInput('');
+  }
 
   // Sync if the curtain re-opens for a different element
   useEffect(() => {
@@ -173,20 +182,38 @@ export default function StepCurtain({ element, parsed, processDescription, metri
           )}
 
           {/* System */}
-          {systemRepository.length > 0 && (
-            <Section label="System">
+          <Section label="System">
+            {systemRepository.length > 0 && (
               <select
                 value={systemMap[info?.id] || ''}
-                onChange={e => onUpdateSystemMap?.(info.id, e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 bg-white text-gray-700"
+                onChange={e => onUpdateSystemMap?.(info?.id, e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 bg-white text-gray-700 mb-2"
               >
                 <option value="">— Select system —</option>
                 {systemRepository.map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-            </Section>
-          )}
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newSystemInput}
+                onChange={e => setNewSystemInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddSystem(); }}
+                placeholder="Add new system…"
+                className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+              />
+              <button
+                type="button"
+                onClick={handleAddSystem}
+                disabled={!newSystemInput.trim()}
+                className="text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </Section>
 
           {/* Estimates — editable */}
           {activityMetrics && (
@@ -292,7 +319,7 @@ export default function StepCurtain({ element, parsed, processDescription, metri
           )}
 
           {/* No data fallback */}
-          {!info?.roleLabel && !activityMetrics && !info?.stepDesc && !info?.gateway && !info?.event && systemRepository.length === 0 && (
+          {!info?.roleLabel && !activityMetrics && !info?.stepDesc && !info?.gateway && !info?.event && (
             <p className="text-sm text-gray-400 italic">No additional details for this element.</p>
           )}
 

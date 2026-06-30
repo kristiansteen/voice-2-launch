@@ -8,6 +8,7 @@ function Section({ title, children, defaultOpen = false }) {
   return (
     <div className="border-b border-gray-100 last:border-0">
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
       >
@@ -45,7 +46,7 @@ export default function BurgerMenu({
   }
 
   function handleAddSystem(e) {
-    e.preventDefault();
+    e?.preventDefault();
     if (!newSystem.trim()) return;
     onAddSystem?.(newSystem);
     setNewSystem('');
@@ -201,22 +202,24 @@ export default function BurgerMenu({
             </p>
 
             {/* Add manually */}
-            <form onSubmit={handleAddSystem} className="flex gap-2 mb-3">
+            <div className="flex gap-2 mb-3">
               <input
                 type="text"
                 value={newSystem}
                 onChange={e => setNewSystem(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddSystem(e); }}
                 placeholder={lang === 'da' ? 'Tilføj system…' : 'Add system…'}
                 className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-purple-400"
               />
               <button
-                type="submit"
+                type="button"
+                onClick={handleAddSystem}
                 disabled={!newSystem.trim()}
                 className="text-xs font-semibold text-white bg-purple-700 hover:bg-purple-800 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
               >
                 {lang === 'da' ? 'Tilføj' : 'Add'}
               </button>
-            </form>
+            </div>
 
             {/* Upload file */}
             <button

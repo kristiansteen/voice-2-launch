@@ -1230,6 +1230,7 @@ export default function App() {
               systemRepository={systemRepository}
               systemMap={systemMap}
               onUpdateSystemMap={(elementId, system) => setSystemMap(prev => ({ ...prev, [elementId]: system }))}
+              onAddSystem={addSystem}
             />
           </PanelShell>
           {activePanel !== 3 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
