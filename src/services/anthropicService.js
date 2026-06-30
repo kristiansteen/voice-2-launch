@@ -300,7 +300,7 @@ export async function parseToBpmn(description, apiKey, processContext = {}, prox
   const client = makeClient(apiKey, proxyAuth);
 
   let system = withLang(SYSTEM_PROMPT, lang,
-    'Write all element names (process_name, role names, event names, activity names, gateway names, and sequence flow conditions) in Danish.');
+    'Write all element names (process_name, role names, event names, activity names, gateway names, and sequence flow conditions) in Danish. CRITICAL: The "performer" field on activities must always be the role\'s "id" value (e.g. "role_1", "role_2") — never the role name. Only translate human-readable names, never translate or change id fields.');
   if (!processContext.isCustom && processContext.apqcNodeId) {
     system =
       `This process belongs to APQC PCF category ${processContext.apqcNodeId} — "${processContext.apqcNodeName}". ` +

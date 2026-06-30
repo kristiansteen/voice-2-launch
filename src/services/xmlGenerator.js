@@ -459,13 +459,37 @@ ${edgesXml}
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
+// Normalise performer values — the LLM sometimes writes the role name instead
+// of the role ID (especially in Danish). Resolve by name match as a fallback.
+function normalisePerformers(parsed) {
+  const { roles = [], activities = [] } = parsed;
+  if (!roles.length || !activities.length) return parsed;
+
+  const idSet  = new Set(roles.map(r => r.id));
+  const byName = Object.fromEntries(
+    roles.map(r => [r.name?.toLowerCase().trim(), r.id])
+  );
+
+  const fixed = activities.map(a => {
+    if (!a.performer || idSet.has(a.performer)) return a;
+    // Try matching by name (case-insensitive)
+    const resolved = byName[a.performer?.toLowerCase().trim()];
+    if (resolved) return { ...a, performer: resolved };
+    // Unresolvable — clear it so the element goes to the first lane
+    return { ...a, performer: null };
+  });
+
+  return { ...parsed, activities: fixed };
+}
+
 export async function generateBpmnXml(parsed) {
-  const { roles, activities } = parsed;
+  const normalised = normalisePerformers(parsed);
+  const { roles, activities } = normalised;
   const hasRolesWithActivities = roles?.length > 0 && roles.some(r => activities.some(a => a.performer === r.id));
   try {
-    return hasRolesWithActivities ? await generateSwimlanesXml(parsed) : await generateFlatXml(parsed);
+    return hasRolesWithActivities ? await generateSwimlanesXml(normalised) : await generateFlatXml(normalised);
   } catch (err) {
     console.error('[generateBpmnXml] layout failed, falling back to flat:', err);
-    return generateFlatXml(parsed);
+    return generateFlatXml(normalised);
   }
 }
