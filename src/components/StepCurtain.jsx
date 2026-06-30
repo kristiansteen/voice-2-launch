@@ -15,10 +15,30 @@ function resolveElement(element, parsed, description) {
   const gateway  = parsed.gateways?.find(g => g.id === id);
   const event    = parsed.events?.find(e => e.id === id);
 
-  // Performer role
+  // Performer role (from parsed JSON)
   const performer = activity?.performer
     ? parsed.roles?.find(r => r.id === activity.performer)?.name
     : null;
+
+  // Swimlane / lane from the bpmn-js element hierarchy
+  let lane = null;
+  let pool = null;
+  try {
+    let p = element.parent;
+    while (p) {
+      if (p.type === 'bpmn:Lane') {
+        lane = p.businessObject?.name || null;
+      }
+      if (p.type === 'bpmn:Participant') {
+        pool = p.businessObject?.name || null;
+      }
+      p = p.parent;
+    }
+  } catch { /* ignore */ }
+
+  // Display label: prefer parsed performer, fall back to lane name
+  const roleLabel = performer || lane || null;
+  const roleSource = performer ? 'role' : lane ? 'lane' : null;
 
   // Match step description from processDescription by name (best effort)
   const stepDesc = description?.steps?.find(s =>
@@ -39,7 +59,7 @@ function resolveElement(element, parsed, description) {
     );
   }
 
-  return { id, name, type, activity, gateway, event, performer, stepDesc, inFlows, outFlows, labelFor };
+  return { id, name, type, activity, gateway, event, performer, lane, pool, roleLabel, roleSource, stepDesc, inFlows, outFlows, labelFor };
 }
 
 function typeLabel(type) {
@@ -134,14 +154,20 @@ export default function StepCurtain({ element, parsed, processDescription, metri
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-          {/* Performer */}
-          {info?.performer && (
-            <Section label="Performer">
+          {/* Role / Swimlane */}
+          {info?.roleLabel && (
+            <Section label="Role / Lane">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0">
-                  {info.performer[0]}
+                  {info.roleLabel[0]}
                 </span>
-                <span className="text-sm text-gray-800">{info.performer}</span>
+                <span className="text-sm text-gray-800">{info.roleLabel}</span>
+                {info.roleSource === 'lane' && (
+                  <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded">lane</span>
+                )}
+                {info.pool && info.roleSource === 'lane' && (
+                  <span className="text-xs text-gray-400">{info.pool}</span>
+                )}
               </div>
             </Section>
           )}
@@ -250,7 +276,7 @@ export default function StepCurtain({ element, parsed, processDescription, metri
           )}
 
           {/* No data fallback */}
-          {!info?.performer && !activityMetrics && !info?.stepDesc && !info?.gateway && !info?.event && (
+          {!info?.roleLabel && !activityMetrics && !info?.stepDesc && !info?.gateway && !info?.event && (
             <p className="text-sm text-gray-400 italic">No additional details for this element.</p>
           )}
 

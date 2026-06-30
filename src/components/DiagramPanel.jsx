@@ -5,7 +5,7 @@ import StepCurtain from './StepCurtain.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { generateSop } from '../services/sopGenerator.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, processDescription, onGetImprovements, apiKey, proxyAuth, companyLogo, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange }) {
+export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, toBeParsed, processDescription, onGetImprovements, apiKey, proxyAuth, companyLogo, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange }) {
   const { t, lang } = useLang();
   const viewerRef = useRef(null);
   const toBeViewerRef = useRef(null);
@@ -210,16 +210,6 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
               onElementDblClick={setCurtainElement}
             />
           </BpmnErrorBoundary>
-          {curtainElement && (
-            <StepCurtain
-              element={curtainElement}
-              parsed={parsed}
-              processDescription={processDescription}
-              metrics={activeTab === 'tobe' ? toBeMetrics : asIsMetrics}
-              onUpdateMetric={handleUpdateMetric}
-              onClose={() => setCurtainElement(null)}
-            />
-          )}
         </div>
 
         {/* TO-BE viewer — visible when tobe tab active */}
@@ -234,6 +224,18 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
               />
             </BpmnErrorBoundary>
           </div>
+        )}
+
+        {/* Step curtain — outside both viewer containers so visibility:hidden doesn't clip it */}
+        {curtainElement && (
+          <StepCurtain
+            element={curtainElement}
+            parsed={activeTab === 'tobe' ? toBeParsed : parsed}
+            processDescription={processDescription}
+            metrics={activeTab === 'tobe' ? toBeMetrics : asIsMetrics}
+            onUpdateMetric={handleUpdateMetric}
+            onClose={() => setCurtainElement(null)}
+          />
         )}
       </div>
 
