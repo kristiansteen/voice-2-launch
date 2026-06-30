@@ -5,7 +5,7 @@ import StepCurtain from './StepCurtain.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { generateSop } from '../services/sopGenerator.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, toBeParsed, processDescription, onGetImprovements, apiKey, proxyAuth, companyLogo, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange }) {
+export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, toBeParsed, processDescription, onGetImprovements, apiKey, proxyAuth, companyLogo, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange, systemRepository, systemMap, onUpdateSystemMap }) {
   const { t, lang } = useLang();
   const viewerRef = useRef(null);
   const toBeViewerRef = useRef(null);
@@ -235,6 +235,9 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
             metrics={activeTab === 'tobe' ? toBeMetrics : asIsMetrics}
             onUpdateMetric={handleUpdateMetric}
             onClose={() => setCurtainElement(null)}
+            systemRepository={systemRepository}
+            systemMap={systemMap}
+            onUpdateSystemMap={onUpdateSystemMap}
           />
         )}
       </div>

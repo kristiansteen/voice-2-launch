@@ -35,6 +35,7 @@ import {
 } from './data/daDemoFlow.js';
 import ResizeHandle from './components/ResizeHandle.jsx';
 import { useCompanyLogo } from './hooks/useCompanyLogo.js';
+import { useSystemRepository } from './hooks/useSystemRepository.js';
 
 const BACKEND_URL = 'https://backend-eight-rho-46.vercel.app';
 
@@ -73,6 +74,7 @@ function blankFlowState() {
     toBeParsed: null,
     asIsMetrics: null,
     toBeMetrics: null,
+    systemMap: {},
     board_url: null,
     board_id: null,
   };
@@ -141,6 +143,7 @@ export default function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [vimplUser, setVimplUser] = useState(null);
   const { logo: companyLogo, setLogo: setCompanyLogo, removeLogo: removeCompanyLogo, loadFile: loadLogoFile } = useCompanyLogo();
+  const { systems: systemRepository, addSystem, removeSystem, importFromText: importSystems } = useSystemRepository();
   const [boardUrl, setBoardUrl] = useState(null);
   const [boardId, setBoardId] = useState(null);
   const [boardVersion, setBoardVersion] = useState(1);
@@ -355,6 +358,7 @@ export default function App() {
   const [asIsMetrics, setAsIsMetrics] = useState(null);
   const [toBeMetrics, setToBeMetrics] = useState(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [systemMap, setSystemMap] = useState({});
 
   function loginWithGoogle() {
     // Backend decodes state as plain base64 URL, then redirects to ${state}/callback.html?token=...
@@ -444,6 +448,7 @@ export default function App() {
     setToBeParsed(flow.toBeParsed || null);
     setAsIsMetrics(flow.asIsMetrics || null);
     setToBeMetrics(flow.toBeMetrics || null);
+    setSystemMap(flow.systemMap || {});
     setBoardUrl(flow.board_url || null);
     setBoardId(flow.board_id || null);
     setBoardVersion(flow.board_version || 1);
@@ -463,7 +468,7 @@ export default function App() {
       updated_at: new Date().toISOString(),
       transcript, processDescription, parsed, xml,
       improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-      asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics,
+      asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics, systemMap,
     };
     setFlows(prev => {
       const updated = prev.map(f => f.id === currentFlowId ? updatedFlow : f);
@@ -505,7 +510,7 @@ export default function App() {
           });
       }, 2000);
     }
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics, systemMap]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleConfirmLang() {
@@ -590,6 +595,7 @@ export default function App() {
     setToBeParsed(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
+    setSystemMap({});
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setBoardUrl(null);
     setBoardId(null);
@@ -982,6 +988,10 @@ export default function App() {
           companyLogo={companyLogo}
           onLogoChange={async (file) => { const url = await loadLogoFile(file); setCompanyLogo(url); return url; }}
           onLogoRemove={removeCompanyLogo}
+          systemRepository={systemRepository}
+          onAddSystem={addSystem}
+          onRemoveSystem={removeSystem}
+          onImportSystems={importSystems}
         />
       </>
     );
@@ -1217,6 +1227,9 @@ export default function App() {
                   .then(m => { if (m) setToBeMetrics(m); })
                   .catch(() => {});
               }}
+              systemRepository={systemRepository}
+              systemMap={systemMap}
+              onUpdateSystemMap={(elementId, system) => setSystemMap(prev => ({ ...prev, [elementId]: system }))}
             />
           </PanelShell>
           {activePanel !== 3 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}

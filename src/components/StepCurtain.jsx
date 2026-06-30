@@ -91,7 +91,7 @@ function formatDuration(value, unit) {
 
 const DURATION_UNITS = ['min', 'hr', 'day', 'week'];
 
-export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onClose }) {
+export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap }) {
   const info = resolveElement(element, parsed, processDescription);
   const activityMetrics = metrics?.activities?.find(m => m.id === info?.id);
 
@@ -169,6 +169,22 @@ export default function StepCurtain({ element, parsed, processDescription, metri
                   <span className="text-xs text-gray-400">{info.pool}</span>
                 )}
               </div>
+            </Section>
+          )}
+
+          {/* System */}
+          {systemRepository.length > 0 && (
+            <Section label="System">
+              <select
+                value={systemMap[info?.id] || ''}
+                onChange={e => onUpdateSystemMap?.(info.id, e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 bg-white text-gray-700"
+              >
+                <option value="">— Select system —</option>
+                {systemRepository.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </Section>
           )}
 
@@ -276,7 +292,7 @@ export default function StepCurtain({ element, parsed, processDescription, metri
           )}
 
           {/* No data fallback */}
-          {!info?.roleLabel && !activityMetrics && !info?.stepDesc && !info?.gateway && !info?.event && (
+          {!info?.roleLabel && !activityMetrics && !info?.stepDesc && !info?.gateway && !info?.event && systemRepository.length === 0 && (
             <p className="text-sm text-gray-400 italic">No additional details for this element.</p>
           )}
 

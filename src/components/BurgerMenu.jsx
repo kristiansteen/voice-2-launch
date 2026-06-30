@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
 
 const BOOK_URL = 'https://calendar.app.google/kwF1TaAHfsXkPn3p6';
@@ -25,12 +25,31 @@ export default function BurgerMenu({
   onNewFlow, onOverview,
   currentFlowId, flowName,
   companyLogo, onLogoChange, onLogoRemove,
+  systemRepository = [], onAddSystem, onRemoveSystem, onImportSystems,
 }) {
   const { t, lang, setLang } = useLang();
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('idle'); // idle | sending | sent | error
   const [logoError, setLogoError] = useState(null);
   const logoInputRef = useRef(null);
+  const systemFileRef = useRef(null);
+  const [newSystem, setNewSystem] = useState('');
+
+  function handleSystemFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { onImportSystems?.(ev.target.result || ''); };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function handleAddSystem(e) {
+    e.preventDefault();
+    if (!newSystem.trim()) return;
+    onAddSystem?.(newSystem);
+    setNewSystem('');
+  }
 
   async function handleLogoFile(e) {
     const file = e.target.files?.[0];
@@ -170,6 +189,65 @@ export default function BurgerMenu({
                   {feedbackStatus === 'sending' ? t.menuFeedbackSending : t.menuFeedbackSend}
                 </button>
               </>
+            )}
+          </Section>
+
+          {/* ── System Repository ────────────────────────────────── */}
+          <Section title={lang === 'da' ? 'System Repository' : 'System Repository'} defaultOpen={systemRepository.length > 0}>
+            <p className="text-xs text-gray-500 mb-3">
+              {lang === 'da'
+                ? 'Tilføj de systemer, der bruges i jeres processer. Vælg systemet for hvert processtrin i diagrammet.'
+                : 'Add the systems used in your processes. You can then tag each process step with the system it runs in.'}
+            </p>
+
+            {/* Add manually */}
+            <form onSubmit={handleAddSystem} className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={newSystem}
+                onChange={e => setNewSystem(e.target.value)}
+                placeholder={lang === 'da' ? 'Tilføj system…' : 'Add system…'}
+                className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-purple-400"
+              />
+              <button
+                type="submit"
+                disabled={!newSystem.trim()}
+                className="text-xs font-semibold text-white bg-purple-700 hover:bg-purple-800 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
+              >
+                {lang === 'da' ? 'Tilføj' : 'Add'}
+              </button>
+            </form>
+
+            {/* Upload file */}
+            <button
+              onClick={() => systemFileRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 text-xs text-gray-500 border border-dashed border-gray-200 rounded-lg px-3 py-2 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50/30 transition-colors mb-3"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              {lang === 'da' ? 'Upload fil (CSV / TXT, én per linje)' : 'Upload file (CSV / TXT, one per line)'}
+            </button>
+            <input ref={systemFileRef} type="file" accept=".csv,.txt,text/plain,text/csv" className="hidden" onChange={handleSystemFile} />
+
+            {/* List */}
+            {systemRepository.length > 0 ? (
+              <ul className="space-y-1">
+                {systemRepository.map(s => (
+                  <li key={s} className="flex items-center justify-between gap-2 text-xs text-gray-700 bg-gray-50 rounded-lg px-3 py-2">
+                    <span className="truncate">{s}</span>
+                    <button
+                      onClick={() => onRemoveSystem?.(s)}
+                      className="text-gray-300 hover:text-red-400 transition-colors shrink-0"
+                      aria-label="Remove"
+                    >✕</button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-gray-300 italic text-center py-2">
+                {lang === 'da' ? 'Ingen systemer tilføjet endnu' : 'No systems added yet'}
+              </p>
             )}
           </Section>
 
