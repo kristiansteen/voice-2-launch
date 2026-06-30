@@ -86,12 +86,19 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
       // (closing without re-opening leaves bpmn-js in a broken state)
       try { modeler.get('palette').open(); } catch { /* not critical */ }
 
-      // Double-click on an element opens the step curtain
-      modeler.get('eventBus').on('element.dblclick', (event) => {
-        const { element } = event;
+      // Double-click on an element opens the step curtain.
+      // Priority 1500 > DirectEditing's 1000, so we run first and can stop the label editor.
+      modeler.get('eventBus').on('element.dblclick', 1500, (event) => {
+        let { element } = event;
+        // Resolve label shapes to their parent element (hit when clicking inline text)
+        if (element.type === 'label' && element.labelTarget) {
+          element = element.labelTarget;
+        }
         // Skip root process / canvas background
         if (element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration') return;
         onElementDblClick?.(element);
+        // Prevent bpmn-js from opening the inline label editor over the curtain
+        event.stopPropagation();
       });
 
       // Sync user edits back to parent without triggering re-import
