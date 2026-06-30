@@ -286,21 +286,33 @@ export default function DiagramPanel({
             <span className="truncate max-w-[100px]">{blueprintXml ? processName : 'Add template'}</span>
           </button>
 
-          {/* Compare button — whenever both AS-IS and blueprint exist */}
+          {/* Compare buttons — whenever both AS-IS and blueprint exist */}
           {blueprintXml && asIsXml && (
-            <div className="ml-auto flex items-center px-3">
+            <div className="ml-auto flex items-center gap-1.5 px-3">
+              {/* View results button — only when results exist */}
+              {comparisonResult && !comparisonLoading && (
+                <button
+                  onClick={() => setShowComparison(true)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-violet-700 border border-violet-300 bg-violet-50 hover:bg-violet-100 rounded-lg px-3 py-1.5 transition-colors"
+                  title="View last comparison results"
+                >
+                  <span className="text-[10px]">📊</span>
+                  {comparisonResult.compliance_score}% — View results
+                </button>
+              )}
+              {/* Analyse / re-analyse button */}
               <button
                 onClick={handleCompare}
                 disabled={comparisonLoading}
-                className="flex items-center gap-1.5 text-xs font-semibold text-violet-700 border border-violet-300 bg-violet-50 hover:bg-violet-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg px-3 py-1.5 transition-colors"
-                title={comparisonError || 'Compare AS-IS with Blueprint using AI'}
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 bg-white hover:border-violet-400 hover:text-violet-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg px-3 py-1.5 transition-colors"
+                title={comparisonError || (comparisonResult ? 'Re-run the AI comparison' : 'Compare AS-IS with Blueprint using AI')}
               >
                 {comparisonLoading
                   ? <><span className="inline-block w-3 h-3 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" /> Analysing…</>
                   : comparisonError
-                    ? '⚠ Compare failed — retry'
+                    ? '⚠ Retry analysis'
                     : comparisonResult
-                      ? `↻ Re-compare (${comparisonResult.compliance_score}%)`
+                      ? '↻ Re-analyse'
                       : '⇌ Compare with Blueprint'}
               </button>
             </div>
