@@ -3,7 +3,7 @@ import { MODEL_SONNET, MODEL_HAIKU } from '../config/models.js';
 
 // ── Client factory ────────────────────────────────────────────────────────────
 // Returns either a real Anthropic client (BYOK, dev only) or a proxy shim (vimpl auth).
-function makeClient(apiKey, proxyAuth = null) {
+export function makeClient(apiKey, proxyAuth = null) {
   if (apiKey) {
     if (import.meta.env.PROD) throw new Error('Direct API key usage is not permitted in production');
     return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -35,7 +35,7 @@ function makeClient(apiKey, proxyAuth = null) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Strips markdown code fences that models sometimes wrap JSON responses in.
-function stripFences(text) {
+export function stripFences(text) {
   return text.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
 }
 

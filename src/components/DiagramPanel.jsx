@@ -2,14 +2,45 @@ import { useState, useRef, useEffect } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
 import BpmnErrorBoundary from './BpmnErrorBoundary.jsx';
 import StepCurtain from './StepCurtain.jsx';
+import ComparisonPanel from './ComparisonPanel.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { generateSop } from '../services/sopGenerator.js';
+import { compareProcesses } from '../services/processComparison.js';
 
-export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processName, parsed, toBeParsed, processDescription, onGetImprovements, apiKey, proxyAuth, companyLogo, asIsXml, toBeXml, onToBeXmlChange, toBeLoading, asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange, systemRepository, systemMap, onUpdateSystemMap, onAddSystem }) {
+// Minimal valid BPMN XML for a blank blueprint canvas
+const BLANK_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://bpmn.io/schema/bpmn"
+             id="Definitions_blueprint">
+  <process id="Process_blueprint" isExecutable="false" name="Blueprint">
+    <startEvent id="Start_1" name="Start" />
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_blueprint">
+      <bpmndi:BPMNShape id="Start_1_di" bpmnElement="Start_1">
+        <dc:Bounds x="152" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>`;
+
+export default function DiagramPanel({
+  xml, onXmlChange, bpmnLoading, processName, parsed, toBeParsed, processDescription,
+  onGetImprovements, apiKey, proxyAuth, companyLogo,
+  asIsXml, toBeXml, onToBeXmlChange, toBeLoading,
+  asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange,
+  systemRepository, systemMap, onUpdateSystemMap, onAddSystem,
+  blueprintXml, onBlueprintXmlChange,
+}) {
   const { t, lang } = useLang();
-  const viewerRef = useRef(null);
+  const viewerRef     = useRef(null);
   const toBeViewerRef = useRef(null);
-  const [activeTab, setActiveTab] = useState('asis'); // 'asis' | 'tobe'
+  const blueprintRef  = useRef(null);
+
+  const [activeTab, setActiveTab] = useState('asis'); // 'asis' | 'tobe' | 'blueprint'
 
   function handleUpdateMetric(id, changes) {
     const updater = prev => ({
@@ -24,15 +55,18 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
   useEffect(() => { if (toBeXml) setActiveTab('tobe'); }, [toBeXml]);
   // Reset to asis when AS-IS is cleared (new session)
   useEffect(() => { if (!asIsXml) setActiveTab('asis'); }, [asIsXml]);
-  // Fit viewport when switching to TO-BE tab (viewer may have initialised while invisible)
+  // Fit viewport when switching to TO-BE or Blueprint tab
   useEffect(() => {
     if (activeTab === 'tobe' && toBeViewerRef.current) {
       setTimeout(() => toBeViewerRef.current?.fitViewport(), 150);
     }
-  }, [activeTab, toBeXml]);
+    if (activeTab === 'blueprint' && blueprintRef.current) {
+      setTimeout(() => blueprintRef.current?.fitViewport(), 150);
+    }
+  }, [activeTab, toBeXml, blueprintXml]);
 
   const [impLoading, setImpLoading] = useState(false);
-  const [impError, setImpError] = useState(null);
+  const [impError, setImpError]     = useState(null);
 
   async function handleGetImprovements() {
     setImpError(null);
@@ -42,15 +76,54 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
     finally { setImpLoading(false); }
   }
 
-  // Step curtain
+  // ── Step curtain ───────────────────────────────────────────────────
   const [curtainElement, setCurtainElement] = useState(null);
 
-  // XML preview modal
+  // ── Comparison ────────────────────────────────────────────────────
+  const [comparisonResult, setComparisonResult]   = useState(null);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [comparisonError, setComparisonError]     = useState(null);
+  const [showComparison, setShowComparison]       = useState(false);
+
+  async function handleCompare() {
+    if (!asIsXml || !blueprintXml || comparisonLoading) return;
+    setComparisonError(null);
+    setComparisonLoading(true);
+    try {
+      const result = await compareProcesses(asIsXml, blueprintXml, { apiKey, proxyAuth, lang });
+      setComparisonResult(result);
+      setShowComparison(true);
+    } catch (err) {
+      setComparisonError(err.message || 'Comparison failed');
+    } finally {
+      setComparisonLoading(false);
+    }
+  }
+
+  // ── Blueprint upload ───────────────────────────────────────────────
+  function handleBlueprintUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const xml = ev.target.result;
+      if (xml.includes('definitions') || xml.includes('process')) {
+        onBlueprintXmlChange?.(xml);
+      } else {
+        alert('The uploaded file does not appear to be valid BPMN XML.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  // ── XML preview modal ──────────────────────────────────────────────
   const [showXmlModal, setShowXmlModal] = useState(false);
 
-  // SOP download
+  // ── SOP download ──────────────────────────────────────────────────
   const [sopLoading, setSopLoading] = useState(false);
-  const [sopError, setSopError] = useState(null);
+  const [sopError, setSopError]     = useState(null);
+
   async function handleDownloadSop() {
     if (!parsed || sopLoading) return;
     setSopLoading(true);
@@ -59,14 +132,12 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
       const diagramSvg = await activeRef?.saveSVG() || null;
       const html = await generateSop({
         parsed, processDescription, processName,
-        companyLogo, apiKey, proxyAuth,
-        lang,
-        diagramSvg,
+        companyLogo, apiKey, proxyAuth, lang, diagramSvg,
       });
       const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
       a.download = `${(processName || 'sop').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-sop.html`;
       a.click();
       URL.revokeObjectURL(url);
@@ -78,24 +149,21 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
     }
   }
 
-  const activeXml = (asIsXml && activeTab === 'tobe') ? toBeXml : (asIsXml || xml);
-  const activeRef = activeTab === 'tobe' ? toBeViewerRef.current : viewerRef.current;
-  const activeVariant = (asIsXml && activeTab === 'tobe') ? 'to-be' : 'as-is';
+  const activeXml     = activeTab === 'tobe' ? toBeXml : activeTab === 'blueprint' ? blueprintXml : (asIsXml || xml);
+  const activeRef     = activeTab === 'tobe' ? toBeViewerRef.current : activeTab === 'blueprint' ? blueprintRef.current : viewerRef.current;
+  const activeVariant = activeTab === 'tobe' ? 'to-be' : activeTab === 'blueprint' ? 'blueprint' : 'as-is';
 
   function makeFilename() {
-    const safeName = (processName || 'process')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    const safeName = (processName || 'process').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     return `${safeName}-${activeVariant}.xml`;
   }
 
   function handleDownload() {
     if (!activeXml) return;
     const blob = new Blob([activeXml], { type: 'application/xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
     a.download = makeFilename();
     a.click();
     URL.revokeObjectURL(url);
@@ -117,6 +185,8 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
       </div>
     );
   }
+
+  const hasTabs = asIsXml || toBeXml || blueprintXml;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -158,50 +228,91 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
         <button onClick={() => activeRef?.zoomOut()} className="bpmn-zoom-btn">−</button>
       </div>
 
-      {/* ── Tab bar — only when AS-IS is frozen ─────────────────────── */}
-      {asIsXml && (
+      {/* ── Tab bar ──────────────────────────────────────────────────── */}
+      {hasTabs && (
         <div className="shrink-0 flex border-b border-gray-200 bg-gray-50">
+          {/* AS-IS tab */}
+          {asIsXml && (
+            <button
+              onClick={() => setActiveTab('asis')}
+              className={[
+                'flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors',
+                activeTab === 'asis'
+                  ? 'border-gray-500 text-gray-700 bg-white'
+                  : 'border-transparent text-gray-400 hover:text-gray-600',
+              ].join(' ')}
+            >
+              <span className="text-[9px] font-bold uppercase tracking-widest bg-gray-200 text-gray-500 rounded px-1 py-0.5">AS-IS</span>
+              <span className="truncate max-w-[100px]">{processName}</span>
+            </button>
+          )}
+
+          {/* TO-BE tab */}
+          {asIsXml && (
+            <button
+              onClick={() => toBeXml && setActiveTab('tobe')}
+              className={[
+                'flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors',
+                activeTab === 'tobe'
+                  ? 'border-green-500 text-green-700 bg-white'
+                  : toBeXml
+                    ? 'border-transparent text-gray-400 hover:text-green-600'
+                    : 'border-transparent text-gray-300 cursor-default',
+              ].join(' ')}
+            >
+              <span className="text-[9px] font-bold uppercase tracking-widest bg-green-100 text-green-600 rounded px-1 py-0.5">TO-BE</span>
+              {toBeLoading ? (
+                <span className="flex items-center gap-1 text-green-500">
+                  <span className="inline-block w-2.5 h-2.5 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
+                  {t.generating}
+                </span>
+              ) : (
+                <span className="truncate max-w-[100px]">{toBeXml ? `${processName} — TO-BE` : t.toBePending}</span>
+              )}
+            </button>
+          )}
+
+          {/* Blueprint tab */}
           <button
-            onClick={() => setActiveTab('asis')}
+            onClick={() => setActiveTab('blueprint')}
             className={[
               'flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors',
-              activeTab === 'asis'
-                ? 'border-gray-500 text-gray-700 bg-white'
-                : 'border-transparent text-gray-400 hover:text-gray-600',
+              activeTab === 'blueprint'
+                ? 'border-violet-500 text-violet-700 bg-white'
+                : 'border-transparent text-gray-400 hover:text-violet-600',
             ].join(' ')}
           >
-            <span className="text-[9px] font-bold uppercase tracking-widest bg-gray-200 text-gray-500 rounded px-1 py-0.5">AS-IS</span>
-            <span className="truncate max-w-[100px]">{processName}</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest bg-violet-100 text-violet-600 rounded px-1 py-0.5">BLUEPRINT</span>
+            <span className="truncate max-w-[100px]">{blueprintXml ? processName : 'Add template'}</span>
           </button>
-          <button
-            onClick={() => toBeXml && setActiveTab('tobe')}
-            className={[
-              'flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors',
-              activeTab === 'tobe'
-                ? 'border-green-500 text-green-700 bg-white'
-                : toBeXml
-                  ? 'border-transparent text-gray-400 hover:text-green-600'
-                  : 'border-transparent text-gray-300 cursor-default',
-            ].join(' ')}
-          >
-            <span className="text-[9px] font-bold uppercase tracking-widest bg-green-100 text-green-600 rounded px-1 py-0.5">TO-BE</span>
-            {toBeLoading ? (
-              <span className="flex items-center gap-1 text-green-500">
-                <span className="inline-block w-2.5 h-2.5 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
-                {t.generating}
-              </span>
-            ) : (
-              <span className="truncate max-w-[100px]">{toBeXml ? `${processName} — TO-BE` : t.toBePending}</span>
-            )}
-          </button>
+
+          {/* Compare button — only when on AS-IS or TO-BE and blueprint exists */}
+          {blueprintXml && asIsXml && activeTab !== 'blueprint' && (
+            <div className="ml-auto flex items-center px-3">
+              <button
+                onClick={handleCompare}
+                disabled={comparisonLoading}
+                className="flex items-center gap-1.5 text-xs font-semibold text-violet-700 border border-violet-300 bg-violet-50 hover:bg-violet-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg px-3 py-1.5 transition-colors"
+                title={comparisonError || 'Compare AS-IS with Blueprint using AI'}
+              >
+                {comparisonLoading
+                  ? <><span className="inline-block w-3 h-3 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" /> Analysing…</>
+                  : comparisonError
+                    ? '⚠ Compare failed — retry'
+                    : comparisonResult
+                      ? `↻ Re-compare (${comparisonResult.compliance_score}%)`
+                      : '⇌ Compare with Blueprint'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* ── Diagram canvas ───────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden relative">
 
-        {/* AS-IS viewer — visible when no tabs or asis tab active */}
-        <div className={`absolute inset-0 ${asIsXml && activeTab !== 'asis' ? 'invisible' : ''}`}>
+        {/* AS-IS viewer */}
+        <div className={`absolute inset-0 ${hasTabs && activeTab !== 'asis' ? 'invisible' : ''}`}>
           <BpmnErrorBoundary>
             <BpmnViewer
               ref={viewerRef}
@@ -212,7 +323,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
           </BpmnErrorBoundary>
         </div>
 
-        {/* TO-BE viewer — visible when tobe tab active */}
+        {/* TO-BE viewer */}
         {toBeXml && (
           <div className={`absolute inset-0 ${activeTab !== 'tobe' ? 'invisible' : ''}`}>
             <BpmnErrorBoundary>
@@ -226,7 +337,44 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
           </div>
         )}
 
-        {/* Step curtain — outside both viewer containers so visibility:hidden doesn't clip it */}
+        {/* Blueprint viewer / editor */}
+        {activeTab === 'blueprint' && (
+          <div className="absolute inset-0">
+            {blueprintXml ? (
+              <BpmnErrorBoundary>
+                <BpmnViewer
+                  ref={blueprintRef}
+                  xml={blueprintXml}
+                  onXmlChange={onBlueprintXmlChange}
+                  onElementDblClick={() => {}}
+                />
+              </BpmnErrorBoundary>
+            ) : (
+              <BlueprintEmpty
+                onUpload={handleBlueprintUpload}
+                onCreateBlank={() => onBlueprintXmlChange?.(BLANK_BPMN)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Blueprint toolbar overlay — shown when in blueprint tab and a diagram exists */}
+        {activeTab === 'blueprint' && blueprintXml && (
+          <div className="absolute top-3 right-3 z-10 flex gap-2">
+            <label className="cursor-pointer text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:border-violet-400 hover:text-violet-700 transition-colors shadow-sm">
+              Upload XML
+              <input type="file" accept=".xml,.bpmn" className="hidden" onChange={handleBlueprintUpload} />
+            </label>
+            <button
+              onClick={() => { if (window.confirm('Clear the blueprint? This cannot be undone.')) onBlueprintXmlChange?.(null); }}
+              className="text-xs font-medium text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:border-red-400 hover:text-red-600 transition-colors shadow-sm"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Step curtain — outside viewer containers so visibility:hidden doesn't clip it */}
         {curtainElement && (
           <StepCurtain
             element={curtainElement}
@@ -241,6 +389,14 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
             onAddSystem={onAddSystem}
           />
         )}
+
+        {/* Comparison panel */}
+        {showComparison && comparisonResult && (
+          <ComparisonPanel
+            result={comparisonResult}
+            onClose={() => setShowComparison(false)}
+          />
+        )}
       </div>
 
       {/* ── XML preview modal ──────────────────────────────────────── */}
@@ -250,7 +406,11 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-gray-800">{t.bpmnXml}</span>
-                <span className={`text-[9px] font-bold uppercase tracking-widest rounded px-1.5 py-0.5 ${activeVariant === 'to-be' ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
+                <span className={`text-[9px] font-bold uppercase tracking-widest rounded px-1.5 py-0.5 ${
+                  activeVariant === 'to-be'     ? 'bg-green-100 text-green-600'   :
+                  activeVariant === 'blueprint' ? 'bg-violet-100 text-violet-600' :
+                  'bg-gray-200 text-gray-500'
+                }`}>
                   {activeVariant}
                 </span>
                 <span className="text-xs text-gray-400 truncate max-w-[180px]">{processName}</span>
@@ -274,7 +434,7 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
       )}
 
       {/* ── Get improvements footer — AS-IS only ──────────────────── */}
-      {activeTab !== 'tobe' && (
+      {activeTab === 'asis' && (
         <div className="px-4 py-3 border-t border-gray-100 shrink-0">
           <button
             onClick={handleGetImprovements}
@@ -291,6 +451,35 @@ export default function DiagramPanel({ xml, onXmlChange, bpmnLoading, processNam
           {impError && <p className="text-xs text-red-500 mt-1">{impError}</p>}
         </div>
       )}
+    </div>
+  );
+}
+
+function BlueprintEmpty({ onUpload, onCreateBlank }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-6 px-8 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-violet-50 border-2 border-dashed border-violet-200 flex items-center justify-center text-2xl">
+        ◫
+      </div>
+      <div>
+        <h3 className="text-base font-semibold text-gray-700 mb-1">Add a Blueprint</h3>
+        <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+          Upload an existing BPMN file or draw a blueprint from scratch.
+          Once added, you can compare the AS-IS process against it.
+        </p>
+      </div>
+      <div className="flex gap-3">
+        <label className="cursor-pointer text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-xl px-5 py-2.5 transition-colors shadow-sm">
+          Upload BPMN XML
+          <input type="file" accept=".xml,.bpmn" className="hidden" onChange={onUpload} />
+        </label>
+        <button
+          onClick={onCreateBlank}
+          className="text-sm font-medium text-violet-700 border border-violet-300 bg-violet-50 hover:bg-violet-100 rounded-xl px-5 py-2.5 transition-colors"
+        >
+          Draw from scratch
+        </button>
+      </div>
     </div>
   );
 }

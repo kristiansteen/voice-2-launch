@@ -79,6 +79,7 @@ function blankFlowState() {
     asIsParsed: null,
     toBeXml: null,
     toBeParsed: null,
+    blueprintXml: null,
     asIsMetrics: null,
     toBeMetrics: null,
     systemMap: {},
@@ -369,13 +370,14 @@ export default function App() {
   const [planStartDate, setPlanStartDate] = useState('');
   const [planDurationWeeks, setPlanDurationWeeks] = useState(14);
 
-  // Panel 3 — AS-IS / TO-BE
+  // Panel 3 — AS-IS / TO-BE / Blueprint
   const [asIsXml, setAsIsXml] = useState(null);
   const [asIsParsed, setAsIsParsed] = useState(null);
   const [toBeXml, setToBeXml] = useState(null);
   const [toBeParsed, setToBeParsed] = useState(null);
   const [toBeLoading, setToBeLoading] = useState(false);
   const [toBeApproved, setToBeApproved] = useState(false);
+  const [blueprintXml, setBlueprintXml] = useState(null);
 
   // Process metrics (activities: duration + backlog; gateways: branch rates)
   const [asIsMetrics, setAsIsMetrics] = useState(null);
@@ -480,6 +482,7 @@ export default function App() {
     setAsIsParsed(flow.asIsParsed || null);
     setToBeXml(flow.toBeXml || null);
     setToBeParsed(flow.toBeParsed || null);
+    setBlueprintXml(flow.blueprintXml || null);
     setAsIsMetrics(flow.asIsMetrics || null);
     setToBeMetrics(flow.toBeMetrics || null);
     setSystemMap(flow.systemMap || {});
@@ -502,7 +505,7 @@ export default function App() {
       updated_at: new Date().toISOString(),
       transcript, processDescription, parsed, xml,
       improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-      asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics, systemMap,
+      asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap,
     };
     setFlows(prev => {
       const updated = prev.map(f => f.id === currentFlowId ? updatedFlow : f);
@@ -544,7 +547,7 @@ export default function App() {
           });
       }, 2000);
     }
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, asIsMetrics, toBeMetrics, systemMap]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleConfirmLang() {
@@ -599,6 +602,7 @@ export default function App() {
     setAsIsParsed(null);
     setToBeXml(null);
     setToBeParsed(null);
+    setBlueprintXml(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
@@ -627,6 +631,7 @@ export default function App() {
     setAsIsParsed(null);
     setToBeXml(null);
     setToBeParsed(null);
+    setBlueprintXml(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
     setSystemMap({});
@@ -1265,6 +1270,8 @@ export default function App() {
               systemMap={systemMap}
               onUpdateSystemMap={(elementId, system) => setSystemMap(prev => ({ ...prev, [elementId]: system }))}
               onAddSystem={addSystem}
+              blueprintXml={blueprintXml}
+              onBlueprintXmlChange={setBlueprintXml}
             />
           </PanelShell>
           {activePanel !== 3 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
