@@ -37,7 +37,8 @@ import ResizeHandle from './components/ResizeHandle.jsx';
 import { useCompanyLogo } from './hooks/useCompanyLogo.js';
 import { useSystemRepository } from './hooks/useSystemRepository.js';
 
-const BACKEND_URL = 'https://backend-eight-rho-46.vercel.app';
+const BACKEND_URL    = 'https://backend-eight-rho-46.vercel.app';
+const VIMPL_LOGIN_URL = 'https://app.vimpl.com/login.html';
 
 function PanelShell({ num, label, children }) {
   return (
