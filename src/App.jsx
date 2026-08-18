@@ -124,12 +124,21 @@ export default function App() {
   // True while the initial auth check (cookie refresh or ?code= exchange) is in flight
   const [authLoading, setAuthLoading] = useState(true);
 
-  // On mount: restore session from the httpOnly refreshToken cookie, or exchange a ?code= param
+  // On mount: restore session from the httpOnly refreshToken cookie, or pick up a
+  // ?token= param (Google OAuth redirect from the backend lands on /callback?token=...
+  // — the SPA catch-all rewrite serves index.html there, so this is the only place
+  // that token is ever read) or a ?code= param.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
     const code = params.get('code');
 
-    if (code) {
+    if (token) {
+      // Google OAuth redirect — access token is already in the URL, no exchange needed.
+      window.history.replaceState(null, '', '/');
+      setVimplToken(token);
+      setAuthLoading(false);
+    } else if (code) {
       // Exchange one-time code for JWT (redirect from vimpl login)
       window.history.replaceState(null, '', window.location.pathname);
       fetch(`${BACKEND_URL}/api/v1/auth/exchange-code?code=${encodeURIComponent(code)}`)
