@@ -1,5 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useConversation } from '@elevenlabs/react';
+import {
+  deriveErrorText,
+  normalizeMode,
+  normalizeStatus,
+  turnFromMessage,
+  computeEnabled,
+  computeThinking,
+  buildSessionConfig,
+} from '../lib/aileanInterview.js';
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AILEAN_AGENT_ID;
 
@@ -26,24 +35,21 @@ export function useAileanInterviewer(lang = 'en') {
     },
     onMessage: ({ message, source }) => {
       console.log('[Ailean] onMessage', source, message);
-      setTurns(prev => [...prev, {
-        type: source === 'ai' ? 'ailean' : 'user',
-        text: message,
-      }]);
+      setTurns(prev => [...prev, turnFromMessage({ message, source })]);
     },
     onModeChange: ({ mode: m }) => {
       console.log('[Ailean] onModeChange', m);
-      setMode(m === 'speaking' ? 'speaking' : 'listening');
+      setMode(normalizeMode(m));
     },
     onError: (msg) => {
-      const errText = typeof msg === 'string' ? msg : (msg?.message || 'Connection error');
+      const errText = deriveErrorText(msg);
       console.error('[Ailean] onError', errText);
       setConnecting(false);
       setError(errText);
     },
     onStatusChange: (s) => {
       console.log('[Ailean] onStatusChange', s);
-      const st = s?.status ?? s;
+      const st = normalizeStatus(s);
       if (st === 'disconnected') {
         setConnecting(false);
         setMode('disconnected');
@@ -60,9 +66,9 @@ export function useAileanInterviewer(lang = 'en') {
   const sdkConnected = conversation.status === 'connected';
   // Use `mode` as a synchronous override: reset() sets mode='disconnected' immediately,
   // so `enabled` goes false in the same render even before the async onDisconnect fires.
-  const enabled      = connecting || (sdkConnected && mode !== 'disconnected');
+  const enabled      = computeEnabled({ connecting, sdkConnected, mode });
   const speaking     = conversation.isSpeaking;
-  const thinking     = connecting && !sdkConnected;
+  const thinking     = computeThinking({ connecting, sdkConnected });
 
   function toggle() {
     if (enabled) {
@@ -77,11 +83,7 @@ export function useAileanInterviewer(lang = 'en') {
       setError(null);
       setConnecting(true);
       try {
-        conversation.startSession({
-          agentId: AGENT_ID,
-          connectionType: 'websocket',
-          overrides: { agent: { language: langRef.current } },
-        });
+        conversation.startSession(buildSessionConfig(AGENT_ID, langRef.current));
       } catch (err) {
         setConnecting(false);
         setError(err?.message || 'Failed to start session');
