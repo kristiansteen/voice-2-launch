@@ -1,7 +1,15 @@
 import { useState, useRef, useCallback } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
+import { BACKEND_URL, authHeaders } from '../lib/api.js';
 
 const BOOK_URL = 'https://calendar.app.google/kwF1TaAHfsXkPn3p6';
+const SALES_EMAIL = 'kristian.steen@vimpl.com';
+
+const TIER_LABELS = {
+  student: { en: 'Free', da: 'Gratis' },
+  commercial: { en: 'Commercial', da: 'Commercial' },
+  enterprise: { en: 'Enterprise', da: 'Enterprise' },
+};
 
 function Section({ title, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -35,6 +43,26 @@ export default function BurgerMenu({
   const logoInputRef = useRef(null);
   const systemFileRef = useRef(null);
   const [newSystem, setNewSystem] = useState('');
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingError, setBillingError] = useState(null);
+
+  async function goToStripe(path) {
+    setBillingError(null);
+    setBillingBusy(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/v1/billing/${path}`, {
+        method: 'POST',
+        headers: authHeaders(vimplToken),
+        body: JSON.stringify({ returnUrl: window.location.origin + window.location.pathname }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.message || 'Something went wrong');
+      window.location.href = data.url;
+    } catch (err) {
+      setBillingError(err.message || 'Something went wrong');
+      setBillingBusy(false);
+    }
+  }
 
   function handleSystemFile(e) {
     const file = e.target.files?.[0];
@@ -316,6 +344,51 @@ export default function BurgerMenu({
               className="hidden"
               onChange={handleLogoFile}
             />
+          </Section>
+
+          {/* ── Plan & Billing ────────────────────────────────────── */}
+          <Section title={lang === 'da' ? 'Abonnement' : 'Plan & billing'} defaultOpen>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-gray-500">{lang === 'da' ? 'Nuværende plan' : 'Current plan'}</span>
+              <span className="text-xs font-semibold text-gray-800 bg-gray-100 rounded-full px-3 py-1">
+                {TIER_LABELS[vimplUser?.subscriptionTier]?.[lang] || TIER_LABELS.student[lang]}
+              </span>
+            </div>
+
+            {billingError && (
+              <p className="text-[11px] text-red-500 mb-2">{billingError}</p>
+            )}
+
+            {(!vimplUser?.subscriptionTier || vimplUser.subscriptionTier === 'student') && (
+              <button
+                onClick={() => goToStripe('checkout')}
+                disabled={billingBusy}
+                className="w-full text-xs font-semibold text-white bg-purple-700 hover:bg-purple-800 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors mb-2"
+              >
+                {billingBusy
+                  ? (lang === 'da' ? 'Åbner kassen…' : 'Opening checkout…')
+                  : (lang === 'da' ? 'Opgrader til Commercial' : 'Upgrade to Commercial')}
+              </button>
+            )}
+
+            {vimplUser?.subscriptionTier === 'commercial' && (
+              <button
+                onClick={() => goToStripe('portal')}
+                disabled={billingBusy}
+                className="w-full text-xs font-semibold text-gray-700 border border-gray-200 hover:bg-gray-50 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors mb-2"
+              >
+                {billingBusy
+                  ? (lang === 'da' ? 'Åbner…' : 'Opening…')
+                  : (lang === 'da' ? 'Administrer abonnement' : 'Manage billing')}
+              </button>
+            )}
+
+            <a
+              href={`mailto:${SALES_EMAIL}?subject=${encodeURIComponent('Enterprise plan')}`}
+              className="block text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {lang === 'da' ? 'Brug for Enterprise? Kontakt os' : 'Need Enterprise? Contact us'}
+            </a>
           </Section>
 
           {/* ── Account ───────────────────────────────────────────── */}
