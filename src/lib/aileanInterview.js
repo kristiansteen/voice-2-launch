@@ -82,6 +82,14 @@ export function computeThinking({ connecting, sdkConnected }) {
 
 /**
  * Build the config object passed to conversation.startSession().
+ *
+ * Deliberately does NOT override agent.prompt: this agent's ElevenLabs
+ * dashboard config does not have the "prompt" override permission enabled,
+ * so the platform rejects the whole session with a 1008 close ("Override
+ * for field 'prompt' is not allowed by config") the moment it's sent —
+ * killing audio and transcription entirely, not just the custom prompt.
+ * To use INTERVIEW_PROMPT, paste it into the agent's own system prompt in
+ * the ElevenLabs dashboard, or enable the prompt override there first.
  */
 export function buildSessionConfig(agentId, language) {
     return {
@@ -89,7 +97,6 @@ export function buildSessionConfig(agentId, language) {
         connectionType: 'websocket',
         overrides: {
             agent: {
-                prompt: { prompt: INTERVIEW_PROMPT },
                 language,
             },
         },

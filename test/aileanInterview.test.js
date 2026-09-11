@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  INTERVIEW_PROMPT,
   deriveErrorText,
   normalizeMode,
   normalizeStatus,
@@ -100,12 +99,14 @@ test('computeThinking', async (t) => {
 });
 
 test('buildSessionConfig', async (t) => {
-  await t.test('carries the agent id, websocket type, prompt and language', () => {
+  await t.test('carries the agent id, websocket type and language, but never overrides prompt', () => {
     const config = buildSessionConfig('agent_123', 'da');
     assert.equal(config.agentId, 'agent_123');
     assert.equal(config.connectionType, 'websocket');
     assert.equal(config.overrides.agent.language, 'da');
-    assert.equal(config.overrides.agent.prompt.prompt, INTERVIEW_PROMPT);
+    // The agent's ElevenLabs config doesn't permit a prompt override — sending
+    // one causes the platform to reject the whole session (close code 1008).
+    assert.equal(config.overrides.agent.prompt, undefined);
   });
 
   await t.test('threads the language argument through unchanged', () => {
