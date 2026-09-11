@@ -1,5 +1,13 @@
-export default function ComparisonPanel({ result, onClose }) {
+export default function ComparisonPanel({ result, onClose, onUseAsPlanInput }) {
   if (!result) return null;
+
+  const hasFindings = (result.gaps?.length || 0) + (result.variations?.length || 0) + (result.recommendations?.length || 0) > 0;
+
+  function handleUseAsPlanInput() {
+    if (window.confirm('Generate the project plan from these comparison results instead of the AI improvements list?')) {
+      onUseAsPlanInput?.();
+    }
+  }
 
   const score = result.compliance_score ?? 0;
   const scoreColor =
@@ -126,6 +134,21 @@ export default function ComparisonPanel({ result, onClose }) {
             </Section>
           )}
         </div>
+
+        {/* Footer — offer to drive the project plan from this comparison */}
+        {hasFindings && (
+          <div className="shrink-0 px-5 py-4 border-t border-gray-100 bg-white">
+            <button
+              onClick={handleUseAsPlanInput}
+              className="w-full text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-lg px-4 py-2.5 transition-colors"
+            >
+              Use this comparison as project-plan input
+            </button>
+            <p className="text-[11px] text-gray-400 mt-1.5 text-center">
+              Builds the plan from these gaps, variations and recommendations instead of the AI improvements list.
+            </p>
+          </div>
+        )}
       </div>
     </>
   );

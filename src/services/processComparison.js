@@ -78,3 +78,59 @@ ${stripDI(blueprintXml)}`;
   const json = JSON.parse(stripFences(raw));
   return json;
 }
+
+/**
+ * Reshape an AS-IS vs Blueprint comparison result into the same "improvement"
+ * object shape the AI-improvements flow produces, so it can be fed straight
+ * into generateProjectPlan() as an alternative source of plan input.
+ */
+export function comparisonToImprovements(result) {
+  if (!result) return [];
+  const items = [];
+  let n = 1;
+
+  for (const gap of result.gaps || []) {
+    items.push({
+      id: `cmp_gap_${n++}`,
+      title: gap.blueprint_step || 'Blueprint gap',
+      category: 'governance',
+      description: gap.description || '',
+      benefit: 'Closes a gap versus the blueprint process',
+      effort: 'medium',
+      effort_score: 50,
+      impact_score: 70,
+      ai_candidate: false,
+    });
+  }
+
+  for (const variation of result.variations || []) {
+    items.push({
+      id: `cmp_var_${n++}`,
+      title: variation.blueprint_step || 'Process variation',
+      category: 'clarity',
+      description: variation.difference || '',
+      benefit: `Aligns "${variation.asis_step || 'this step'}" with the blueprint`,
+      effort: 'medium',
+      effort_score: 40,
+      impact_score: 60,
+      ai_candidate: false,
+    });
+  }
+
+  for (const rec of result.recommendations || []) {
+    const text = typeof rec === 'string' ? rec : '';
+    items.push({
+      id: `cmp_rec_${n++}`,
+      title: text ? text.slice(0, 60) : 'Recommendation',
+      category: 'efficiency',
+      description: text,
+      benefit: 'Recommended by the blueprint comparison',
+      effort: 'medium',
+      effort_score: 50,
+      impact_score: 65,
+      ai_candidate: false,
+    });
+  }
+
+  return items;
+}

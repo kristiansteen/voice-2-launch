@@ -34,6 +34,7 @@ export default function DiagramPanel({
   asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange,
   systemRepository, systemMap, onUpdateSystemMap, onAddSystem,
   videoMap, onUpdateVideoMap,
+  comparisonResult, onComparisonResultChange, onUseComparisonForPlan,
   blueprintXml, onBlueprintXmlChange,
 }) {
   const { t, lang } = useLang();
@@ -81,7 +82,8 @@ export default function DiagramPanel({
   const [curtainElement, setCurtainElement] = useState(null);
 
   // ── Comparison ────────────────────────────────────────────────────
-  const [comparisonResult, setComparisonResult]   = useState(null);
+  // comparisonResult itself lives in App.jsx (persisted on the flow) so it
+  // survives reloads and flow switches instead of forcing a costly re-run.
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [comparisonError, setComparisonError]     = useState(null);
   const [showComparison, setShowComparison]       = useState(false);
@@ -92,7 +94,7 @@ export default function DiagramPanel({
     setComparisonLoading(true);
     try {
       const result = await compareProcesses(asIsXml, blueprintXml, { apiKey, proxyAuth, lang });
-      setComparisonResult(result);
+      onComparisonResultChange?.(result);
       setShowComparison(true);
     } catch (err) {
       setComparisonError(err.message || 'Comparison failed');
@@ -420,6 +422,7 @@ export default function DiagramPanel({
           <ComparisonPanel
             result={comparisonResult}
             onClose={() => setShowComparison(false)}
+            onUseAsPlanInput={() => { setShowComparison(false); onUseComparisonForPlan?.(); }}
           />
         )}
       </div>

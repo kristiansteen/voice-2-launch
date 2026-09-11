@@ -21,6 +21,7 @@ import {
   checkContentSafety,
 } from './services/anthropicService.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
+import { comparisonToImprovements } from './services/processComparison.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
@@ -85,6 +86,7 @@ function blankFlowState() {
     toBeMetrics: null,
     systemMap: {},
     videoMap: {},
+    comparisonResult: null,
     board_url: null,
     board_id: null,
   };
@@ -396,6 +398,8 @@ export default function App() {
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [systemMap, setSystemMap] = useState({});
   const [videoMap, setVideoMap] = useState({});
+  const [comparisonResult, setComparisonResult] = useState(null);
+  const [planSource, setPlanSource] = useState('improvements'); // 'improvements' | 'comparison'
 
   function loginWithGoogle() {
     // Backend decodes state as plain base64 URL, then redirects to ${state}/callback.html?token=...
@@ -508,6 +512,7 @@ export default function App() {
     setToBeMetrics(flow.toBeMetrics || null);
     setSystemMap(flow.systemMap || {});
     setVideoMap(flow.videoMap || {});
+    setComparisonResult(flow.comparisonResult || null);
     setBoardUrl(flow.board_url || null);
     setBoardId(flow.board_id || null);
     setBoardVersion(flow.board_version || 1);
@@ -527,7 +532,7 @@ export default function App() {
       updated_at: new Date().toISOString(),
       transcript, processDescription, parsed, xml,
       improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-      asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap,
+      asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult,
     };
     setFlows(prev => {
       const updated = prev.map(f => f.id === currentFlowId ? updatedFlow : f);
@@ -569,7 +574,7 @@ export default function App() {
           });
       }, 2000);
     }
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleConfirmLang() {
@@ -947,6 +952,7 @@ export default function App() {
     // Pre-fill start date to today
     setPlanStartDate(new Date().toISOString().slice(0, 10));
     setPlanDurationWeeks(14);
+    setPlanSource('improvements');
     setShowPlanPrompt(true);
   }
 
@@ -988,15 +994,42 @@ export default function App() {
     }
   }
 
+  // Opens the shared project-parameters modal, flagged to build the plan from
+  // the blueprint comparison instead of the usual selected AI improvements.
+  function handleRequestPlanFromComparison() {
+    if (!comparisonResult) return;
+    setPlanStartDate(new Date().toISOString().slice(0, 10));
+    setPlanDurationWeeks(14);
+    setPlanSource('comparison');
+    setShowPlanPrompt(true);
+  }
+
+  async function handleGeneratePlanFromComparison() {
+    setShowPlanPrompt(false);
+    if (!comparisonResult) return;
+    const derived = comparisonToImprovements(comparisonResult);
+    if (!derived.length) return;
+
+    setPlanLoading(true);
+    try {
+      const plan = await generateProjectPlan(asIsParsed || parsed, derived, effectiveApiKey, customRisks, getProxyAuth(), planStartDate || null, planDurationWeeks, lang);
+      setProjectPlan({ ...plan, _startDate: planStartDate || null, _source: 'comparison' });
+      setActivePanel(5);
+    } finally {
+      setPlanLoading(false);
+    }
+  }
+
   async function handleGeneratePlan() {
     setShowPlanPrompt(false);
+    setPlanSource('improvements');
     const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
     if (!selected.length) return;
 
     setPlanLoading(true);
     try {
       const plan = await generateProjectPlan(parsed, selected, effectiveApiKey, customRisks, getProxyAuth(), planStartDate || null, planDurationWeeks, lang);
-      setProjectPlan({ ...plan, _startDate: planStartDate || null });
+      setProjectPlan({ ...plan, _startDate: planStartDate || null, _source: 'improvements' });
       setActivePanel(5);
     } finally {
       setPlanLoading(false);
@@ -1294,6 +1327,9 @@ export default function App() {
               onAddSystem={addSystem}
               videoMap={videoMap}
               onUpdateVideoMap={(elementId, url) => setVideoMap(prev => ({ ...prev, [elementId]: url }))}
+              comparisonResult={comparisonResult}
+              onComparisonResultChange={setComparisonResult}
+              onUseComparisonForPlan={handleRequestPlanFromComparison}
               blueprintXml={blueprintXml}
               onBlueprintXmlChange={setBlueprintXml}
             />
@@ -1376,7 +1412,12 @@ export default function App() {
       {showPlanPrompt && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-4">
-            <h3 className="text-sm font-semibold text-gray-800">Project parameters</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Project parameters</h3>
+              {planSource === 'comparison' && (
+                <p className="text-xs text-violet-600 mt-1">Using the blueprint comparison results as plan input.</p>
+              )}
+            </div>
             <div className="flex flex-col gap-1">
               <label className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide">Project start date</label>
               <input
@@ -1407,7 +1448,7 @@ export default function App() {
             </div>
             <div className="flex gap-2 mt-1">
               <button
-                onClick={handleGeneratePlan}
+                onClick={planSource === 'comparison' ? handleGeneratePlanFromComparison : handleGeneratePlan}
                 className="flex-1 bg-vimpl text-black text-sm font-semibold py-2 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors"
               >
                 Generate
