@@ -434,6 +434,15 @@ export default function App() {
       localStorage.removeItem(ACTIVE_KEY_BASE);
       localStorage.removeItem(LAST_USER_KEY);
     } catch {}
+    // Clearing localStorage isn't enough on its own — `flows` is in-memory
+    // React state and survives a logout with no page reload. Without this,
+    // whoever logs in next (same tab) inherits the outgoing user's flows in
+    // memory: the API-merge effect sees them as "local-only" (since they
+    // aren't in the new user's empty remote list) and both re-displays them
+    // AND writes them into the new user's own localStorage key.
+    setFlows([]);
+    setCurrentFlowId(null);
+    setVimplUser(null);
     setVimplToken(null);
     setLoggedOut(true);
   }
