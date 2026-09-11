@@ -33,6 +33,7 @@ export default function DiagramPanel({
   asIsXml, toBeXml, onToBeXmlChange, toBeLoading,
   asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange,
   systemRepository, systemMap, onUpdateSystemMap, onAddSystem,
+  videoMap, onUpdateVideoMap,
   blueprintXml, onBlueprintXmlChange,
 }) {
   const { t, lang } = useLang();
@@ -409,6 +410,8 @@ export default function DiagramPanel({
             systemMap={systemMap}
             onUpdateSystemMap={onUpdateSystemMap}
             onAddSystem={onAddSystem}
+            videoMap={videoMap}
+            onUpdateVideoMap={onUpdateVideoMap}
           />
         )}
 

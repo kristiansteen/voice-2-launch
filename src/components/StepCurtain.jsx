@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toEmbedUrl } from '../lib/videoEmbed.js';
 
 /**
  * Resolve what we know about a clicked BPMN element from the parsed data.
@@ -91,7 +92,7 @@ function formatDuration(value, unit) {
 
 const DURATION_UNITS = ['min', 'hr', 'day', 'week'];
 
-export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap, onAddSystem }) {
+export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap, onAddSystem, videoMap = {}, onUpdateVideoMap }) {
   const info = resolveElement(element, parsed, processDescription);
   const activityMetrics = metrics?.activities?.find(m => m.id === info?.id);
 
@@ -99,6 +100,8 @@ export default function StepCurtain({ element, parsed, processDescription, metri
   const [durationUnit, setDurationUnit]   = useState(activityMetrics?.duration_unit ?? 'hr');
   const [backlog, setBacklog]             = useState(activityMetrics?.backlog ?? '');
   const [newSystemInput, setNewSystemInput] = useState('');
+  const [videoInput, setVideoInput] = useState(videoMap[info?.id] || '');
+  const [videoInputError, setVideoInputError] = useState(false);
 
   function handleAddSystem() {
     const name = newSystemInput.trim();
@@ -113,7 +116,18 @@ export default function StepCurtain({ element, parsed, processDescription, metri
     setDurationValue(activityMetrics?.duration_value ?? '');
     setDurationUnit(activityMetrics?.duration_unit ?? 'hr');
     setBacklog(activityMetrics?.backlog ?? '');
+    setVideoInput(videoMap[info?.id] || '');
+    setVideoInputError(false);
   }, [info?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const embedUrl = toEmbedUrl(videoMap[info?.id]);
+
+  function commitVideo() {
+    const trimmed = videoInput.trim();
+    if (trimmed && !toEmbedUrl(trimmed)) { setVideoInputError(true); return; }
+    setVideoInputError(false);
+    onUpdateVideoMap?.(info.id, trimmed);
+  }
 
   function commitMetric(patch) {
     onUpdateMetric?.(info.id, patch);
@@ -322,6 +336,51 @@ export default function StepCurtain({ element, parsed, processDescription, metri
           {!info?.roleLabel && !activityMetrics && !info?.stepDesc && !info?.gateway && !info?.event && (
             <p className="text-sm text-gray-400 italic">No additional details for this element.</p>
           )}
+
+          {/* Training video */}
+          <Section label="Training video">
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={videoInput}
+                onChange={e => { setVideoInput(e.target.value); setVideoInputError(false); }}
+                onBlur={commitVideo}
+                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                placeholder="Paste a YouTube, Vimeo or Loom link…"
+                className={`flex-1 text-xs border rounded-lg px-3 py-2 focus:outline-none ${
+                  videoInputError ? 'border-red-300 focus:border-red-400' : 'border-gray-200 focus:border-indigo-400'
+                }`}
+              />
+              {videoInput && (
+                <button
+                  type="button"
+                  onClick={() => { setVideoInput(''); setVideoInputError(false); onUpdateVideoMap?.(info.id, ''); }}
+                  className="text-xs text-gray-400 hover:text-red-500 border border-gray-200 rounded-lg px-2 transition-colors"
+                  aria-label="Remove video"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {videoInputError && (
+              <p className="text-[11px] text-red-500 mb-2">Doesn't look like a valid video link.</p>
+            )}
+            <div className="w-full aspect-video bg-gray-50 border border-dashed border-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+              {embedUrl ? (
+                <iframe
+                  key={embedUrl}
+                  src={embedUrl}
+                  title={`Training video for ${info?.name || 'step'}`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              ) : (
+                <span className="text-xs text-gray-300 italic">No video linked yet</span>
+              )}
+            </div>
+          </Section>
 
           {/* Spacer for custom content slot */}
           <div className="pt-2 border-t border-gray-100">

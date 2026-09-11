@@ -84,6 +84,7 @@ function blankFlowState() {
     asIsMetrics: null,
     toBeMetrics: null,
     systemMap: {},
+    videoMap: {},
     board_url: null,
     board_id: null,
   };
@@ -394,6 +395,7 @@ export default function App() {
   const [toBeMetrics, setToBeMetrics] = useState(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [systemMap, setSystemMap] = useState({});
+  const [videoMap, setVideoMap] = useState({});
 
   function loginWithGoogle() {
     // Backend decodes state as plain base64 URL, then redirects to ${state}/callback.html?token=...
@@ -505,6 +507,7 @@ export default function App() {
     setAsIsMetrics(flow.asIsMetrics || null);
     setToBeMetrics(flow.toBeMetrics || null);
     setSystemMap(flow.systemMap || {});
+    setVideoMap(flow.videoMap || {});
     setBoardUrl(flow.board_url || null);
     setBoardId(flow.board_id || null);
     setBoardVersion(flow.board_version || 1);
@@ -524,7 +527,7 @@ export default function App() {
       updated_at: new Date().toISOString(),
       transcript, processDescription, parsed, xml,
       improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-      asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap,
+      asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap,
     };
     setFlows(prev => {
       const updated = prev.map(f => f.id === currentFlowId ? updatedFlow : f);
@@ -566,7 +569,7 @@ export default function App() {
           });
       }, 2000);
     }
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleConfirmLang() {
@@ -1289,6 +1292,8 @@ export default function App() {
               systemMap={systemMap}
               onUpdateSystemMap={(elementId, system) => setSystemMap(prev => ({ ...prev, [elementId]: system }))}
               onAddSystem={addSystem}
+              videoMap={videoMap}
+              onUpdateVideoMap={(elementId, url) => setVideoMap(prev => ({ ...prev, [elementId]: url }))}
               blueprintXml={blueprintXml}
               onBlueprintXmlChange={setBlueprintXml}
             />
