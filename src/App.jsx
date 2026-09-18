@@ -1401,9 +1401,15 @@ export default function App() {
         onLogout={logoutVimpl}
         onNewFlow={handleCreateFlow}
         onOverview={handleBackToDashboard}
+        currentFlowId={currentFlowId}
+        flowName={currentFlow?.process_name || currentFlow?.name}
         companyLogo={companyLogo}
         onLogoChange={async (file) => { const url = await loadLogoFile(file); setCompanyLogo(url); return url; }}
         onLogoRemove={removeCompanyLogo}
+        systemRepository={systemRepository}
+        onAddSystem={addSystem}
+        onRemoveSystem={removeSystem}
+        onImportSystems={importSystems}
       />
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
