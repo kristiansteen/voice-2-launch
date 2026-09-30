@@ -277,9 +277,13 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
       system;
   }
 
+  // Long clipboard pastes produce a proportionally longer structured description;
+  // a fixed 3000-token cap truncates those mid-JSON (same issue parseToBpmn guards against).
+  const maxTokens = transcript.length > 4000 ? 6000 : 3000;
+
   const message = await client.messages.create({
     model: MODEL_HAIKU,
-    max_tokens: 3000,
+    max_tokens: maxTokens,
     system,
     messages: [{ role: 'user', content: transcript }],
   });

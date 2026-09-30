@@ -825,6 +825,7 @@ export default function App() {
       setProcessDescription(desc);
       setActivePanel(2);
     } catch (err) {
+      console.error('[parseVoiceToDescription] failed:', err, err.rawResponse);
       setVoiceError(err.message || 'Failed to parse voice.');
     } finally {
       setDescParsing(false);
