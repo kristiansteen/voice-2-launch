@@ -23,6 +23,11 @@ import {
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { comparisonToImprovements } from './services/processComparison.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
+import { useLocalInterviewer } from './hooks/useLocalInterviewer.js';
+import { OFFLINE, OFFLINE_USER } from './config/offline.js';
+
+// Build-time constant, so hook order never changes between renders.
+const useInterviewer = OFFLINE ? useLocalInterviewer : useAileanInterviewer;
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
   DEMO_TRANSCRIPT, DEMO_PARSED, DEMO_XML, DEMO_DESCRIPTION,
@@ -132,6 +137,7 @@ export default function App() {
   // — the SPA catch-all rewrite serves index.html there, so this is the only place
   // that token is ever read) or a ?code= param.
   useEffect(() => {
+    if (OFFLINE) { setAuthLoading(false); return; } // no login offline
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const code = params.get('code');
@@ -162,7 +168,7 @@ export default function App() {
         .finally(() => setAuthLoading(false));
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [vimplUser, setVimplUser] = useState(null);
+  const [vimplUser, setVimplUser] = useState(OFFLINE ? OFFLINE_USER : null);
   const userId = vimplUser?.id ?? null;
   const { logo: companyLogo, setLogo: setCompanyLogo, removeLogo: removeCompanyLogo, loadFile: loadLogoFile } = useCompanyLogo(userId);
   const { systems: systemRepository, addSystem, removeSystem, importFromText: importSystems } = useSystemRepository(userId);
@@ -235,7 +241,7 @@ export default function App() {
   }
 
   const effectiveApiKey = import.meta.env.DEV ? (import.meta.env.VITE_ANTHROPIC_API_KEY || null) : null;
-  const hasAccess = !!vimplToken;
+  const hasAccess = OFFLINE || !!vimplToken;
 
   // ── Multi-flow state ───────────────────────────────────────────────
   const [flows, setFlows] = useState(() => {
@@ -360,7 +366,7 @@ export default function App() {
   const [voiceError, setVoiceError] = useState(null);
 
   // ── Ailean AI Interviewer ──────────────────────────────────────────
-  const ailean = useAileanInterviewer(lang);
+  const ailean = useInterviewer(lang);
 
   // Panel 2 — Description
   const [processDescription, setProcessDescription] = useState(null);
@@ -1045,7 +1051,7 @@ export default function App() {
   }
 
   // ── Login gate ────────────────────────────────────────────────────
-  if (!vimplToken) {
+  if (!vimplToken && !OFFLINE) {
     if (authLoading) return null;
     if (authView === 'register') {
       return <RegisterPage onLogin={handleLogin} onSwitchToLogin={() => setAuthView('login')} />;
@@ -1229,7 +1235,7 @@ export default function App() {
               loading={descParsing}
               canParse={!!getEffectiveTranscript().trim() && (hasAccess || isDemoFlow)}
               ailean={ailean}
-              hasElevenLabsKey={!!vimplToken}
+              hasElevenLabsKey={OFFLINE || !!vimplToken}
               langConfirmed={langConfirmed}
               onConfirmLang={handleConfirmLang}
             />

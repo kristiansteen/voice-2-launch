@@ -2,6 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import InterviewGuide from './InterviewGuide.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder.js';
+import { useLocalVoiceRecorder } from '../hooks/useLocalVoiceRecorder.js';
+import { OFFLINE } from '../config/offline.js';
+
+// Build-time constant, so hook order never changes between renders.
+const useRecorder = OFFLINE ? useLocalVoiceRecorder : useVoiceRecorder;
 
 async function pasteFromClipboard() {
   try {
@@ -62,7 +67,7 @@ export default function VoicePanel({
   }
 
   const { isRecording, interimText, error, supported, start, stop } =
-    useVoiceRecorder({
+    useRecorder({
       lang,
       onTranscriptUpdate: setTranscript,
     });

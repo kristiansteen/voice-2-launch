@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:offline": "VITE_OFFLINE=true vite",
     "build": "vite build",
+    "build:offline": "VITE_OFFLINE=true vite build --outDir dist-offline",
     "preview": "vite preview",
     "test": "node --test"
   },

@@ -1,4 +1,6 @@
 import { MODEL_HAIKU } from '../config/models.js';
+import { OFFLINE } from '../config/offline.js';
+import { makeLocalClient } from './localLlm.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -10,6 +12,7 @@ function stripFences(text) {
 const SENTINEL_KEYS = new Set(['granted', 'demo', '', null, undefined]);
 
 function makeClient(apiKey, proxyAuth) {
+  if (OFFLINE) return Promise.resolve(makeLocalClient());
   if (apiKey && !SENTINEL_KEYS.has(apiKey)) {
     // Dev BYOK path — dynamic import keeps SDK out of the prod bundle
     return import('@anthropic-ai/sdk').then(({ default: Anthropic }) =>

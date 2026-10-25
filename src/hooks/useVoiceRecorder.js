@@ -37,7 +37,7 @@ const CORRECTIONS = [
   [/\bapproval\b/gi,           'approval'],
 ];
 
-function applyCorrections(text) {
+export function applyCorrections(text) {
   return CORRECTIONS.reduce((t, [pattern, replacement]) => t.replace(pattern, replacement), text);
 }
 

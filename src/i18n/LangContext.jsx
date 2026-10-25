@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { translations } from './translations.js';
+import { OFFLINE } from '../config/offline.js';
 
 const BACKEND_URL = import.meta.env.DEV ? 'http://localhost:3001' : 'https://backend-eight-rho-46.vercel.app';
 const PREFS_URL = `${BACKEND_URL}/api/v1/auth/me/preferences`;
@@ -14,6 +15,7 @@ export function LangProvider({ children }) {
 
   // Sync language preference from server on mount
   useEffect(() => {
+    if (OFFLINE) return; // language stays local offline
     fetch(PREFS_URL, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(prefs => {
@@ -29,6 +31,7 @@ export function LangProvider({ children }) {
     setLangState(l);
     localStorage.setItem('voice2bpmn_lang', l);
     // Persist to server (fire-and-forget)
+    if (OFFLINE) return;
     fetch(PREFS_URL, {
       method: 'PUT',
       credentials: 'include',

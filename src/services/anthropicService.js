@@ -1,9 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { MODEL_SONNET, MODEL_HAIKU } from '../config/models.js';
+import { OFFLINE } from '../config/offline.js';
+import { makeLocalClient } from './localLlm.js';
 
 // ── Client factory ────────────────────────────────────────────────────────────
 // Returns either a real Anthropic client (BYOK, dev only) or a proxy shim (vimpl auth).
 export function makeClient(apiKey, proxyAuth = null) {
+  if (OFFLINE) return makeLocalClient();
+
   if (apiKey) {
     if (import.meta.env.PROD) throw new Error('Direct API key usage is not permitted in production');
     return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -73,6 +77,9 @@ or
 {"safe": false, "reason": "one sentence explaining the specific issue"}`;
 
 export async function checkContentSafety(text, apiKey, proxyAuth = null) {
+  // Offline: data never leaves the machine, and a small local classifier gives
+  // false positives that would block legitimate interviews — skip the pre-flight.
+  if (OFFLINE) return { safe: true, reason: null };
   const client = makeClient(apiKey, proxyAuth);
   try {
     const message = await client.messages.create({
