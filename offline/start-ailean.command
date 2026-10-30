@@ -115,6 +115,12 @@ wait_for_port "$APP_PORT" "AILEAN app" 15
 
 step "Loading the model into memory (first start can take a few minutes)…"
 wait_for_port "$LLM_PORT" "Language model" 600 "$LLM_PID"
+# The port opens before the model is in memory: wait until /health says ok.
+for _ in $(seq 1 600); do
+  curl -s -m 2 "http://127.0.0.1:$LLM_PORT/health" 2>/dev/null | grep -q '"ok"' && break
+  kill -0 "$LLM_PID" 2>/dev/null || { tail -5 "$ROOT/logs/llm.log"; fail "Language model stopped while loading — see $ROOT/logs/"; }
+  sleep 1
+done
 
 open "http://127.0.0.1:$APP_PORT"
 printf '\n\033[1;32m✓ AILEAN offline is running at http://127.0.0.1:%s\033[0m\n' "$APP_PORT"

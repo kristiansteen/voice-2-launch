@@ -27,6 +27,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
@@ -196,10 +197,16 @@ class Handler(SimpleHTTPRequestHandler):
         body = self.rfile.read(length) if length else None
         headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP_HEADERS}
         try:
-            conn = http.client.HTTPConnection(host, port, timeout=TIMEOUT)
-            conn.request(self.command, path, body=body, headers=headers)
-            resp = conn.getresponse()
-            data = resp.read()
+            # While the model is still loading, llamafile answers 503 — wait and retry.
+            for _ in range(300):
+                conn = http.client.HTTPConnection(host, port, timeout=TIMEOUT)
+                conn.request(self.command, path, body=body, headers=headers)
+                resp = conn.getresponse()
+                data = resp.read()
+                if resp.status != 503 or b"Loading model" not in data:
+                    break
+                conn.close()
+                time.sleep(1)
         except OSError as e:
             name = {"/llm": "language model", "/stt": "Whisper", "/tts": "Piper"}
             svc = next((v for k, v in name.items() if url.path.startswith(k)), "service")
