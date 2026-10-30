@@ -9,6 +9,7 @@
 #    runtimes/llamafile     ← language-model runtime
 #    runtimes/whisperfile   ← speech-to-text runtime
 #    models/llm/*.gguf      ← language model (non-"thinking" models preferred)
+#    models/llm-fallback/   ← used only when models/llm/ is empty
 #    models/whisper/*.bin   ← Whisper model
 #
 #  Voice: uses the built-in macOS voices (Danish "Sara" if installed).
@@ -46,10 +47,11 @@ wait_for_port() { # port, name, seconds
 mkdir -p "$ROOT/logs"
 
 # ── Find components ──────────────────────────────────────────────────────────
-pick_model() { # prefer instruct/non-thinking models
+pick_model() { # models/llm first (non-thinking preferred), then models/llm-fallback
   local m
   m="$(ls "$ROOT"/models/llm/*.gguf 2>/dev/null | grep -vi thinking | head -1)"
   [ -z "$m" ] && m="$(ls "$ROOT"/models/llm/*.gguf 2>/dev/null | head -1)"
+  [ -z "$m" ] && m="$(ls "$ROOT"/models/llm-fallback/*.gguf 2>/dev/null | head -1)"
   echo "$m"
 }
 MODEL="${AILEAN_MODEL:-$(pick_model)}"
@@ -59,7 +61,7 @@ WHISPERFILE="$ROOT/runtimes/whisperfile"
 
 [ -f "$ROOT/app/index.html" ] || fail "App not found in $ROOT/app"
 [ -f "$LLAMAFILE" ]           || fail "llamafile not found in $ROOT/runtimes/"
-[ -n "$MODEL" ] && [ -f "$MODEL" ] || fail "No .gguf model in $ROOT/models/llm/ — run get-models.command"
+[ -n "$MODEL" ] && [ -f "$MODEL" ] || fail "No .gguf model in $ROOT/models/llm/ or llm-fallback/ — run get-models.command"
 
 # Binaries on a USB stick get quarantined by macOS Gatekeeper.
 xattr -dr com.apple.quarantine "$ROOT/runtimes" "$ROOT"/*.command 2>/dev/null
