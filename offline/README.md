@@ -147,8 +147,24 @@ AILEAN_MODEL=/Volumes/AILEAN/models/llm-fallback/qwen3-4b-thinking-2507.Q4_K_M.g
 | Very slow | Close other apps; check RAM. On 16 GB Macs keep the 4B model. |
 | "AILEAN already seems to be running" | Another AILEAN is running — close its Terminal window, or restart the Mac. |
 | "Local language model is not running" | The model stopped or never started — check `logs/llm.log`, close all Terminal windows and start again. |
+| "Local model error 503 … Loading model" | The model was still loading into memory. Fixed: the start script now waits until it is ready, and the app waits instead of failing. If it appears, wait a minute and retry. |
+| "Text-to-speech error 403" | macOS AirPlay Receiver uses port 5000 and answered instead of a voice server. Fixed: AILEAN now always uses the built-in macOS voice. (Piper is only used if `AILEAN_TTS_PORT` is set.) |
+| Strange text in the transcript, e.g. "Danske tekster af …", "Tak for i dag." | Whisper "hears" TV subtitle credits in silence or noise. Fixed: these are filtered out. If others slip through, note the exact text so the filter can be extended. |
 
 Logs: `logs/llm.log` (model), `logs/app.log` (app, Whisper, voice).
+
+---
+
+## Known fixes (30 Oct 2026)
+
+Found during the first offline test on the Mac and fixed on the stick and in the repo:
+
+1. **Port 8080 taken** by another program → the model now runs on port 18080 (or the next free port).
+2. **"Loading model" (503)** → start script and app wait until the model is fully loaded.
+3. **"Text-to-speech error 403"** → AirPlay on port 5000; the built-in macOS voice is now always used.
+4. **Whisper subtitle hallucinations** ("Danske tekster af Jesper Buhl Scandinavian Text Service") → filtered.
+5. **English voice sounded like a rough novelty voice** → AILEAN now picks a natural voice (Samantha/Ava/Allison …, Premium/Enhanced if installed). Install a better one under Spoken Content → Manage Voices.
+6. **TO-BE diagram did not render** → broken JSON from the small model is repaired before drawing, and a red error message is shown under the button if generation still fails.
 
 ---
 

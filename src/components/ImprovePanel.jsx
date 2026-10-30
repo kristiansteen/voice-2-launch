@@ -89,7 +89,7 @@ export default function ImprovePanel({
   parsed, apiKey,
   improvements, onGetImprovements, onAddImprovement, onUpdateImprovement, onDeleteImprovement,
   selectedIds, onToggleSelect,
-  toBeXml, toBeLoading, onGenerateToBe,
+  toBeXml, toBeLoading, onGenerateToBe, toBeError,
   toBeApproved, onApproveToBe, onReviewDiagram,
   projectPlan, onGeneratePlan, planLoading,
 }) {
@@ -258,6 +258,9 @@ export default function ImprovePanel({
                     </>
                   ) : (step1Done ? t.regenerateToBeBtn : t.generateToBeBtn)}
                 </button>
+                {toBeError && !toBeLoading && (
+                  <p className="mt-1.5 text-xs text-red-600 break-words">TO-BE: {toBeError}</p>
+                )}
               </div>
 
               {/* Step 2 — Review & approve TO-BE */}

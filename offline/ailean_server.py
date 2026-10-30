@@ -113,19 +113,51 @@ def transcribe_cli(wav_bytes, lang):
         os.unlink(path)
 
 
+# Pleasant, natural voices first. `say -v ?` lists novelty voices (Albert, Bad News,
+# Bahh, Bells, Boing, Bruce, ...) alphabetically, so "first English voice" sounds terrible.
+VOICE_PREFERENCE = {
+    "en": ["Samantha", "Ava", "Allison", "Susan", "Zoe", "Evan", "Nathan", "Tom",
+           "Karen", "Daniel", "Serena", "Moira", "Tessa", "Alex"],
+    "da": ["Sara", "Magnus"],
+    "de": ["Anna", "Petra", "Markus"],
+    "sv": ["Alva", "Klara", "Oskar"],
+    "nb": ["Nora", "Henrik", "Finn"],
+}
+NOVELTY_VOICES = {
+    "Albert", "Bad News", "Bahh", "Bells", "Boing", "Bubbles", "Cellos", "Deranged",
+    "Good News", "Hysterical", "Jester", "Junior", "Kathy", "Organ", "Princess", "Ralph",
+    "Superstar", "Trinoids", "Whisper", "Wobble", "Zarvox", "Fred", "Bruce", "Agnes",
+}
+
+
 def mac_voices():
-    """Map language -> first installed macOS voice for it (cached)."""
+    """Map language -> best installed macOS voice for it (cached)."""
     global _VOICES
     if _VOICES is None:
         _VOICES = {}
+        installed = {}  # lang -> [voice names, in listing order]
         try:
             listing = subprocess.run(["say", "-v", "?"], capture_output=True, timeout=10).stdout.decode()
             for line in listing.splitlines():
                 m = re.match(r"^(.+?)\s+([a-z]{2})[_-][A-Z]{2}\s+#", line)
                 if m:
-                    _VOICES.setdefault(m.group(2), m.group(1).strip())
+                    installed.setdefault(m.group(2), []).append(m.group(1).strip())
         except (OSError, subprocess.SubprocessError):
             pass
+        for lang, names in installed.items():
+            def base(n):  # "Samantha (Premium)" -> "Samantha"
+                return re.sub(r"\s*\(.*\)$", "", n)
+            pick = None
+            for want in VOICE_PREFERENCE.get(lang, []):
+                # Premium / Enhanced downloads sort of the same base name: prefer them.
+                matches = [n for n in names if base(n) == want]
+                matches.sort(key=lambda n: ("Premium" not in n, "Enhanced" not in n))
+                if matches:
+                    pick = matches[0]
+                    break
+            if not pick:
+                pick = next((n for n in names if base(n) not in NOVELTY_VOICES), names[0])
+            _VOICES[lang] = pick
     return _VOICES
 
 

@@ -395,6 +395,7 @@ export default function App() {
   const [toBeXml, setToBeXml] = useState(null);
   const [toBeParsed, setToBeParsed] = useState(null);
   const [toBeLoading, setToBeLoading] = useState(false);
+  const [toBeError, setToBeError] = useState(null);
   const [toBeApproved, setToBeApproved] = useState(false);
   const [blueprintXml, setBlueprintXml] = useState(null);
 
@@ -984,6 +985,7 @@ export default function App() {
     setToBeXml(null);
     setToBeParsed(null);
     setToBeApproved(false);
+    setToBeError(null);
     setToBeLoading(true);
 
     try {
@@ -996,6 +998,9 @@ export default function App() {
       estimateToBeMetrics(parsed, toBeParsedResult, _asIsMetrics, selected, effectiveApiKey, getProxyAuth(), lang)
         .then(m => { if (m) setToBeMetrics(m); })
         .catch(() => {});
+    } catch (err) {
+      console.error('[TO-BE] generation failed:', err, err?.rawResponse);
+      setToBeError(err?.message || 'TO-BE generation failed');
     } finally {
       setToBeLoading(false);
     }
@@ -1360,6 +1365,7 @@ export default function App() {
               toBeXml={toBeXml}
               toBeLoading={toBeLoading}
               onGenerateToBe={handleGenerateToBe}
+              toBeError={toBeError}
               toBeApproved={toBeApproved}
               onApproveToBe={() => setToBeApproved(true)}
               onReviewDiagram={() => setActivePanel(3)}

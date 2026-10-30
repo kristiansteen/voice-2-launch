@@ -482,7 +482,47 @@ function normalisePerformers(parsed) {
   return { ...parsed, activities: fixed };
 }
 
-export async function generateBpmnXml(parsed) {
+/**
+ * Small local models often return slightly broken process JSON (missing arrays,
+ * duplicate ids, flows pointing at elements that do not exist). Repair that so
+ * the diagram still renders instead of throwing.
+ */
+export function repairParsed(parsed) {
+  const p = parsed && typeof parsed === 'object' ? parsed : {};
+  const arr = v => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : []);
+  const seen = new Set();
+  const unique = list => list.filter(x => {
+    if (x.id == null || seen.has(x.id)) return false;
+    seen.add(x.id);
+    return true;
+  });
+  const roles = unique(arr(p.roles));
+  const events = unique(arr(p.events));
+  const activities = unique(arr(p.activities));
+  const gateways = unique(arr(p.gateways));
+  const nodes = new Set([...events, ...activities, ...gateways].map(x => x.id));
+  const flowIds = new Set();
+  const sequence_flows = arr(p.sequence_flows).filter(f => {
+    if (!nodes.has(f.from) || !nodes.has(f.to) || f.from === f.to) return false;
+    const key = f.id ?? `${f.from}>${f.to}`;
+    if (flowIds.has(key)) return false;
+    flowIds.add(key);
+    return true;
+  }).map((f, i) => ({ ...f, id: f.id ?? `flow_r${i + 1}` }));
+  const roleIds = new Set(roles.map(r => r.id));
+  return {
+    ...p,
+    process_name: p.process_name || 'Process',
+    roles,
+    events,
+    activities: activities.map(a => (a.performer && !roleIds.has(a.performer) ? { ...a, performer: null } : a)),
+    gateways,
+    sequence_flows,
+  };
+}
+
+export async function generateBpmnXml(parsedInput) {
+  const parsed = repairParsed(parsedInput);
   const normalised = normalisePerformers(parsed);
   const { roles, activities } = normalised;
   const hasRolesWithActivities = roles?.length > 0 && roles.some(r => activities.some(a => a.performer === r.id));

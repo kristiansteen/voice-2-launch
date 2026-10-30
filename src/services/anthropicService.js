@@ -421,6 +421,15 @@ Swimlane (role) rules — critical:
 - Systems, tools, and automation engines do NOT get their own swimlane — assign their activities to the human role that owns or triggers them (e.g. tasks performed by an OCR system belong to the role that initiates scanning)
 - Only add a new role/swimlane if a selected improvement explicitly introduces a new human role or organisational unit that does not exist in the AS-IS process${SAFETY_SUFFIX}`;
 
+// Small models sometimes nest the process ({"to_be": {...}}); find the object that has the flows.
+function unwrapProcess(obj) {
+  if (obj && !Array.isArray(obj.sequence_flows)) {
+    const inner = Object.values(obj).find(v => v && typeof v === 'object' && Array.isArray(v.sequence_flows));
+    if (inner) return inner;
+  }
+  return obj;
+}
+
 export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAuth = null, lang = 'en') {
   const client = makeClient(apiKey, proxyAuth);
 
@@ -443,12 +452,12 @@ export async function generateToBeBpmn(asIsParsed, improvements, apiKey, proxyAu
   const cleaned = stripFences(text);
 
   try {
-    return JSON.parse(cleaned);
+    return unwrapProcess(JSON.parse(cleaned));
   } catch {
     // Fallback: extract the first {...} block in case the model added prose around the JSON
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      try { return JSON.parse(jsonMatch[0]); } catch { /* fall through */ }
+      try { return unwrapProcess(JSON.parse(jsonMatch[0])); } catch { /* fall through */ }
     }
     const err = new Error('Failed to parse TO-BE BPMN as JSON');
     err.rawResponse = text;
