@@ -40,7 +40,7 @@ AILEAN/
 | Part | Runs as | Port |
 |---|---|---|
 | AILEAN app + local server | `ailean_server.py` (Python, built into macOS) | 127.0.0.1:4173 |
-| Language model | `llamafile` + model from `models/llm/` | 127.0.0.1:8080 |
+| Language model | `llamafile` + model from `models/llm/` | 127.0.0.1:18080 (next free port if taken) |
 | Speech-to-text | `whisperfile`, called per spoken phrase | — |
 | Voice (interviewer speaks) | Built-in macOS voices (`say`) | — |
 
@@ -145,7 +145,8 @@ AILEAN_MODEL=/Volumes/AILEAN/models/llm-fallback/qwen3-4b-thinking-2507.Q4_K_M.g
 | "Whisper failed" / no transcript | Check `logs/app.log`. Confirm `models/whisper/ggml-large-v3-turbo-q5_0.bin` exists. First run can be slow. |
 | No voice / wrong voice | Install the Danish voice "Sara" (see setup). |
 | Very slow | Close other apps; check RAM. On 16 GB Macs keep the 4B model. |
-| Port already in use | Another AILEAN is running — close its Terminal window, or restart the Mac. |
+| "AILEAN already seems to be running" | Another AILEAN is running — close its Terminal window, or restart the Mac. |
+| "Local language model is not running" | The model stopped or never started — check `logs/llm.log`, close all Terminal windows and start again. |
 
 Logs: `logs/llm.log` (model), `logs/app.log` (app, Whisper, voice).
 

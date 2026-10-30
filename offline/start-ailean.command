@@ -23,6 +23,7 @@ cd "$ROOT"
 
 CTX="${AILEAN_CTX:-32768}"     # context window: long interviews need ≥32K
 APP_PORT=4173
+LLM_PORT="${AILEAN_LLM_PORT:-18080}"   # unusual port: 8080 is often taken by other apps
 PIDS=()
 
 step() { printf '\n\033[1;35m▸ %s\033[0m\n' "$1"; }
@@ -36,9 +37,15 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-wait_for_port() { # port, name, seconds
+port_busy() { nc -z 127.0.0.1 "$1" 2>/dev/null; }
+
+wait_for_port() { # port, name, seconds, [pid that must stay alive]
   for _ in $(seq 1 "$3"); do
-    nc -z 127.0.0.1 "$1" 2>/dev/null && return 0
+    port_busy "$1" && return 0
+    if [ -n "${4:-}" ] && ! kill -0 "$4" 2>/dev/null; then
+      tail -5 "$ROOT/logs/llm.log" 2>/dev/null
+      fail "$2 stopped while starting — see $ROOT/logs/"
+    fi
     sleep 1
   done
   fail "$2 did not start on port $1 — see $ROOT/logs/"
@@ -72,11 +79,20 @@ if echo "$MODEL" | grep -qi thinking; then
   warn "Run get-models.command to add a faster instruct model."
 fi
 
+# ── 0. Ports ─────────────────────────────────────────────────────────────────
+if port_busy "$APP_PORT"; then
+  fail "AILEAN already seems to be running (port $APP_PORT in use). Close the other AILEAN Terminal window first."
+fi
+for _ in $(seq 1 20); do port_busy "$LLM_PORT" || break; LLM_PORT=$((LLM_PORT + 1)); done
+port_busy "$LLM_PORT" && fail "No free port for the language model"
+export AILEAN_LLM_PORT="$LLM_PORT"   # tells ailean_server.py where the model is
+
 # ── 1. Language model ────────────────────────────────────────────────────────
 step "Starting language model: $(basename "$MODEL")"
-"$LLAMAFILE" --server --no-webui --host 127.0.0.1 --port 8080 \
+"$LLAMAFILE" --server --no-webui --host 127.0.0.1 --port "$LLM_PORT" \
   -m "$MODEL" -c "$CTX" -ngl 999 >"$ROOT/logs/llm.log" 2>&1 &
-PIDS+=($!)
+LLM_PID=$!
+PIDS+=($LLM_PID)
 
 # ── 2. App server (also runs Whisper and the voice) ──────────────────────────
 WHISPER_ARGS=()
@@ -98,7 +114,7 @@ PIDS+=($!)
 wait_for_port "$APP_PORT" "AILEAN app" 15
 
 step "Loading the model into memory (first start can take a few minutes)…"
-wait_for_port 8080 "Language model" 600
+wait_for_port "$LLM_PORT" "Language model" 600 "$LLM_PID"
 
 open "http://127.0.0.1:$APP_PORT"
 printf '\n\033[1;32m✓ AILEAN offline is running at http://127.0.0.1:%s\033[0m\n' "$APP_PORT"
