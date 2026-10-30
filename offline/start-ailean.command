@@ -13,7 +13,7 @@
 #    models/whisper/*.bin   ← Whisper model
 #
 #  Voice: uses the built-in macOS voices (Danish "Sara" if installed).
-#  Optional: a Piper server on port 5000 is used instead when running.
+#  Optional: set AILEAN_TTS_PORT to use a Piper server instead.
 #  Override with env vars: AILEAN_MODEL, AILEAN_WHISPER_MODEL, AILEAN_CTX.
 #  Everything binds to 127.0.0.1 — nothing is reachable from the network.
 # ─────────────────────────────────────────────────────────────────────────────

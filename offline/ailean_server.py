@@ -8,8 +8,8 @@ and nothing it does leaves the machine.
     /llm/...  -> llamafile / llama.cpp  (default 127.0.0.1:8080)
     /stt/...  -> whisperfile CLI (--whisper-bin/--whisper-model), or a
                  whisper.cpp server on 127.0.0.1:8081 if no CLI is given
-    /tts      -> Piper HTTP server on 127.0.0.1:5000 if running,
-                 otherwise the built-in macOS voices (`say`)
+    /tts      -> built-in macOS voices (`say`); a Piper HTTP server is used
+                 instead only when AILEAN_TTS_PORT is set
     anything else -> static files from the app folder (SPA fallback to index.html)
 
 Python standard library only. Usage:
@@ -34,7 +34,8 @@ from urllib.parse import urlsplit
 UPSTREAMS = {
     "/llm": ("127.0.0.1", int(os.environ.get("AILEAN_LLM_PORT", 8080)), ""),
     "/stt": ("127.0.0.1", int(os.environ.get("AILEAN_STT_PORT", 8081)), ""),
-    "/tts": ("127.0.0.1", int(os.environ.get("AILEAN_TTS_PORT", 5000)), ""),
+    # Piper is opt-in: macOS uses port 5000 for AirPlay Receiver (answers 403).
+    "/tts": ("127.0.0.1", int(os.environ.get("AILEAN_TTS_PORT") or 0), ""),
 }
 TIMEOUT = 900  # seconds; long transcripts on a laptop GPU can take minutes
 CONFIG = {"whisper_bin": None, "whisper_model": None}
@@ -174,7 +175,8 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:  # noqa: BLE001
                 self._send(500, f"Whisper failed: {e}".encode(), "text/plain; charset=utf-8")
             return True
-        if path == "/tts" and not port_open(UPSTREAMS["/tts"][1]):
+        piper_port = UPSTREAMS["/tts"][1]
+        if path == "/tts" and not (piper_port and port_open(piper_port)):
             try:
                 req = json.loads(self._read_body() or b"{}")
                 wav = speak_mac(req.get("text", ""), req.get("lang", "da"))
