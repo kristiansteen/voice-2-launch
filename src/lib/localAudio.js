@@ -191,11 +191,11 @@ export function cleanWhisperText(text) {
 let currentAudio = null;
 
 /** Speak text with the local Piper voice. Resolves when playback ends. */
-export async function speak(text) {
+export async function speak(text, lang = 'da') {
   const res = await fetch(LOCAL_ENDPOINTS.tts, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, lang }),
   });
   if (!res.ok) throw new Error(`Text-to-speech error ${res.status}`);
   const url = URL.createObjectURL(await res.blob());

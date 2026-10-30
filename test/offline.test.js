@@ -30,7 +30,7 @@ test('toOpenAiBody maps system + messages + max_tokens', () => {
     messages: [{ role: 'user', content: [{ type: 'text', text: 'Q' }] }],
   });
   assert.deepEqual(body.messages, [{ role: 'system', content: 'SYS' }, { role: 'user', content: 'Q' }]);
-  assert.equal(body.max_tokens, 500);
+  assert.equal(body.max_tokens, 500 + 2048);
   assert.equal(body.chat_template_kwargs.enable_thinking, false);
 });
 

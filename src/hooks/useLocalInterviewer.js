@@ -61,7 +61,7 @@ export function useLocalInterviewer(lang = 'en') {
       userTurnIx.current = -1;
       setThinking(false);
       setMode('speaking');
-      try { await speak(question); } catch (e) { setError(e.message); } // keep going without voice
+      try { await speak(question, langRef.current); } catch (e) { setError(e.message); } // keep going without voice
 
       if (!activeRef.current) return;
       if (finished) { stopSession(); return; }

@@ -5,6 +5,8 @@
 
 import { LOCAL_ENDPOINTS } from '../config/offline.js';
 
+export const THINKING_HEADROOM = 2048;
+
 /** Flatten Anthropic content (string or array of blocks) to plain text. */
 export function contentToText(content) {
   if (content == null) return '';
@@ -37,7 +39,9 @@ export function toOpenAiBody(params) {
   return {
     model: 'local',
     messages,
-    max_tokens: params.max_tokens,
+    // Headroom for "thinking" models, which spend tokens reasoning before they answer.
+    // Harmless for normal models: they stop at end-of-answer anyway.
+    max_tokens: (params.max_tokens || 1024) + THINKING_HEADROOM,
     temperature: params.temperature ?? 0.2,
     // Qwen-family models: skip the slow "thinking" phase. Ignored by other models.
     chat_template_kwargs: { enable_thinking: false },
