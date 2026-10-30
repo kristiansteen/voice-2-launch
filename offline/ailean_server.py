@@ -76,6 +76,24 @@ def parse_multipart(body, content_type):
 
 WHISPER_NOISE = re.compile(r"\[[^\]]*\]|^\s*\[\d.:\s>-]+\]\s*", re.M)
 
+# Whisper was trained on subtitled TV: on silence or noise it "hears" subtitle
+# credits and sign-offs. Remove those phrases wherever they appear.
+WHISPER_HALLUCINATIONS = re.compile(
+    r"(?i:(danske\s+)?(under)?tekst(er|ning)?\s+(af|ved))\s+[A-ZÆØÅ][\w-]+(\s+[A-ZÆØÅ][\w-]+)*(\s+(19|20)\d\d)?[.!?]?"
+    r"|(?i:scandinavian\s+text\s+service)[^.!?\n]*[.!?]?"
+    r"|(?i:\b(sdi\s+media|broadcast\s+text|nordisk\s+film\s+text)\b)[^.!?\n]*[.!?]?"
+    r"|(?i:(subtitles?|captions?)\s+by\b)[^.!?\n]*[.!?]?"
+    r"|(?i:amara\.org)[^.!?\n]*[.!?]?"
+    r"|(?i:^\s*(tak\s+(for\s+(i\s+dag|at\s+se\s+med|nu))?|thank\s+you|thanks\s+for\s+watching)[.!]?\s*$)",
+)
+
+
+def clean_transcript(text):
+    text = WHISPER_NOISE.sub(" ", text)
+    text = WHISPER_HALLUCINATIONS.sub(" ", text)
+    text = " ".join(text.split()).strip(" .,")
+    return text if re.search(r"[^\W\d_]", text) else ""  # nothing but digits/punctuation left
+
 
 def transcribe_cli(wav_bytes, lang):
     """Run whisperfile on one audio clip and return the text."""
@@ -84,12 +102,11 @@ def transcribe_cli(wav_bytes, lang):
         path = f.name
     try:
         cmd = ["sh", CONFIG["whisper_bin"], "-m", CONFIG["whisper_model"], "-f", path,
-               "-l", lang, "-nt", "-np", "-t", str(min(8, os.cpu_count() or 4))]
+               "-l", lang, "-nt", "-np", "-sns", "-t", str(min(8, os.cpu_count() or 4))]
         out = subprocess.run(cmd, capture_output=True, timeout=180)
         if out.returncode != 0:
             raise RuntimeError(out.stderr.decode(errors="replace")[-300:])
-        text = out.stdout.decode(errors="replace")
-        return " ".join(WHISPER_NOISE.sub(" ", text).split())
+        return clean_transcript(out.stdout.decode(errors="replace"))
     finally:
         os.unlink(path)
 
