@@ -54,6 +54,10 @@ const LANE_OPTS = {
   'elk.layered.spacing.nodeNodeBetweenLayers': '70',
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+  // Rework loops make the graph cyclic. Break cycles by walking forward from the
+  // start event, so loop-back arrows are the ones reversed and the process still
+  // reads left to right. (The default greedy strategy can put the start mid-diagram.)
+  'elk.layered.cycleBreaking.strategy': 'DEPTH_FIRST',
   'elk.portConstraints': 'FREE',
   'elk.spacing.edgeEdge': '12',
   'elk.spacing.edgeNode': '16',
@@ -192,12 +196,19 @@ export async function flatLayout(parsed) {
 
 // ── Swimlane layout ───────────────────────────────────────────────────────────
 // Strategy: run a single flat ELK layout across all nodes so that connected
-// nodes land in the same column regardless of lane. Then snap each node's Y
-// to the centre of its lane. ELK waypoints are discarded because they were
-// computed for the original Y positions; xmlGenerator uses swimlaneRoute()
-// instead, which produces clean orthogonal paths in the final coordinate space.
+// nodes land in the same column regardless of lane. X comes from ELK; Y comes
+// from the lane. When two elements of the same lane share a column they get
+// separate rows and the lane grows taller. ELK's own edge routes are discarded
+// (they were computed for other Y positions); xmlGenerator routes all arrows
+// with routeEdges() in the final coordinate space.
+//
+// All coordinates are multiples of 10 so they line up with the router grid.
 
-const LANE_H = 210; // height of each swimlane row
+const LANE_PAD = 40;   // free space above the first and below the last row of a lane
+const ROW_H    = 120;  // one row of elements: 80px task + 40px for arrows between rows
+const COL_GAP  = 40;   // elements of one lane closer than this horizontally need separate rows
+
+const snap = v => Math.round(v / 10) * 10;
 
 export async function swimlaneLayout(parsed, elementLaneId, lanes) {
   const { events, activities, gateways, sequence_flows } = parsed;
@@ -212,6 +223,7 @@ export async function swimlaneLayout(parsed, elementLaneId, lanes) {
       id: 'root',
       layoutOptions: {
         ...LANE_OPTS,
+        'elk.layered.spacing.nodeNodeBetweenLayers': '80',
         'elk.padding': '[top=40,left=80,bottom=40,right=80]',
       },
       children: all.map(el => makeNode(el, events, activities, gateways)),
@@ -224,84 +236,55 @@ export async function swimlaneLayout(parsed, elementLaneId, lanes) {
     throw err; // let generateBpmnXml fallback to flatLayout
   }
 
-  // X from ELK (centre), Y snapped to lane centre
+  // Row assignment within each lane, left to right. An element prefers the row
+  // of a predecessor in the same lane (straight arrow); if that spot is taken
+  // by an element in the same column it moves to the nearest free row.
   const laneIdx = Object.fromEntries(lanes.map((l, i) => [l.id, i]));
-  const positions = {};
-  layout.children.forEach(n => {
-    const li = laneIdx[elementLaneId[n.id]] ?? 0;
-    positions[n.id] = {
-      x: n.x + n.width  / 2,
-      y: li * LANE_H + LANE_H / 2,
-    };
-  });
+  const laneOf = id => laneIdx[elementLaneId[id]] ?? 0;
+  const preds = {};
+  sequence_flows.forEach(f => { (preds[f.to] ||= []).push(f.from); });
 
-  // Separate any elements that overlap after Y-snapping.
-  // Elements in the same lane with the same X column get spread vertically.
-  separateOverlaps(positions, all, events, activities, gateways, elementLaneId, LANE_H);
+  const nodes = layout.children
+    .map(n => ({ id: n.id, x: snap(n.x + n.width / 2), elkY: n.y, w: n.width, lane: laneOf(n.id) }))
+    .sort((a, b) => a.x - b.x || a.elkY - b.elkY);
 
-  // Lane boxes — all same width, stacked vertically
-  const totalW = Math.ceil(layout.width ?? 600);
-  const laneBoxes = {};
-  lanes.forEach((lane, i) => {
-    laneBoxes[lane.id] = { x: 0, y: i * LANE_H, w: totalW, h: LANE_H };
-  });
-
-  // No ELK waypoints — swimlaneRoute() in xmlGenerator handles all edges
-  return { positions, waypoints: {}, laneBoxes };
-}
-
-// ── Simple orthogonal router for swimlane edges ───────────────────────────────
-// Cross-lane edges route via the lane boundary row (y between two lane centers)
-// so the horizontal segment never passes through any activity box.
-// Same-lane edges are straight; backward edges loop below both shapes.
-
-const POOL_OFFSET_Y = 80; // must match OFFSET_Y in xmlGenerator.js
-const HALF_GAP = 30;       // half of elk.layered.spacing.nodeNodeBetweenLayers (60)
-
-export function swimlaneRoute(sx, sy, sw, sh, tx, ty, tw, th) {
-  const exitX  = sx + sw / 2;
-  const entryX = tx - tw / 2;
-
-  // Same lane — straight horizontal
-  if (Math.abs(sy - ty) < 5) {
-    return [[exitX, sy], [entryX, ty]];
-  }
-
-  // Forward edge (left-to-right or negligibly backward in X)
-  if (entryX >= exitX - 5) {
-    // Bend at the lane boundary — no node is ever positioned there
-    const relSrcY = sy - POOL_OFFSET_Y;
-    const boundaryY = ty > sy
-      ? Math.ceil(relSrcY / LANE_H) * LANE_H + POOL_OFFSET_Y   // bottom of source lane
-      : Math.floor(relSrcY / LANE_H) * LANE_H + POOL_OFFSET_Y; // top of source lane
-
-    const bendX1 = exitX + HALF_GAP;
-    const bendX2 = entryX - HALF_GAP;
-
-    if (bendX1 < bendX2) {
-      // Full 6-point route via lane boundary
-      return [
-        [exitX,  sy],
-        [bendX1, sy],
-        [bendX1, boundaryY],
-        [bendX2, boundaryY],
-        [bendX2, ty],
-        [entryX, ty],
-      ];
+  const rowOf = {};
+  const placed = lanes.map(() => []);
+  const laneRows = lanes.map(() => 1);
+  for (const n of nodes) {
+    const taken = new Set(
+      placed[n.lane]
+        .filter(o => Math.abs(o.x - n.x) < (o.w + n.w) / 2 + COL_GAP)
+        .map(o => rowOf[o.id])
+    );
+    const pred = (preds[n.id] || []).find(p => rowOf[p] !== undefined && laneOf(p) === n.lane);
+    let row = pred !== undefined ? rowOf[pred] : 0;
+    for (let k = 1; taken.has(row); k++) {
+      const up = row - k, down = row + k;
+      if (up >= 0 && !taken.has(up)) row = up;
+      else if (!taken.has(down)) row = down;
     }
-    // Source and target are close — simple L-bend (adjacent nodes, no obstacle in gap)
-    const midX = (exitX + entryX) / 2;
-    return [[exitX, sy], [midX, sy], [midX, ty], [entryX, ty]];
+    rowOf[n.id] = row;
+    placed[n.lane].push(n);
+    laneRows[n.lane] = Math.max(laneRows[n.lane], row + 1);
   }
 
-  // Backward edge — loop below both shapes
-  const botY = Math.max(sy + sh / 2, ty + th / 2) + 55;
-  return [
-    [exitX,        sy],
-    [exitX  + 25,  sy],
-    [exitX  + 25,  botY],
-    [entryX - 25,  botY],
-    [entryX - 25,  ty],
-    [entryX,       ty],
-  ];
+  // Lane boxes — all same width, stacked vertically, height by number of rows
+  const totalW = Math.ceil((layout.width ?? 600) / 10) * 10;
+  const laneBoxes = {};
+  const laneTop = [];
+  let y = 0;
+  lanes.forEach((lane, i) => {
+    const h = laneRows[i] * ROW_H + 2 * LANE_PAD;
+    laneTop[i] = y;
+    laneBoxes[lane.id] = { x: 0, y, w: totalW, h };
+    y += h;
+  });
+
+  const positions = {};
+  nodes.forEach(n => {
+    positions[n.id] = { x: n.x, y: laneTop[n.lane] + LANE_PAD + rowOf[n.id] * ROW_H + ROW_H / 2 };
+  });
+
+  return { positions, waypoints: {}, laneBoxes };
 }

@@ -1,5 +1,6 @@
 import { roleColor } from '../bpmn/roleColors.js';
 import { flatLayout, swimlaneLayout } from '../bpmn/elkLayout.js';
+import { routeEdges } from '../bpmn/orthogonalRouter.js';
 
 function escapeXml(str) {
   if (!str) return '';
@@ -342,7 +343,7 @@ async function generateSwimlanesXml(parsed) {
   const lanes = roles.filter(r => usedIds.has(r.id));
 
   // ELK layout — positions are relative to the inner layout area
-  const { positions: elkPos, waypoints: elkWp, laneBoxes } =
+  const { positions: elkPos, laneBoxes } =
     await swimlaneLayout(parsed, elementLaneId, lanes);
 
   // Canvas offsets (pool label + lane label columns + top margin)
@@ -398,8 +399,15 @@ ${refs}
     const { x, y } = absPos(el.id);
     const elTyp = elementType(el, events, activities, gateways);
     const { w, h } = getShapeSize(elTyp);
-    return { id: el.id, x, y, w, h };
+    return { id: el.id, x, y, w, h, isGateway: elTyp === 'gateway' };
   });
+
+  // Route all arrows together, inside the lane area, around every element
+  const routes = routeEdges(
+    allShapesPositions,
+    sequence_flows.map(f => ({ id: f.id, from: f.from, to: f.to })),
+    { x0: OFFSET_X + 10, y0: POOL_Y + 10, x1: POOL_X + POOL_W - 10, y1: POOL_Y + POOL_H - 10 }
+  );
 
   const elementShapes = allElements.map(el => {
     const { x: cx, y: cy } = absPos(el.id);
@@ -423,7 +431,7 @@ ${refs}
     const { x: tx, y: ty } = absPos(f.to);
     const { w: fw, h: fh } = getElementSizeById(f.from, events, activities, gateways);
     const { w: tw, h: th } = getElementSizeById(f.to,   events, activities, gateways);
-    const pts = elkWp[f.id] || orthogonalWaypoints(fx, fy, fw, fh, tx, ty, tw, th, allShapesPositions, f.from, f.to);
+    const pts = routes[f.id] || orthogonalWaypoints(fx, fy, fw, fh, tx, ty, tw, th, allShapesPositions, f.from, f.to);
     const labelText = f.condition || f.name || '';
     return `      <bpmndi:BPMNEdge id="${f.id}_di" bpmnElement="${f.id}">
 ${waypointsXml(pts)}${edgeLabelXml(pts, labelText)}
