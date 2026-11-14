@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { MODEL_SONNET, MODEL_HAIKU } from '../config/models.js';
+import { normaliseMetrics } from '../lib/processMetrics.js';
 
 // ── Client factory ────────────────────────────────────────────────────────────
 // Returns either a real Anthropic client (BYOK, dev only) or a proxy shim (vimpl auth).
@@ -456,22 +457,30 @@ Return ONLY a valid JSON object — no explanation, no markdown, no preamble.
 Schema:
 {
   "activities": [
-    { "id": "act_1", "duration_value": 30, "duration_unit": "min", "backlog": 150 }
+    { "id": "act_1",
+      "duration_value": 30, "duration_unit": "min", "duration_source": "stated",
+      "wait_value": 2, "wait_unit": "day", "wait_source": "estimated",
+      "backlog": 150, "backlog_source": "estimated" }
   ],
   "gateways": [
     { "id": "gw_1", "branches": [
-      { "condition": "Documents available", "rate": 75 },
-      { "condition": "Missing documents", "rate": 25 }
+      { "condition": "Documents available", "rate": 75, "source": "stated" },
+      { "condition": "Missing documents", "rate": 25, "source": "stated" }
     ]}
   ]
 }
 
 Rules:
-- duration_unit must be one of: "min", "hr", "day", "week"
-- duration_value is a positive number representing time per single case instance
-- backlog is a positive integer — estimated number of open/waiting cases at any given point in time
+- duration_unit and wait_unit must each be one of: "min", "hr", "day", "week"
+- duration_value is the hands-on working time (touch time) for a single case in this step — NOT elapsed time
+- wait_value is how long a single case typically waits BEFORE this step starts: queue time, hand-over delay, waiting for an approver, a batch run or a reply. Use 0 only when the step demonstrably starts immediately
+- backlog is a positive integer — number of open/waiting cases at any given point in time
 - For each gateway, list ALL outgoing branches (from gateway_branches input) with rates summing to 100
-- Base estimates on the transcript where possible; otherwise use industry norms for the process type
+- Every value carries a source, and you must be strict about it:
+  - "stated": the interviewee gave this number, or a range/frequency it follows directly from ("about ten minutes", "usually sits two or three days", "one in four comes back")
+  - "estimated": anything you inferred, or took from industry norms for the process type
+  - Never use any other source value. When in doubt, use "estimated"
+- Base values on the transcript where possible; otherwise estimate from industry norms for the process type
 - Only include IDs that exist in the input process${SAFETY_SUFFIX}`;
 
 const TOBE_METRICS_PROMPT = `You are a business process improvement analyst. Given the AS-IS operational metrics and the approved improvements, estimate new TO-BE metrics.
@@ -480,7 +489,7 @@ Return ONLY a valid JSON object — no explanation, no markdown, no preamble.
 Use the same schema as AS-IS metrics:
 {
   "activities": [
-    { "id": "act_1", "duration_value": 15, "duration_unit": "min", "backlog": 50 }
+    { "id": "act_1", "duration_value": 15, "duration_unit": "min", "wait_value": 4, "wait_unit": "hr", "backlog": 50 }
   ],
   "gateways": [
     { "id": "gw_1", "branches": [
@@ -491,7 +500,10 @@ Use the same schema as AS-IS metrics:
 }
 
 Rules:
-- Reflect the realistic impact of each selected improvement on duration, backlog, and gateway rates
+- duration_value is hands-on working time per case; wait_value is how long a case waits before the step starts
+- Reflect the realistic impact of each selected improvement on duration, waiting time, backlog, and gateway rates
+- Only reduce waiting time where an improvement removes a queue, hand-over, batch or approval delay; otherwise carry the AS-IS waiting time over unchanged
+- If the AS-IS metrics have no wait_value for a step, leave wait_value and wait_unit out for the corresponding TO-BE step
 - Automation typically reduces duration by 50–80% and backlog by 60–80%
 - Quality/validation improvements typically push gateway success rates up by 10–30 percentage points
 - Only include IDs that exist in the TO-BE BPMN input
@@ -516,7 +528,8 @@ export async function extractProcessMetrics(parsed, transcript, apiKey, proxyAut
 
   const text = message.content[0].text.trim();
   const cleaned = stripFences(text);
-  try { return JSON.parse(cleaned); } catch { return null; }
+  // The model may only claim "stated" or "estimated"; anything else becomes "estimated"
+  try { return normaliseMetrics(JSON.parse(cleaned), { fromAi: true }); } catch { return null; }
 }
 
 export async function estimateToBeMetrics(asParsed, toBeParsed, asIsMetrics, improvements, apiKey, proxyAuth = null, lang = 'en') {
@@ -544,7 +557,8 @@ export async function estimateToBeMetrics(asParsed, toBeParsed, asIsMetrics, imp
 
   const text = message.content[0].text.trim();
   const cleaned = stripFences(text);
-  try { return JSON.parse(cleaned); } catch { return null; }
+  // A TO-BE process does not exist yet, so every TO-BE number is a projection
+  try { return normaliseMetrics(JSON.parse(cleaned), { forceSource: 'estimated' }); } catch { return null; }
 }
 
 // ── Ailean Interview Follow-up ────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
+import { compareTimes } from '../lib/processMetrics.js';
 import LangSwitcher from './LangSwitcher.jsx';
 import { APQC_NODES } from '../data/apqcTaxonomy.js';
 import { MSBPC_NODES } from '../data/msbpcTaxonomy.js';
@@ -236,22 +237,24 @@ function DeletableTag({ tagKey, hidden, onHide, className, children }) {
 
 // ── Efficiency helpers ────────────────────────────────────────────────────────
 
-function toMinutes(value, unit) {
-  const m = { min: 1, hr: 60, day: 480, week: 2400 };
-  return value * (m[unit] || 1);
-}
-
 function computeEfficiencies(flow) {
   const asIs = flow.asIsMetrics;
   const toBe = flow.toBeMetrics;
 
+  let touchReduction    = null;
   let leadTimeReduction = null;
   let backlogReduction  = null;
+  let basedOnEstimates  = false;
 
   if (asIs?.activities?.length && toBe?.activities?.length) {
-    const asIsTime = asIs.activities.reduce((s, a) => s + toMinutes(a.duration_value, a.duration_unit), 0);
-    const toBeTime = toBe.activities.reduce((s, a) => s + toMinutes(a.duration_value, a.duration_unit), 0);
-    if (asIsTime > 0) leadTimeReduction = Math.round((1 - toBeTime / asIsTime) * 100);
+    // Expected time per case, weighted by gateway branch rates and rework loops.
+    // Lead time (touch + waiting) is only reported when waiting time is known.
+    const cmp = compareTimes(flow.asIsParsed || flow.parsed, asIs, flow.toBeParsed, toBe);
+    if (cmp) {
+      touchReduction    = cmp.touchReduction;
+      leadTimeReduction = cmp.leadReduction;
+      basedOnEstimates  = cmp.basedOnEstimates;
+    }
 
     const asIsBacklog = asIs.activities.reduce((s, a) => s + (a.backlog || 0), 0);
     const toBeBacklog = toBe.activities.reduce((s, a) => s + (a.backlog || 0), 0);
@@ -265,12 +268,14 @@ function computeEfficiencies(flow) {
   const hasEfficiency   = imps.some(i => i.category === 'efficiency');
   const hasAiCandidate  = imps.some(i => i.ai_candidate);
 
-  return { leadTimeReduction, backlogReduction, hasAutomation, hasClarity, hasGovernance, hasEfficiency, hasAiCandidate };
+  return { touchReduction, leadTimeReduction, backlogReduction, basedOnEstimates, hasAutomation, hasClarity, hasGovernance, hasEfficiency, hasAiCandidate };
 }
 
 function EfficiencyCell({ flow }) {
   const { t } = useLang();
-  const { leadTimeReduction, backlogReduction, hasAutomation, hasClarity, hasGovernance, hasEfficiency } = computeEfficiencies(flow);
+  const { touchReduction, leadTimeReduction, backlogReduction, basedOnEstimates, hasAutomation, hasClarity, hasGovernance, hasEfficiency } = computeEfficiencies(flow);
+  // TO-BE figures are projections; say so on the tag instead of presenting them as fact
+  const est = basedOnEstimates ? ` · ${t.dashEffEst}` : '';
 
   const [hidden, setHidden] = useState(() => {
     try {
@@ -289,7 +294,7 @@ function EfficiencyCell({ flow }) {
 
   const h = key => hidden.has(key);
 
-  const hasQuantitative = leadTimeReduction !== null || backlogReduction !== null;
+  const hasQuantitative = touchReduction !== null || leadTimeReduction !== null || backlogReduction !== null;
   const hasQualitative  = hasGovernance || hasAutomation || hasEfficiency || hasClarity;
   const hasAny = hasQuantitative || hasQualitative;
 
@@ -302,19 +307,25 @@ function EfficiencyCell({ flow }) {
         {leadTimeReduction !== null && (
           <DeletableTag tagKey="lead_time" hidden={h('lead_time')} onHide={hide}
             className="text-[10px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded">
-            {t.dashEffLeadTime.replace('{n}', leadTimeReduction)}
+            <span title={est ? t.dashEffEstTitle : undefined}>{t.dashEffLeadTime.replace('{n}', leadTimeReduction)}{est}</span>
           </DeletableTag>
         )}
-        {leadTimeReduction !== null && (
+        {touchReduction !== null && (
+          <DeletableTag tagKey="touch_time" hidden={h('touch_time')} onHide={hide}
+            className="text-[10px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded">
+            <span title={est ? t.dashEffEstTitle : undefined}>{t.dashEffTouchTime.replace('{n}', touchReduction)}{est}</span>
+          </DeletableTag>
+        )}
+        {touchReduction !== null && (
           <DeletableTag tagKey="cost" hidden={h('cost')} onHide={hide}
             className="text-[10px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded">
-            {t.dashEffCost.replace('{n}', leadTimeReduction)}
+            <span title={est ? t.dashEffEstTitle : undefined}>{t.dashEffCost.replace('{n}', touchReduction)}{est}</span>
           </DeletableTag>
         )}
         {backlogReduction !== null && (
           <DeletableTag tagKey="backlog" hidden={h('backlog')} onHide={hide}
             className="text-[10px] font-semibold bg-green-50 text-green-700 px-1.5 py-0.5 rounded">
-            {t.dashEffBacklog.replace('{n}', backlogReduction)}
+            <span title={est ? t.dashEffEstTitle : undefined}>{t.dashEffBacklog.replace('{n}', backlogReduction)}{est}</span>
           </DeletableTag>
         )}
       </div>

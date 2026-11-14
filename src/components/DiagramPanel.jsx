@@ -6,6 +6,7 @@ import ComparisonPanel from './ComparisonPanel.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { generateSop } from '../services/sopGenerator.js';
 import { compareProcesses } from '../services/processComparison.js';
+import { processTimes, formatMinutes, updateActivityMetric, updateGatewayBranch } from '../lib/processMetrics.js';
 
 // Minimal valid BPMN XML for a blank blueprint canvas
 const BLANK_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
@@ -45,13 +46,22 @@ export default function DiagramPanel({
   const [activeTab, setActiveTab] = useState('asis'); // 'asis' | 'tobe' | 'blueprint'
 
   function handleUpdateMetric(id, changes) {
-    const updater = prev => ({
-      ...prev,
-      activities: prev?.activities?.map(m => m.id === id ? { ...m, ...changes } : m),
-    });
+    const updater = prev => updateActivityMetric(prev, id, changes);
     if (activeTab === 'tobe') onToBeMetricsChange?.(updater);
     else onAsIsMetricsChange?.(updater);
   }
+
+  function handleUpdateGatewayBranch(gatewayId, condition, changes) {
+    const model = activeTab === 'tobe' ? toBeParsed : parsed;
+    const updater = prev => updateGatewayBranch(prev, model, gatewayId, condition, changes);
+    if (activeTab === 'tobe') onToBeMetricsChange?.(updater);
+    else onAsIsMetricsChange?.(updater);
+  }
+
+  // Expected time per case for the diagram on screen (weighted by branch rates)
+  const times = activeTab === 'blueprint'
+    ? null
+    : processTimes(activeTab === 'tobe' ? toBeParsed : parsed, activeTab === 'tobe' ? toBeMetrics : asIsMetrics);
 
   // Switch to TO-BE tab as soon as it's ready
   useEffect(() => { if (toBeXml) setActiveTab('tobe'); }, [toBeXml]);
@@ -399,6 +409,34 @@ export default function DiagramPanel({
           </div>
         )}
 
+        {/* Time per case for the visible diagram, with how much of it rests on estimates */}
+        {times && (
+          <div className="absolute bottom-3 left-3 z-10 max-w-[70%] bg-white/95 border border-gray-200 rounded-lg shadow-sm px-3 py-2 text-xs text-gray-600">
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <span className="text-[10px] uppercase tracking-wide font-medium text-gray-400">{t.metricsPerCase}</span>
+              <span>{t.metricsTouch} <b className="text-gray-800">{formatMinutes(times.touchMin)}</b></span>
+              {times.waitComplete && (
+                <>
+                  <span>{t.metricsWait} <b className="text-gray-800">{formatMinutes(times.waitMin)}</b></span>
+                  <span>{t.metricsLead} <b className="text-gray-800">{formatMinutes(times.leadMin)}</b></span>
+                  {times.flowEfficiency != null && (
+                    <span>{t.metricsFlowEff} <b className="text-gray-800">{Math.round(times.flowEfficiency * 100)}%</b></span>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="mt-1 flex flex-wrap gap-x-3 text-[11px]">
+              {times.total > 0 && (
+                times.sources.estimated > 0
+                  ? <span className="text-amber-600">{t.metricsEstimated.replace('{n}', times.sources.estimated).replace('{total}', times.total)}</span>
+                  : <span className="text-green-600">{t.metricsNoEstimates.replace('{total}', times.total)}</span>
+              )}
+              {!times.waitComplete && <span className="text-gray-400">{t.metricsWaitMissing}</span>}
+              {!times.weighted && <span className="text-gray-400">{t.metricsUnweighted}</span>}
+            </div>
+          </div>
+        )}
+
         {/* Step curtain — outside viewer containers so visibility:hidden doesn't clip it */}
         {curtainElement && (
           <StepCurtain
@@ -407,6 +445,7 @@ export default function DiagramPanel({
             processDescription={processDescription}
             metrics={activeTab === 'tobe' ? toBeMetrics : asIsMetrics}
             onUpdateMetric={handleUpdateMetric}
+            onUpdateGatewayBranch={handleUpdateGatewayBranch}
             onClose={() => setCurtainElement(null)}
             systemRepository={systemRepository}
             systemMap={systemMap}

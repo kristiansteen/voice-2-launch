@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toEmbedUrl } from '../lib/videoEmbed.js';
+import { DURATION_UNITS, gatewayBranches } from '../lib/processMetrics.js';
 
 /**
  * Resolve what we know about a clicked BPMN element from the parsed data.
@@ -90,15 +91,36 @@ function formatDuration(value, unit) {
   return `${value} ${label}${value !== 1 ? (unit === 'min' ? '' : 's') : ''}`;
 }
 
-const DURATION_UNITS = ['min', 'hr', 'day', 'week'];
+// Where a number comes from. "Estimated" is the AI's guess and the default.
+const SOURCE_OPTIONS = [
+  { value: 'stated',    label: 'Stated',    cls: 'text-blue-700 bg-blue-50 border-blue-200' },
+  { value: 'estimated', label: 'Estimated', cls: 'text-amber-700 bg-amber-50 border-amber-200' },
+  { value: 'measured',  label: 'Measured',  cls: 'text-green-700 bg-green-50 border-green-200' },
+];
 
-export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap, onAddSystem, videoMap = {}, onUpdateVideoMap }) {
+function SourceSelect({ value, onChange }) {
+  const current = SOURCE_OPTIONS.find(o => o.value === value) || SOURCE_OPTIONS[1];
+  return (
+    <select
+      value={current.value}
+      onChange={e => onChange(e.target.value)}
+      title="Where this number comes from: stated by a person, estimated by AI, or measured from real data"
+      className={`text-[10px] font-medium border rounded px-1 py-0.5 focus:outline-none ${current.cls}`}
+    >
+      {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+}
+
+export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onUpdateGatewayBranch, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap, onAddSystem, videoMap = {}, onUpdateVideoMap }) {
   const info = resolveElement(element, parsed, processDescription);
   const activityMetrics = metrics?.activities?.find(m => m.id === info?.id);
 
   const [durationValue, setDurationValue] = useState(activityMetrics?.duration_value ?? '');
   const [durationUnit, setDurationUnit]   = useState(activityMetrics?.duration_unit ?? 'hr');
   const [backlog, setBacklog]             = useState(activityMetrics?.backlog ?? '');
+  const [waitValue, setWaitValue]         = useState(activityMetrics?.wait_value ?? '');
+  const [waitUnit, setWaitUnit]           = useState(activityMetrics?.wait_unit ?? 'day');
   const [newSystemInput, setNewSystemInput] = useState('');
   const [videoInput, setVideoInput] = useState(videoMap[info?.id] || '');
   const [videoInputError, setVideoInputError] = useState(false);
@@ -116,9 +138,13 @@ export default function StepCurtain({ element, parsed, processDescription, metri
     setDurationValue(activityMetrics?.duration_value ?? '');
     setDurationUnit(activityMetrics?.duration_unit ?? 'hr');
     setBacklog(activityMetrics?.backlog ?? '');
+    setWaitValue(activityMetrics?.wait_value ?? '');
+    setWaitUnit(activityMetrics?.wait_unit ?? 'day');
     setVideoInput(videoMap[info?.id] || '');
     setVideoInputError(false);
   }, [info?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const branchRows = info?.gateway ? gatewayBranches(parsed, metrics, info.id) : [];
 
   const embedUrl = toEmbedUrl(videoMap[info?.id]);
 
@@ -229,47 +255,115 @@ export default function StepCurtain({ element, parsed, processDescription, metri
             </div>
           </Section>
 
-          {/* Estimates — editable */}
-          {activityMetrics && (
-            <Section label="Estimates">
+          {/* Metrics — editable, each with its source */}
+          {info?.activity && (
+            <Section label="Metrics per case">
               <div className="flex gap-3">
-                {/* Duration */}
+                {/* Touch time */}
                 <div className="flex-1 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
-                  <p className="text-[10px] text-blue-400 uppercase tracking-wide font-medium mb-1.5">Duration per case</p>
+                  <p className="text-[10px] text-blue-400 uppercase tracking-wide font-medium mb-1.5">Touch time</p>
                   <div className="flex items-center gap-1.5">
                     <input
                       type="number"
                       min="0"
                       value={durationValue}
                       onChange={e => setDurationValue(e.target.value)}
-                      onBlur={() => commitMetric({ duration_value: Number(durationValue) || 0 })}
+                      onBlur={() => durationValue !== '' && Number(durationValue) !== activityMetrics?.duration_value &&
+                        commitMetric({ duration_value: Number(durationValue) || 0, duration_unit: durationUnit })}
                       className="w-14 text-sm font-semibold text-blue-700 bg-white border border-blue-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-blue-400 text-center"
                     />
                     <select
                       value={durationUnit}
-                      onChange={e => { setDurationUnit(e.target.value); commitMetric({ duration_unit: e.target.value }); }}
+                      onChange={e => { setDurationUnit(e.target.value); if (durationValue !== '') commitMetric({ duration_unit: e.target.value }); }}
                       className="text-xs text-blue-600 bg-white border border-blue-200 rounded px-1 py-0.5 focus:outline-none focus:border-blue-400"
                     >
                       {DURATION_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
+                  {activityMetrics?.duration_value != null && (
+                    <div className="mt-1.5">
+                      <SourceSelect value={activityMetrics.duration_source} onChange={v => commitMetric({ duration_source: v })} />
+                    </div>
+                  )}
                 </div>
 
-                {/* Backlog */}
-                {activityMetrics.backlog != null && (
-                  <div className="flex-1 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5">
-                    <p className="text-[10px] text-orange-400 uppercase tracking-wide font-medium mb-1.5">Backlog (open cases)</p>
+                {/* Waiting time before the step */}
+                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium mb-1.5">Waiting before step</p>
+                  <div className="flex items-center gap-1.5">
                     <input
                       type="number"
                       min="0"
-                      value={backlog}
-                      onChange={e => setBacklog(e.target.value)}
-                      onBlur={() => commitMetric({ backlog: Number(backlog) || 0 })}
-                      className="w-20 text-sm font-semibold text-orange-700 bg-white border border-orange-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-orange-400 text-center"
+                      value={waitValue}
+                      placeholder="?"
+                      onChange={e => setWaitValue(e.target.value)}
+                      onBlur={() => waitValue !== '' && Number(waitValue) !== activityMetrics?.wait_value &&
+                        commitMetric({ wait_value: Number(waitValue) || 0, wait_unit: waitUnit })}
+                      className="w-14 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400 text-center"
                     />
+                    <select
+                      value={waitUnit}
+                      onChange={e => { setWaitUnit(e.target.value); if (waitValue !== '') commitMetric({ wait_unit: e.target.value }); }}
+                      className="text-xs text-slate-600 bg-white border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:border-slate-400"
+                    >
+                      {DURATION_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
                   </div>
+                  {activityMetrics?.wait_value != null && (
+                    <div className="mt-1.5">
+                      <SourceSelect value={activityMetrics.wait_source} onChange={v => commitMetric({ wait_source: v })} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Backlog */}
+              <div className="mt-3 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5 flex items-center gap-3">
+                <p className="text-[10px] text-orange-400 uppercase tracking-wide font-medium flex-1">Backlog (open cases)</p>
+                <input
+                  type="number"
+                  min="0"
+                  value={backlog}
+                  onChange={e => setBacklog(e.target.value)}
+                  onBlur={() => backlog !== '' && Number(backlog) !== activityMetrics?.backlog && commitMetric({ backlog: Number(backlog) || 0 })}
+                  className="w-20 text-sm font-semibold text-orange-700 bg-white border border-orange-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-orange-400 text-center"
+                />
+                {activityMetrics?.backlog != null && (
+                  <SourceSelect value={activityMetrics.backlog_source} onChange={v => commitMetric({ backlog_source: v })} />
                 )}
               </div>
+            </Section>
+          )}
+
+          {/* Gateway branch rates — these weight the time per case */}
+          {info?.gateway && info.gateway.type !== 'parallel' && branchRows.length > 1 && (
+            <Section label="Branch rates">
+              <div className="space-y-1.5">
+                {branchRows.map(b => (
+                  <div key={b.flowId} className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    <p className="flex-1 text-xs text-gray-700 truncate" title={b.condition || info.labelFor(b.to)}>
+                      {b.condition || `→ ${info.labelFor(b.to)}`}
+                    </p>
+                    <input
+                      key={`${b.flowId}-${b.rate}`}
+                      type="number"
+                      min="0"
+                      max="100"
+                      defaultValue={b.rate}
+                      onBlur={e => e.target.value !== '' && Number(e.target.value) !== b.rate &&
+                        onUpdateGatewayBranch?.(info.id, b.condition, { rate: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+                      className="w-14 text-sm font-semibold text-amber-700 bg-white border border-amber-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-amber-400 text-center"
+                    />
+                    <span className="text-xs text-amber-700">%</span>
+                    <SourceSelect value={b.source} onChange={v => onUpdateGatewayBranch?.(info.id, b.condition, { source: v })} />
+                  </div>
+                ))}
+              </div>
+              {Math.abs(branchRows.reduce((s, b) => s + b.rate, 0) - 100) > 0.5 && (
+                <p className="mt-1.5 text-[11px] text-amber-600">
+                  Rates add up to {Math.round(branchRows.reduce((s, b) => s + b.rate, 0))}%, not 100% — they are scaled when time per case is calculated.
+                </p>
+              )}
             </Section>
           )}
 
@@ -333,7 +427,7 @@ export default function StepCurtain({ element, parsed, processDescription, metri
           )}
 
           {/* No data fallback */}
-          {!info?.roleLabel && !activityMetrics && !info?.stepDesc && !info?.gateway && !info?.event && (
+          {!info?.roleLabel && !info?.activity && !info?.stepDesc && !info?.gateway && !info?.event && (
             <p className="text-sm text-gray-400 italic">No additional details for this element.</p>
           )}
 
