@@ -40,7 +40,7 @@ export default function ApiKeyModal({
           {tab === 'free' && (
             <div className="space-y-4">
               <div className={['rounded-lg p-4 border text-center', sessionStatus === 'used' ? 'border-orange-200 bg-orange-50' : sessionStatus === 'active' ? 'border-green-200 bg-green-50' : 'border-purple-100 bg-purple-50'].join(' ')}>
-                <p className={['text-sm font-medium', sessionStatus === 'used' ? 'text-orange-700' : sessionStatus === 'active' ? 'text-green-700' : 'text-purple-700'].join(' ')}>{freeLabel}</p>
+                <p className={['text-sm font-medium', sessionStatus === 'used' ? 'text-ink' : sessionStatus === 'active' ? 'text-green-700' : 'text-purple-700'].join(' ')}>{freeLabel}</p>
                 <p className="text-xs text-gray-500 mt-1">{freeSubLabel}</p>
               </div>
               {!user ? (

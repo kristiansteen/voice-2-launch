@@ -189,7 +189,7 @@ export default function RoundContribution({ vimplToken, inviteToken, ailean, onS
         {phase === 'invitation' && (
           <section className="bg-white rounded-xl border border-gray-200 p-5">
             <p className="text-sm text-gray-700">{t.roundIntro}</p>
-            <p className="mt-3 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2">
+            <p className="mt-3 text-sm bg-amber-50 border border-amber-200 text-ink rounded-lg px-3 py-2">
               {t.roundVisibility.replace('{name}', owner)}
             </p>
             <button onClick={() => setPhase('interview')} className="mt-4 bg-ink text-paper text-sm font-semibold px-5 py-2 rounded-full hover:bg-ink-hover">

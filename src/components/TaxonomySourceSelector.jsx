@@ -246,7 +246,7 @@ function UploadPanel({ error, onUpload }) {
       <button
         onClick={() => fileRef.current?.click()}
         disabled={busy}
-        className="w-full text-xs border border-dashed border-gray-300 text-gray-500 hover:border-amber-400 hover:text-amber-600 py-2 rounded transition-colors disabled:opacity-50"
+        className="w-full text-xs border border-dashed border-gray-300 text-gray-500 hover:border-amber-400 hover:text-ink py-2 rounded transition-colors disabled:opacity-50"
       >
         {busy ? 'Parsing…' : 'Upload CSV or Excel'}
       </button>
@@ -259,7 +259,7 @@ function UploadPanel({ error, onUpload }) {
 function LoadedBar({ name, count, color, onClear }) {
   const cls = {
     blue:   'bg-blue-50 text-blue-700',
-    amber:  'bg-amber-50 text-amber-700',
+    amber:  'bg-amber-50 text-ink',
   }[color] || 'bg-gray-50 text-gray-700';
   return (
     <div className={`flex items-center justify-between px-3 py-1.5 border-b border-gray-100 ${cls}`}>
@@ -332,7 +332,7 @@ export default function TaxonomySourceSelector({ processContext, onChange }) {
     ? 'border-green-300 text-green-700 bg-green-50'
     : source === 'msbpc'
       ? 'border-blue-300 text-blue-700 bg-blue-50'
-      : 'border-amber-300 text-amber-700 bg-amber-50';
+      : 'border-amber-300 text-ink bg-amber-50';
 
   const selectionLabel = apqcNodeId ? `${apqcNodeId} — ${apqcNodeName}` : null;
 

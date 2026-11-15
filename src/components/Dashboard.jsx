@@ -22,7 +22,7 @@ function inferTaxonomySource(nodeId) {
 const TAXONOMY_BADGE = {
   'APQC':    'border-green-300 text-green-700 bg-green-50',
   'MS BPC':  'border-blue-300  text-blue-700  bg-blue-50',
-  'Custom':  'border-amber-300 text-amber-700 bg-amber-50',
+  'Custom':  'border-amber-300 text-ink bg-amber-50',
 };
 
 const L1_BORDER_COLOR = { 'APQC': '#22c55e', 'MS BPC': '#3b82f6', 'Custom': '#f59e0b' };
@@ -110,7 +110,7 @@ function groupByTaxonomy(flows, nodes) {
 const CATEGORY_COLOURS = {
   automation: 'bg-blue-100 text-blue-700',
   governance: 'bg-purple-100 text-purple-700',
-  clarity:    'bg-yellow-100 text-yellow-700',
+  clarity:    'bg-yellow-100 text-ink',
   efficiency: 'bg-green-100 text-green-700',
 };
 
@@ -140,7 +140,7 @@ const STEPS = [
   { key: 'transcript',         tKey: 'dashStepInterview',    color: 'bg-blue-100 text-blue-700' },
   { key: 'processDescription', tKey: 'dashStepDescription',  color: 'bg-indigo-100 text-indigo-700' },
   { key: 'parsed',             tKey: 'dashStepMapped',       color: 'bg-purple-100 text-purple-700' },
-  { key: 'improvements',       tKey: 'dashStepImprovements', color: 'bg-amber-100 text-amber-700' },
+  { key: 'improvements',       tKey: 'dashStepImprovements', color: 'bg-amber-100 text-ink' },
   { key: 'projectPlan',        tKey: 'dashStepPlan',         color: 'bg-green-100 text-green-700' },
   { key: 'board_url',          tKey: 'dashStepExported',     color: 'bg-emerald-100 text-emerald-700' },
 ];
@@ -358,8 +358,8 @@ function EfficiencyCell({ flow }) {
 
 function getRagOptions(t) {
   return [
-    { value: 'green', label: t.dashRagOnTrack,  bg: 'bg-green-500', ring: 'ring-green-400' },
-    { value: 'amber', label: t.dashRagAtRisk,   bg: 'bg-amber-400', ring: 'ring-amber-300' },
+    { value: 'green', label: t.dashRagOnTrack,  bg: 'bg-ink', ring: 'ring-ink' },
+    { value: 'amber', label: t.dashRagAtRisk,   bg: 'bg-signal', ring: 'ring-signal' },
     { value: 'red',   label: t.dashRagOffTrack, bg: 'bg-red-500',   ring: 'ring-red-400' },
   ];
 }
@@ -370,7 +370,7 @@ function RagPicker({ value, onChange, showLabel = false }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef(null);
   const ragOptions = getRagOptions(t);
-  const current = ragOptions.find(o => o.value === value) || { bg: 'bg-gray-300', label: t.dashRagSetStatus };
+  const current = ragOptions.find(o => o.value === value) || { bg: 'bg-transparent border border-mid', label: t.dashRagSetStatus };
 
   function handleOpen(e) {
     e.stopPropagation();
@@ -598,7 +598,7 @@ function MatrixRow({ flow, rowIndex = 0, onOpen, onUpdateRag, onDelete }) {
           <ul className="space-y-0.5">
             {topRisks.map((r, i) => {
               const score = r.probability * r.consequence;
-              const heat = score >= 6000 ? 'text-red-600' : score >= 3000 ? 'text-amber-600' : 'text-gray-500';
+              const heat = score >= 6000 ? 'text-red-600' : score >= 3000 ? 'text-ink' : 'text-gray-500';
               return (
                 <li key={r.id || i} className={`text-[11px] truncate leading-snug ${heat}`} title={r.title}>
                   · {r.title}
@@ -622,8 +622,7 @@ function MatrixRow({ flow, rowIndex = 0, onOpen, onUpdateRag, onDelete }) {
       {/* RAG status */}
       <td
         className={`px-3 py-2.5 transition-colors ${
-          flow.ragStatus === 'green' ? 'bg-green-50' :
-          flow.ragStatus === 'amber' ? 'bg-amber-50' :
+          flow.ragStatus === 'amber' ? 'bg-signal-50' :
           flow.ragStatus === 'red'   ? 'bg-red-50'   : ''
         }`}
         onClick={e => e.stopPropagation()}
@@ -809,8 +808,8 @@ function FlowCard({ flow, onOpen, onDelete }) {
   const step = lastStep(flow, t);
   const pct = progressPercent(flow);
 
-  const ragTopStyle = flow.ragStatus === 'green' ? { borderTopColor: '#4ade80', borderTopWidth: 3 }
-    : flow.ragStatus === 'amber' ? { borderTopColor: '#fbbf24', borderTopWidth: 3 }
+  const ragTopStyle = flow.ragStatus === 'green' ? { borderTopColor: '#151515', borderTopWidth: 3 }
+    : flow.ragStatus === 'amber' ? { borderTopColor: '#E8500A', borderTopWidth: 3 }
     : flow.ragStatus === 'red'   ? { borderTopColor: '#ef4444', borderTopWidth: 3 }
     : undefined;
 
@@ -915,7 +914,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
           {vimplUser && (
             isTrial ? (
               <a href={PRICING_URL} target="_blank" rel="noopener noreferrer"
-                className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium hover:bg-amber-100 transition-colors">
+                className="text-xs bg-amber-50 text-ink border border-amber-200 px-2.5 py-0.5 rounded-full font-medium hover:bg-amber-100 transition-colors">
                 {t.dashTrialBadge}
               </a>
             ) : (
@@ -924,7 +923,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
               </span>
             )
           )}
-          <button onClick={onBurger} className="w-9 h-9 grid place-items-center rounded-full border border-line bg-panel hover:border-ink transition-colors text-ink" aria-label="Menu">
+          <button onClick={onBurger} className="w-9 h-9 grid place-items-center rounded-full border border-line bg-panel hover:border-ink transition-colors text-ink" aria-label={t.stepMenu}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <rect x="2" y="4" width="14" height="1.5" rx="0.75" fill="currentColor"/>
               <rect x="2" y="8.25" width="14" height="1.5" rx="0.75" fill="currentColor"/>
@@ -938,8 +937,8 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
       {isTrial && (
         <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-amber-700 text-sm">⚡</span>
-            <p className="text-xs text-amber-800">
+            <span className="text-ink text-sm">⚡</span>
+            <p className="text-xs text-ink">
               <span className="font-semibold">{t.dashTrialTitle}</span>{t.dashTrialBody}
             </p>
           </div>

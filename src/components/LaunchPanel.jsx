@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { touchTimeFigure } from '../lib/processMetrics.js';
 import VimplExportModal from './VimplExportModal.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 
 function riskLevel(p, c, t) {
   const score = p * c;
   if (score >= 5000) return { label: t.high, colour: 'text-red-600' };
-  if (score >= 2000) return { label: t.medium, colour: 'text-orange-700' };
+  if (score >= 2000) return { label: t.medium, colour: 'text-ink' };
   return { label: t.low, colour: 'text-green-600' };
 }
 
@@ -164,6 +165,8 @@ export default function LaunchPanel({ timeComparison = null, projectPlan, parsed
     onExported?.(id, url, isNewBoard);
   }
 
+  const touchFig = touchTimeFigure(timeComparison);
+
   if (!projectPlan) {
     return (
       <div className="flex flex-col h-full items-center justify-center text-center px-6 gap-3">
@@ -185,7 +188,7 @@ export default function LaunchPanel({ timeComparison = null, projectPlan, parsed
             {[
               [`${projectPlan.duration_weeks ?? '—'}`, t.weeks],
               [`${(projectPlan.tasks || []).length}`, t.planTasksInTracks.replace('{n}', (projectPlan.tracks || []).length)],
-              [timeComparison?.touchReduction != null ? `${timeComparison.touchReduction} %` : '—', t.planShorterTouch, timeComparison?.basedOnEstimates],
+              [touchFig.value, t[touchFig.key], touchFig.estimate],
               [`${(projectPlan.risks || []).length + customRisks.length}`, t.risks],
             ].map(([n, label, est], i) => (
               <div key={i} className={`py-3 ${i ? 'pl-4 border-l border-line' : 'pr-4'} ${i === 2 ? 'max-sm:border-l-0 max-sm:pl-0' : ''}`}>
@@ -230,7 +233,7 @@ export default function LaunchPanel({ timeComparison = null, projectPlan, parsed
             return (
               <div key={risk.id} className="py-2 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-orange-700 text-xs shrink-0">⚠</span>
+                  <span className="text-ink text-xs shrink-0">⚠</span>
                   <span className="text-xs font-medium text-gray-700 flex-1">{risk.title}</span>
                   <span className="text-xs rounded px-1.5 py-0.5 bg-gray-100 text-gray-600 shrink-0">{t.riskProbability} {risk.probability}%</span>
                   <span className="text-xs rounded px-1.5 py-0.5 bg-indigo-50 text-indigo-600 shrink-0">{t.riskConsequence} {risk.consequence}%</span>
@@ -256,9 +259,9 @@ export default function LaunchPanel({ timeComparison = null, projectPlan, parsed
                 ) : (
                   <div className="group">
                     <div className="flex items-center gap-2">
-                      <span className="text-orange-700 text-xs shrink-0">⚠</span>
+                      <span className="text-ink text-xs shrink-0">⚠</span>
                       <span className="text-xs font-medium text-gray-700 flex-1">{risk.title}</span>
-                      <span className="text-xs bg-amber-100 text-amber-700 rounded px-1.5 py-0.5 shrink-0">custom</span>
+                      <span className="text-xs bg-amber-100 text-ink rounded px-1.5 py-0.5 shrink-0">custom</span>
                       <span className="text-xs rounded px-1.5 py-0.5 bg-gray-100 text-gray-600 shrink-0">{t.riskProbability} {risk.probability}%</span>
                       <span className="text-xs rounded px-1.5 py-0.5 bg-indigo-50 text-indigo-600 shrink-0">{t.riskConsequence} {risk.consequence}%</span>
                       <span className={`text-xs font-semibold shrink-0 ${colour}`}>{label}</span>
@@ -292,7 +295,7 @@ export default function LaunchPanel({ timeComparison = null, projectPlan, parsed
           ) : (
             <button
               onClick={() => setShowAddRisk(true)}
-              className="mt-2 w-full border border-dashed border-gray-300 text-gray-400 hover:border-orange-400 hover:text-orange-600 text-xs py-1.5 rounded-md transition-colors"
+              className="mt-2 w-full border border-dashed border-gray-300 text-gray-400 hover:border-orange-400 hover:text-ink text-xs py-1.5 rounded-md transition-colors"
             >
               {t.addRiskBtn}
             </button>

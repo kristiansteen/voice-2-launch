@@ -79,7 +79,7 @@ function typeLabel(type) {
 function typeBadgeColor(type) {
   if (!type) return 'bg-gray-100 text-gray-600';
   if (type.includes('Task'))         return 'bg-blue-50 text-blue-700';
-  if (type.includes('Gateway'))      return 'bg-amber-50 text-amber-700';
+  if (type.includes('Gateway'))      return 'bg-amber-50 text-ink';
   if (type.includes('StartEvent'))   return 'bg-green-50 text-green-700';
   if (type.includes('EndEvent'))     return 'bg-red-50 text-red-700';
   return 'bg-gray-100 text-gray-600';
@@ -319,14 +319,14 @@ export default function StepCurtain({ element, parsed, processDescription, metri
 
               {/* Backlog */}
               <div className="mt-3 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5 flex items-center gap-3">
-                <p className="text-[10px] text-orange-700 uppercase tracking-wide font-medium flex-1">Backlog (open cases)</p>
+                <p className="text-[10px] text-ink uppercase tracking-wide font-medium flex-1">Backlog (open cases)</p>
                 <input
                   type="number"
                   min="0"
                   value={backlog}
                   onChange={e => setBacklog(e.target.value)}
                   onBlur={() => backlog !== '' && Number(backlog) !== activityMetrics?.backlog && commitMetric({ backlog: Number(backlog) || 0 })}
-                  className="w-20 text-sm font-semibold text-orange-700 bg-white border border-orange-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-orange-400 text-center"
+                  className="w-20 text-sm font-semibold text-ink bg-white border border-orange-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-orange-400 text-center"
                 />
                 {activityMetrics?.backlog != null && (
                   <SourceSelect value={activityMetrics.backlog_source} onChange={v => commitMetric({ backlog_source: v })} />
@@ -352,15 +352,15 @@ export default function StepCurtain({ element, parsed, processDescription, metri
                       defaultValue={b.rate}
                       onBlur={e => e.target.value !== '' && Number(e.target.value) !== b.rate &&
                         onUpdateGatewayBranch?.(info.id, b.condition, { rate: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
-                      className="w-14 text-sm font-semibold text-amber-700 bg-white border border-amber-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-amber-400 text-center"
+                      className="w-14 text-sm font-semibold text-ink bg-white border border-amber-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-amber-400 text-center"
                     />
-                    <span className="text-xs text-amber-700">%</span>
+                    <span className="text-xs text-ink">%</span>
                     <SourceSelect value={b.source} onChange={v => onUpdateGatewayBranch?.(info.id, b.condition, { source: v })} />
                   </div>
                 ))}
               </div>
               {Math.abs(branchRows.reduce((s, b) => s + b.rate, 0) - 100) > 0.5 && (
-                <p className="mt-1.5 text-[11px] text-amber-600">
+                <p className="mt-1.5 text-[11px] text-ink">
                   Rates add up to {Math.round(branchRows.reduce((s, b) => s + b.rate, 0))}%, not 100% — they are scaled when time per case is calculated.
                 </p>
               )}
@@ -397,7 +397,7 @@ export default function StepCurtain({ element, parsed, processDescription, metri
                     <span className="text-gray-400 text-xs">←</span>
                     <span>{info.labelFor(f.from)}</span>
                     {f.condition && (
-                      <span className="ml-auto text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+                      <span className="ml-auto text-xs bg-amber-50 text-ink px-2 py-0.5 rounded-full border border-amber-200">
                         {f.condition}
                       </span>
                     )}
@@ -416,7 +416,7 @@ export default function StepCurtain({ element, parsed, processDescription, metri
                     <span className="text-gray-400 text-xs">→</span>
                     <span>{info.labelFor(f.to)}</span>
                     {f.condition && (
-                      <span className="ml-auto text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+                      <span className="ml-auto text-xs bg-amber-50 text-ink px-2 py-0.5 rounded-full border border-amber-200">
                         {f.condition}
                       </span>
                     )}

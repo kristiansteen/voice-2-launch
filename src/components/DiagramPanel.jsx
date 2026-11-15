@@ -429,7 +429,7 @@ export default function DiagramPanel({
             <div className="mt-1 flex flex-wrap gap-x-3 text-[11px]">
               {times.total > 0 && (
                 times.sources.estimated > 0
-                  ? <span className="text-amber-600">{t.metricsEstimated.replace('{n}', times.sources.estimated).replace('{total}', times.total)}</span>
+                  ? <span className="text-ink">{t.metricsEstimated.replace('{n}', times.sources.estimated).replace('{total}', times.total)}</span>
                   : <span className="text-green-600">{t.metricsNoEstimates.replace('{total}', times.total)}</span>
               )}
               {!times.waitComplete && <span className="text-gray-400">{t.metricsWaitMissing}</span>}
@@ -442,7 +442,7 @@ export default function DiagramPanel({
         {activeTab === 'asis' && openRoundPoints > 0 && (
           <button
             onClick={onShowReview}
-            className="absolute top-3 left-3 z-10 text-xs font-medium bg-amber-50 text-amber-800 border border-amber-300 rounded-lg px-3 py-1.5 shadow-sm hover:bg-amber-100"
+            className="absolute top-3 left-3 z-10 text-xs font-medium bg-amber-50 text-ink border border-amber-300 rounded-lg px-3 py-1.5 shadow-sm hover:bg-amber-100"
           >
             ⚠ {t.roundDisChip.replace('{n}', openRoundPoints)}
           </button>

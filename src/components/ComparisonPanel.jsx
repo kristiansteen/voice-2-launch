@@ -12,7 +12,7 @@ export default function ComparisonPanel({ result, onClose, onUseAsPlanInput }) {
   const score = result.compliance_score ?? 0;
   const scoreColor =
     score >= 80 ? 'text-green-700' :
-    score >= 55 ? 'text-amber-700' :
+    score >= 55 ? 'text-ink' :
     'text-red-700';
   const barColor =
     score >= 80 ? 'bg-green-500' :
@@ -87,7 +87,7 @@ export default function ComparisonPanel({ result, onClose, onUseAsPlanInput }) {
               <ul className="space-y-3">
                 {result.variations.map((v, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-600 text-[10px] font-bold flex items-center justify-center">≠</span>
+                    <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-amber-100 text-ink text-[10px] font-bold flex items-center justify-center">≠</span>
                     <div>
                       <p className="text-sm font-medium text-gray-800">
                         <span className="text-gray-400">{v.blueprint_step}</span>
@@ -157,7 +157,7 @@ export default function ComparisonPanel({ result, onClose, onUseAsPlanInput }) {
 function Section({ label, count, color, description, children }) {
   const badge = {
     red:    'bg-red-50 text-red-600 border-red-100',
-    amber:  'bg-amber-50 text-amber-600 border-amber-100',
+    amber:  'bg-amber-50 text-ink border-amber-100',
     blue:   'bg-blue-50 text-blue-600 border-blue-100',
     indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
   }[color] || 'bg-gray-50 text-gray-600 border-gray-100';

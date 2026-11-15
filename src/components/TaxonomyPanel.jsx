@@ -16,14 +16,14 @@ import {
 const TYPE_COLORS = {
   activity: 'bg-blue-100 text-blue-700',
   event:    'bg-purple-100 text-purple-700',
-  gateway:  'bg-amber-100 text-amber-700',
+  gateway:  'bg-amber-100 text-ink',
   role:     'bg-green-100 text-green-700',
 };
 
 const DEVIATION_COLORS = {
   'near-blueprint':    'bg-green-100 text-green-700',
   'configured':        'bg-blue-100 text-blue-700',
-  'heavily-customised':'bg-orange-100 text-orange-700',
+  'heavily-customised':'bg-orange-100 text-ink',
 };
 
 const PROCESS_TYPE_BADGE = {
@@ -61,7 +61,7 @@ function SavePanel({ parsed, processContext, onSaved, onCancel }) {
             APQC {processContext.apqcNodeId} — {processContext.apqcNodeName}
           </div>
         ) : processContext?.isCustom ? (
-          <div className="text-[10px] text-amber-600">
+          <div className="text-[10px] text-ink">
             Custom: {processContext.customLabel || 'no label'}
           </div>
         ) : (
@@ -87,7 +87,7 @@ function SavePanel({ parsed, processContext, onSaved, onCancel }) {
               <div className="text-[10px] text-gray-500 leading-tight">
                 The standard/reference version of this process for APQC {processContext.apqcNodeId}.
                 {existingBlueprint && (
-                  <span className="text-orange-700"> Replaces existing blueprint "{existingBlueprint.processName}".</span>
+                  <span className="text-ink"> Replaces existing blueprint "{existingBlueprint.processName}".</span>
                 )}
               </div>
             </div>
@@ -366,7 +366,7 @@ export default function TaxonomyPanel({ parsed, processContext }) {
                         </div>
                       )}
                       {proc.isCustom && (
-                        <div className="text-[10px] text-amber-600">Custom: {proc.customLabel || '—'}</div>
+                        <div className="text-[10px] text-ink">Custom: {proc.customLabel || '—'}</div>
                       )}
                     </div>
                     <button onClick={() => handleDeleteProcess(proc.id)}

@@ -330,7 +330,7 @@ export default function App() {
     };
     // One step at a time, full width; the others wait off-screen, still mounted
     if (offset === 0) return { ...base, left: '0%', opacity: 1, zIndex: 10 };
-    return { ...base, left: offset < 0 ? '-100%' : '100%', opacity: 0, zIndex: 0, pointerEvents: 'none' };
+    return { ...base, left: offset < 0 ? '-100%' : '100%', opacity: 0, zIndex: 0, pointerEvents: 'none', visibility: 'hidden' };
   }
 
 
@@ -1313,7 +1313,7 @@ export default function App() {
                         aria-hidden="true"
                         className={[
                           'w-[22px] h-[22px] rounded-full grid place-items-center text-xs tabular-nums shrink-0 border',
-                          active ? 'bg-signal border-signal text-white'
+                          active ? 'bg-signal border-signal text-ink font-medium'
                             : finished ? 'bg-ink border-ink text-paper'
                             : 'border-line text-mid',
                         ].join(' ')}
@@ -1368,8 +1368,8 @@ export default function App() {
           <PanelShell>
             {showExtendedTokensPrompt && (
               <div className="absolute inset-x-0 top-0 z-20 mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-lg">
-                <p className="text-sm font-medium text-amber-900 mb-1">Large process detected</p>
-                <p className="text-xs text-amber-700 mb-3">
+                <p className="text-sm font-medium text-ink mb-1">Large process detected</p>
+                <p className="text-xs text-ink mb-3">
                   This process description exceeds the standard 4 000-token limit and may be truncated,
                   causing the BPMN generation to fail. Would you like to continue with an extended
                   8 000-token limit instead?
@@ -1383,13 +1383,13 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => handleApproveToBpmn(false)}
-                    className="flex-1 text-xs font-medium py-1.5 rounded-lg bg-white border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors"
+                    className="flex-1 text-xs font-medium py-1.5 rounded-lg bg-white border border-amber-200 text-ink hover:bg-amber-100 transition-colors"
                   >
                     Continue with standard (4 000)
                   </button>
                   <button
                     onClick={() => setShowExtendedTokensPrompt(false)}
-                    className="px-3 text-xs text-amber-700 hover:text-amber-700 transition-colors"
+                    className="px-3 text-xs text-ink hover:text-ink transition-colors"
                   >
                     Cancel
                   </button>

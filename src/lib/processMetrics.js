@@ -300,3 +300,10 @@ export function updateGatewayBranch(metrics, parsed, gatewayId, condition, patch
       : [...gateways, { id: gatewayId, branches }],
   };
 }
+
+// Plan figures strip: a negative reduction means the TO-BE is slower.
+export function touchTimeFigure(cmp) {
+  const r = cmp?.touchReduction;
+  if (r == null || Number.isNaN(r)) return { value: '—', key: 'planShorterTouch', estimate: false };
+  return { value: `${Math.abs(r)} %`, key: r < 0 ? 'planLongerTouch' : 'planShorterTouch', estimate: !!cmp.basedOnEstimates };
+}

@@ -17,7 +17,7 @@ export default function RegisterPage({ onLogin, onSwitchToLogin }) {
     if (/\d/.test(pw))   score++;
     if (/[^a-zA-Z0-9]/.test(pw)) score++;
     if (score <= 2) return { label: 'Weak', color: 'text-red-500' };
-    if (score <= 3) return { label: 'Medium', color: 'text-amber-700' };
+    if (score <= 3) return { label: 'Medium', color: 'text-ink' };
     return { label: 'Strong', color: 'text-green-600' };
   }
 

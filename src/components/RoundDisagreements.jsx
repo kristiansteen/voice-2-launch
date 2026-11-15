@@ -22,16 +22,16 @@ export default function RoundDisagreements({ snapshot, onResolve }) {
   return (
     <div className="border border-amber-200 bg-amber-50/60 rounded-lg p-3 space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-xs font-semibold text-amber-900">
+        <p className="text-xs font-semibold text-ink">
           {t.roundDisTitle.replace('{n}', snapshot.versions.length)}
         </p>
-        <p className="text-[11px] text-amber-700">
+        <p className="text-[11px] text-ink">
           {list.length === 0 ? t.roundDisNone
             : open.length ? t.roundDisOpen.replace('{open}', open.length).replace('{total}', list.length)
             : t.roundDisAllResolved}
         </p>
       </div>
-      <p className="text-[11px] text-amber-800">{snapshot.versions.map(v => v.name).join(' · ')}</p>
+      <p className="text-[11px] text-ink">{snapshot.versions.map(v => v.name).join(' · ')}</p>
 
       {open.map(d => (
         <Item key={d.id} d={d} names={names} t={t} onResolve={onResolve} onTranscript={setTranscriptOf} />
@@ -39,7 +39,7 @@ export default function RoundDisagreements({ snapshot, onResolve }) {
 
       {resolved.length > 0 && (
         <div>
-          <button onClick={() => setShowResolved(v => !v)} className="text-[11px] font-medium text-amber-800 hover:underline">
+          <button onClick={() => setShowResolved(v => !v)} className="text-[11px] font-medium text-ink hover:underline">
             {showResolved ? '▾' : '▸'} {t.roundDisResolved.replace('{n}', resolved.length)}
           </button>
           {showResolved && resolved.map(d => (

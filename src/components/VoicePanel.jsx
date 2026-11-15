@@ -178,7 +178,7 @@ export default function VoicePanel({
           </button>
         )}
         {!aileanActive && !supported && (
-          <p className="flex-1 text-xs text-orange-700 text-center">{t.recordNotSupported}</p>
+          <p className="flex-1 text-xs text-ink text-center">{t.recordNotSupported}</p>
         )}
         {error && <p className="text-xs text-red-500">{t.recordError}: {error}</p>}
 
@@ -247,7 +247,7 @@ export default function VoicePanel({
       {/* Clear confirmation bar */}
       {confirmClear && (
         <div className="shrink-0 px-3 py-2 bg-amber-50 border-b border-amber-200 flex flex-col gap-2">
-          <p className="text-xs text-amber-800 font-medium">{t.voiceClearConfirm}</p>
+          <p className="text-xs text-ink font-medium">{t.voiceClearConfirm}</p>
           <div className="flex gap-2">
             <button
               onClick={async () => {
@@ -256,7 +256,7 @@ export default function VoicePanel({
                 if (aileanActive) ailean?.reset();
                 setConfirmClear(false);
               }}
-              className="flex-1 text-xs font-medium py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors"
+              className="flex-1 text-xs font-medium py-1 rounded-md bg-amber-100 text-ink border border-amber-300 hover:bg-amber-200 transition-colors"
             >
               {t.voiceClearCopyAndClear}
             </button>
@@ -491,7 +491,7 @@ export default function VoicePanel({
       {/* ── Parse confirm bar ─────────────────────────────────────── */}
       {confirmParse && (
         <div className="shrink-0 px-3 py-2 bg-amber-50 border-t border-amber-200 flex flex-col gap-2">
-          <p className="text-xs text-amber-800 font-medium">
+          <p className="text-xs text-ink font-medium">
             {aileanActive ? t.voiceParseAilean : t.voiceParseConfirm}
           </p>
           <div className="flex gap-2">

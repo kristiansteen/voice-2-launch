@@ -92,7 +92,7 @@ export default function ApqcSelector({ processContext, onChange, nodes: customNo
             title={isCustom ? 'Switch back to APQC taxonomy' : 'Mark as custom/new process'}
             className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
               isCustom
-                ? 'border-amber-400 text-amber-600 bg-amber-50'
+                ? 'border-amber-400 text-ink bg-amber-50'
                 : 'border-gray-200 text-gray-400 hover:border-gray-300'
             }`}
           >

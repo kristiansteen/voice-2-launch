@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { resolveCategoryFilter } from '../lib/improveFilter.js';
 import { useLang } from '../i18n/LangContext.jsx';
 
 const CATEGORIES = ['automation', 'governance', 'clarity', 'efficiency', 'risk'];
@@ -118,7 +119,8 @@ export default function ImprovePanel({
   // Filter by category, as in the Braun proposal; 'all' shows everything
   const [catFilter, setCatFilter] = useState('all');
   const presentCats = CATEGORIES.filter(c => (improvements || []).some(i => i.category === c));
-  const shown = catFilter === 'all' ? (improvements || []) : (improvements || []).filter(i => i.category === catFilter);
+  const activeCat = resolveCategoryFilter(catFilter, improvements);
+  const shown = activeCat === 'all' ? (improvements || []) : (improvements || []).filter(i => i.category === activeCat);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -134,8 +136,8 @@ export default function ImprovePanel({
                   <button
                     key={c}
                     onClick={() => setCatFilter(c)}
-                    aria-pressed={catFilter === c}
-                    className={`text-xs font-medium rounded-full px-3 py-1 border transition-colors ${catFilter === c ? 'bg-ink text-paper border-ink' : 'border-line text-ink hover:border-ink'}`}
+                    aria-pressed={activeCat === c}
+                    className={`text-xs font-medium rounded-full px-3 py-1 border transition-colors ${activeCat === c ? 'bg-ink text-paper border-ink' : 'border-line text-ink hover:border-ink'}`}
                   >
                     {c === 'all' ? `${t.impFilterAll} ${improvements.length}` : (t[CAT_LABEL_KEYS[c]] || c)}
                   </button>
@@ -167,7 +169,7 @@ export default function ImprovePanel({
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                           <span className="font-medium text-sm text-gray-800">{imp.title}</span>
                           {imp._custom && (
-                            <span className="text-xs rounded px-1.5 py-0.5 bg-amber-100 text-amber-700">{t.yourIdea}</span>
+                            <span className="text-xs rounded px-1.5 py-0.5 bg-amber-100 text-ink">{t.yourIdea}</span>
                           )}
                         </div>
                         <div className="flex gap-1 mb-1 flex-wrap">
@@ -283,17 +285,17 @@ export default function ImprovePanel({
               {step1Done && (
                 <div className={step2Done ? 'opacity-60' : ''}>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${step2Done ? 'bg-ink text-paper' : 'bg-amber-400 text-white'}`}>
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${step2Done ? 'bg-ink text-paper' : 'bg-signal text-ink'}`}>
                       {step2Done ? '✓' : '2'}
                     </span>
                     <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{t.reviewApproveToBe}</span>
                   </div>
                   {!step2Done && (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
-                      <p className="text-xs text-amber-800 mb-2">{t.reviewToBeInfo}</p>
+                      <p className="text-xs text-ink mb-2">{t.reviewToBeInfo}</p>
                       <button
                         onClick={onReviewDiagram}
-                        className="text-xs font-medium text-amber-700 hover:text-amber-900 underline underline-offset-2 transition-colors"
+                        className="text-xs font-medium text-ink hover:text-ink underline underline-offset-2 transition-colors"
                       >
                         {t.openDiagramTab}
                       </button>
@@ -305,7 +307,7 @@ export default function ImprovePanel({
                     className={[
                       'w-full text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed',
                       !step2Done
-                        ? 'bg-amber-400 text-white hover:bg-amber-500'
+                        ? 'bg-ink text-paper hover:bg-ink-hover'
                         : 'border border-gray-200 text-gray-400 bg-gray-50',
                     ].join(' ')}
                   >
