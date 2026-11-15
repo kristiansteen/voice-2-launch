@@ -8,6 +8,11 @@ import DiagramPanel from './components/DiagramPanel.jsx';
 import ImprovePanel from './components/ImprovePanel.jsx';
 import LaunchPanel from './components/LaunchPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import RoundContribution from './components/RoundContribution.jsx';
+import RoundsPanel from './components/RoundsPanel.jsx';
+
+// AS-IS rounds need the online backend; the offline build hides them
+const ROUNDS_ENABLED = import.meta.env.VITE_OFFLINE !== 'true';
 import LoginPage from './components/LoginPage.jsx';
 import RegisterPage from './components/RegisterPage.jsx';
 import {
@@ -23,6 +28,11 @@ import {
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { comparisonToImprovements } from './services/processComparison.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
+import {
+  INVITE_PARAM, readInviteFromSearch, rememberInvite, takePendingInvite, holdInvite, heldInvite, releaseInvite,
+} from './lib/roundInvite.js';
+import { onTokenRefreshed } from './services/roundService.js';
+import { buildStructuredTranscript } from './lib/transcript.js';
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
   DEMO_TRANSCRIPT, DEMO_PARSED, DEMO_XML, DEMO_DESCRIPTION,
@@ -92,19 +102,6 @@ function blankFlowState() {
   };
 }
 
-// Build a structured "Interviewer / SME" transcript from Ailean conversation turns.
-function buildStructuredTranscript(turns, currentDraft) {
-  const parts = turns.map(turn =>
-    turn.type === 'ailean'
-      ? `Interviewer: ${turn.text}`
-      : `SME: ${turn.text}`
-  );
-  if (currentDraft?.trim()) {
-    parts.push(`SME: ${currentDraft.trim()}`);
-  }
-  return parts.join('\n\n');
-}
-
 export default function App() {
   const { t, lang, setLang } = useLang();
   const [langConfirmed, setLangConfirmed] = useState(false);
@@ -132,6 +129,14 @@ export default function App() {
   // — the SPA catch-all rewrite serves index.html there, so this is the only place
   // that token is ever read) or a ?code= param.
   useEffect(() => {
+    // AS-IS round invite (?round=…): remember it before any login redirect drops the query string
+    const inviteToken = readInviteFromSearch(window.location.search);
+    if (inviteToken) {
+      rememberInvite(localStorage, inviteToken);
+      const url = new URL(window.location.href);
+      url.searchParams.delete(INVITE_PARAM);
+      window.history.replaceState(null, '', url.pathname + url.search);
+    }
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const code = params.get('code');
@@ -163,6 +168,16 @@ export default function App() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [vimplUser, setVimplUser] = useState(null);
+  // Invite token of an AS-IS round the user opened; shows the contribution screen once logged in
+  const [pendingInvite, setPendingInvite] = useState(null);
+  const [showRounds, setShowRounds] = useState(false);
+  useEffect(() => {
+    // A new invite from the login round trip, or the one held across a reload
+    if (vimplToken) setPendingInvite(prev => prev || takePendingInvite(localStorage) || heldInvite(sessionStorage));
+  }, [vimplToken]);
+  useEffect(() => { if (pendingInvite) holdInvite(sessionStorage, pendingInvite); }, [pendingInvite]);
+  // The rounds client refreshes an expired access token itself; keep the app's copy in step
+  useEffect(() => { onTokenRefreshed(setVimplToken); return () => onTokenRefreshed(null); }, []);
   const userId = vimplUser?.id ?? null;
   const { logo: companyLogo, setLogo: setCompanyLogo, removeLogo: removeCompanyLogo, loadFile: loadLogoFile } = useCompanyLogo(userId);
   const { systems: systemRepository, addSystem, removeSystem, importFromText: importSystems } = useSystemRepository(userId);
@@ -360,7 +375,9 @@ export default function App() {
   const [voiceError, setVoiceError] = useState(null);
 
   // ── Ailean AI Interviewer ──────────────────────────────────────────
-  const ailean = useAileanInterviewer(lang);
+  // Scope of the AS-IS round being contributed to: its language and the context sent to the interviewer
+  const [roundScope, setRoundScope] = useState(null);
+  const ailean = useAileanInterviewer(roundScope?.language || lang, { contextMessage: roundScope?.message });
 
   // Panel 2 — Description
   const [processDescription, setProcessDescription] = useState(null);
@@ -413,6 +430,10 @@ export default function App() {
   }
 
   function logoutVimpl() {
+    // Never hand the previous user's round invitation to whoever logs in next in this tab
+    releaseInvite(sessionStorage);
+    takePendingInvite(localStorage);
+    setPendingInvite(null);
     // Flush any pending autosave to the server before the token is cleared
     clearTimeout(apiSaveTimer.current);
     const activeFlow = flows.find(f => f.id === currentFlowId);
@@ -1053,6 +1074,38 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} onSwitchToRegister={() => setAuthView('register')} />;
   }
 
+  // ── AS-IS round contribution (opened from an invite link) ──────────
+  if (ROUNDS_ENABLED && vimplToken && pendingInvite) {
+    return (
+      <RoundContribution
+        key={pendingInvite}
+        vimplToken={vimplToken}
+        inviteToken={pendingInvite}
+        ailean={ailean}
+        onScope={setRoundScope}
+        onDone={() => {
+          // Clear the round's interview so it does not bleed into the user's own flows
+          ailean.reset();
+          setRoundScope(null);
+          releaseInvite(sessionStorage);
+          setPendingInvite(null);
+        }}
+      />
+    );
+  }
+
+  // ── AS-IS rounds (owner) ───────────────────────────────────────────
+  if (ROUNDS_ENABLED && showRounds && !currentFlowId) {
+    return (
+      <RoundsPanel
+        vimplToken={vimplToken}
+        vimplUser={vimplUser}
+        onBack={() => setShowRounds(false)}
+        onContribute={token => setPendingInvite(token)}
+      />
+    );
+  }
+
   // ── Dashboard ──────────────────────────────────────────────────────
   if (!currentFlowId) {
     return (
@@ -1069,6 +1122,7 @@ export default function App() {
           onLogout={logoutVimpl}
           onDemo={handleLoadDemo}
           onBurger={() => setShowBurger(true)}
+          onOpenRounds={ROUNDS_ENABLED ? () => setShowRounds(true) : undefined}
         />
         <BurgerMenu
           open={showBurger}

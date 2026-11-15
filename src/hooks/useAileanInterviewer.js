@@ -12,9 +12,13 @@ import {
 
 const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AILEAN_AGENT_ID;
 
-export function useAileanInterviewer(lang = 'en') {
+export function useAileanInterviewer(lang = 'en', { contextMessage } = {}) {
   const langRef = useRef(lang);
   langRef.current = lang; // sync update on every render so toggle() always reads latest
+  // Optional scope for the interviewer (AS-IS rounds). Sent once per session after connect;
+  // a contextual update needs no change to the ElevenLabs agent's configuration.
+  const contextRef = useRef(contextMessage);
+  contextRef.current = contextMessage;
 
   const [turns, setTurns]       = useState([]);
   const [error, setError]       = useState(null);
@@ -27,6 +31,10 @@ export function useAileanInterviewer(lang = 'en') {
       setConnecting(false);
       setMode('listening');
       setError(null);
+      if (contextRef.current) {
+        try { conversation.sendContextualUpdate(contextRef.current); }
+        catch (err) { console.warn('[Ailean] could not send scope to interviewer', err); }
+      }
     },
     onDisconnect: () => {
       console.log('[Ailean] onDisconnect fired');
