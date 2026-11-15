@@ -1193,6 +1193,8 @@ export default function App() {
         vimplUser={vimplUser}
         onBack={() => setShowRounds(false)}
         onContribute={token => setPendingInvite(token)}
+        onUseSubmissions={handleUseSubmissions}
+        useError={roundUseError}
       />
     );
   }
@@ -1423,6 +1425,8 @@ export default function App() {
               canApprove={!!processDescription && (hasAccess || isDemoFlow) && !bpmnParsing}
               processContext={processContext}
               onProcessContextChange={handleProcessContextChange}
+              roundSnapshot={roundSnapshot}
+              onResolveDisagreement={handleResolveDisagreement}
             />
           </PanelShell>
           {activePanel !== 2 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
@@ -1478,7 +1482,9 @@ export default function App() {
               onUseComparisonForPlan={handleRequestPlanFromComparison}
               blueprintXml={blueprintXml}
               onBlueprintXmlChange={setBlueprintXml}
-            />
+              openRoundPoints={(roundSnapshot?.disagreements || []).filter(d => !roundSnapshot.resolutions?.[d.id]).length}
+                onShowReview={() => setActivePanel(2)}
+              />
           </PanelShell>
           {activePanel !== 3 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
         </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import RoundDisagreements from './RoundDisagreements.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import TaxonomySourceSelector from './TaxonomySourceSelector.jsx';
 
@@ -101,7 +102,7 @@ function StepsList({ steps, onChange }) {
   );
 }
 
-export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange }) {
+export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange, roundSnapshot, onResolveDisagreement }) {
   const { t } = useLang();
   const [approvingBpmn, setApprovingBpmn] = useState(false);
 
@@ -146,6 +147,9 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+        {/* ── AS-IS round: where the combined versions disagree ─── */}
+        <RoundDisagreements snapshot={roundSnapshot} onResolve={onResolveDisagreement} />
 
         {/* ── Taxonomy source selector ──────────────────────────── */}
         <div className="border border-gray-100 rounded-lg overflow-hidden">

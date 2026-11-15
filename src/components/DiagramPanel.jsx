@@ -32,6 +32,7 @@ export default function DiagramPanel({
   xml, onXmlChange, bpmnLoading, processName, parsed, toBeParsed, processDescription,
   onGetImprovements, apiKey, proxyAuth, companyLogo,
   asIsXml, toBeXml, onToBeXmlChange, toBeLoading,
+  openRoundPoints = 0, onShowReview,
   asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange,
   systemRepository, systemMap, onUpdateSystemMap, onAddSystem,
   videoMap, onUpdateVideoMap,
@@ -435,6 +436,16 @@ export default function DiagramPanel({
               {!times.weighted && <span className="text-gray-400">{t.metricsUnweighted}</span>}
             </div>
           </div>
+        )}
+
+        {/* AS-IS round: points the combined versions still disagree on */}
+        {activeTab === 'asis' && openRoundPoints > 0 && (
+          <button
+            onClick={onShowReview}
+            className="absolute top-3 left-3 z-10 text-xs font-medium bg-amber-50 text-amber-800 border border-amber-300 rounded-lg px-3 py-1.5 shadow-sm hover:bg-amber-100"
+          >
+            ⚠ {t.roundDisChip.replace('{n}', openRoundPoints)}
+          </button>
         )}
 
         {/* Step curtain — outside viewer containers so visibility:hidden doesn't clip it */}

@@ -9,7 +9,7 @@ const PAID = ['commercial', 'enterprise'];
 const PRICING_URL = 'https://ailean.dk/ailean-pricing';
 
 /** The process owner's AS-IS rounds: start one, share its link, follow and read contributions. */
-export default function RoundsPanel({ vimplToken, vimplUser, onBack, onContribute }) {
+export default function RoundsPanel({ vimplToken, vimplUser, onBack, onContribute, onUseSubmissions, useError }) {
   const { t, lang } = useLang();
   const [rounds, setRounds]     = useState(null);
   const [openId, setOpenId]     = useState(null);
@@ -105,6 +105,8 @@ export default function RoundsPanel({ vimplToken, vimplUser, onBack, onContribut
             onReopen={() => act(reopenRound)}
             onRenew={() => { if (window.confirm(t.roundsRenewConfirm)) act(renewRoundLink); }}
             onContribute={() => onContribute(detail.inviteToken)}
+            onUse={onUseSubmissions}
+            useError={useError}
           />
         )}
       </main>
@@ -156,9 +158,18 @@ function NewRoundForm({ defaultLang, onCreate, onCancel }) {
   );
 }
 
-function RoundDetail({ round, t, lang, onClose, onReopen, onRenew, onContribute }) {
+function RoundDetail({ round, t, lang, onClose, onReopen, onRenew, onContribute, onUse, useError }) {
   const [copied, setCopied] = useState(false);
   const [reading, setReading] = useState(null);
+  const submitted = round.submissions.filter(s => s.status === 'submitted');
+  const [selected, setSelected] = useState(() => new Set(submitted.map(s => s.id)));
+  const [using, setUsing] = useState(null); // 'review' | 'diagram' while working
+  const chosen = submitted.filter(s => selected.has(s.id)).map(s => s.id);
+  const toggle = id => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  async function use(mode) {
+    setUsing(mode);
+    try { await onUse({ round, submissionIds: chosen, mode }); } finally { setUsing(null); }
+  }
   const link = inviteUrl(window.location.origin, round.inviteToken);
   const fmt = d => (d ? new Date(d).toLocaleString(lang === 'da' ? 'da-DK' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' }) : '—');
   const statusLabel = { opened: t.roundsSubOpened, started: t.roundsSubStarted, submitted: t.roundsSubSubmitted };
@@ -202,7 +213,12 @@ function RoundDetail({ round, t, lang, onClose, onReopen, onRenew, onContribute 
             <tbody>
               {round.submissions.map(s => (
                 <tr key={s.id} className="border-t border-gray-100">
-                  <td className="px-5 py-2"><div className="font-medium text-gray-800">{s.participantName || s.participantEmail}</div><div className="text-xs text-gray-400">{s.participantEmail}</div></td>
+                  <td className="pl-5 py-2 w-6">
+                    {s.status === 'submitted' && (
+                      <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggle(s.id)} aria-label={t.roundsSelect} />
+                    )}
+                  </td>
+                  <td className="px-3 py-2"><div className="font-medium text-gray-800">{s.participantName || s.participantEmail}</div><div className="text-xs text-gray-400">{s.participantEmail}</div></td>
                   <td className="px-2 py-2 text-gray-600">{statusLabel[s.status] || s.status}</td>
                   <td className="px-2 py-2 text-xs text-gray-400">{fmt(s.updatedAt)}</td>
                   <td className="px-5 py-2 text-right">
@@ -212,6 +228,25 @@ function RoundDetail({ round, t, lang, onClose, onReopen, onRenew, onContribute 
               ))}
             </tbody>
           </table>
+        )}
+        {submitted.length > 0 && (
+          <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
+            <p className="text-xs text-gray-600">
+              {chosen.length === 1 ? t.roundsUseOne : t.roundsUseMany.replace('{n}', chosen.length)}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button disabled={!chosen.length || !!using} onClick={() => use('review')}
+                className="bg-green-400 disabled:opacity-50 text-black text-sm font-semibold px-4 py-2 rounded-lg hover:bg-green-300">
+                {using === 'review' ? t.roundsUsing : t.roundsUseReview}
+              </button>
+              <button disabled={!chosen.length || !!using} onClick={() => use('diagram')}
+                className="disabled:opacity-50 text-sm font-medium text-gray-700 border border-gray-300 bg-white rounded-lg px-4 py-2 hover:border-violet-400">
+                {using === 'diagram' ? t.roundsUsing : t.roundsUseDiagram}
+              </button>
+            </div>
+            {useError && <p className="mt-2 text-xs text-red-600">{useError}</p>}
+            <p className="mt-2 text-[11px] text-gray-400">{t.roundsUseSnapshot}</p>
+          </div>
         )}
       </section>
 
