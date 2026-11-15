@@ -626,3 +626,41 @@ General guidelines:
 
   return response.content[0].text.trim();
 }
+
+// ── AS-IS rounds: which steps across versions are the same step ─────────────
+
+const MATCH_STEPS_PROMPT = `You compare several people's descriptions of the same business process.
+Each step has a reference like "v0s3" (version 0, step 3). Group the references that describe the same activity.
+
+Return ONLY a JSON array, no explanation, no markdown:
+[ { "name": "short step name", "refs": ["v0s0", "v1s0"] } ]
+
+Rules:
+- Every reference appears in exactly one group.
+- Two steps belong together when they describe the same piece of work, even if they are named differently or sit in a different place in the sequence.
+- Several steps of ONE version may belong to one group when that person described the activity in more detail.
+- Never merge different activities just to make the versions agree. Disagreement is what the user wants to see.
+- A step only one person mentioned is a group of its own.
+- Name each group with a short, neutral verb phrase.
+- List the groups roughly in process order.`;
+
+/**
+ * Groups steps from several versions that describe the same activity.
+ * @param refs [{ ref, name, performer, description }] from stepRefs()
+ * @returns Promise<[{ name, refs }]> — repair with validateGroups() before use
+ */
+export async function matchRoundSteps(refs, apiKey, proxyAuth = null, lang = 'en') {
+  const client = makeClient(apiKey, proxyAuth);
+  const system = withLang(MATCH_STEPS_PROMPT, lang, 'Write all group names in Danish.') + SAFETY_SUFFIX;
+  const steps = refs.map(r => ({ ref: r.ref, name: r.name, performer: r.performer, description: r.description }));
+  const message = await client.messages.create({
+    model: MODEL_SONNET,
+    max_tokens: Math.min(8000, 1000 + steps.length * 60),
+    system,
+    messages: [{ role: 'user', content: JSON.stringify({ steps }) }],
+  });
+  const cleaned = stripFences(message.content[0].text.trim());
+  const groups = JSON.parse(cleaned); // throws on unparseable output; the caller shows the error
+  if (!Array.isArray(groups)) throw new Error('Step matching returned an unexpected format');
+  return groups;
+}
