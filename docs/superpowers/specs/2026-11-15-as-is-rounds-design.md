@@ -28,6 +28,10 @@ A process owner invites several people to describe the same process. Each does t
 - Disagreements about which system is used. The interview asks about systems, but the extraction does not record a system per step yet.
 - Anonymous contributions.
 
+## Planned for a later version
+
+- Invitation emails sent by Ailean, with reminders to people who have not contributed. Until then the round keeps a participant list by login only, so nothing built now blocks this.
+
 ## What would make it a failure
 
 - A draft that looks authoritative while resting on guesses: invented quotes, wrong counts, or steps matched wrongly with no way to correct them.
