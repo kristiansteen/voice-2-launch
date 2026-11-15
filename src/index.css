@@ -255,8 +255,8 @@ body {
 
 /* ── Canvas — subtle periwinkle dot grid ─────────────────────────── */
 .bpmn-container .djs-container {
-  background-color: #FAFAF8;
-  background-image: radial-gradient(circle, #D6D6D0 1px, transparent 1px);
+  background-color: #F1F1EE;
+  background-image: radial-gradient(circle, #CFCFC8 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -312,10 +312,7 @@ body {
   fill: transparent !important;
 }
 
-/* Strip any visible stroke from activity shapes */
-[data-element-id^="act_"] .djs-visual > rect {
-  stroke-width: 0 !important;
-}
+/* Activity cards keep the ink outline the custom renderer draws */
 
 /* Gateway labels — rendered by custom renderer; suppress duplicate */
 [data-element-id^="gw_"] .djs-label text,
@@ -325,26 +322,26 @@ body {
 
 /* ── Swimlane pools & lanes ──────────────────────────────────────── */
 .djs-shape.djs-participant .djs-visual rect {
-  fill: #FAFAF8;
-  stroke: #C6C6C0;
-  stroke-width: 1.5;
+  fill: #F1F1EE;
+  stroke: #151515;
+  stroke-width: 1.2;
 }
 
 .djs-shape.djs-lane .djs-visual rect {
-  fill: #FAFAF8;
+  fill: #F1F1EE;
   stroke: #C6C6C0;
   stroke-width: 1;
 }
 
-/* Alternate lane shading */
+/* Alternate lane shading: paper / case, so white task cards stand out on both */
 .djs-shape.djs-lane:nth-child(even) .djs-visual rect {
-  fill: #F5F5F2;
+  fill: #E2E2DD;
 }
 
 /* Pool / lane header label */
 .djs-shape.djs-participant .djs-label text,
 .djs-shape.djs-lane .djs-label text {
-  fill: #62625D !important;
+  fill: #151515 !important;
   font-weight: 700 !important;
   font-size: 10px !important;
   letter-spacing: 0.06em;

@@ -241,7 +241,7 @@ class CustomRenderer extends BaseRenderer {
       rx: TASK_RADIUS, ry: TASK_RADIUS,
       fill: '#FFFFFF',
       stroke: INK,
-      'stroke-width': 1.2,
+      'stroke-width': 1.4,
     });
     svgAppend(parentNode, rect);
 
@@ -267,7 +267,7 @@ class CustomRenderer extends BaseRenderer {
     if (kind === 'start') {
       strokeColor = INK;
       fillColor   = '#FFFFFF';
-      strokeWidth = 1.4;
+      strokeWidth = 2;
     } else if (kind === 'end') {
       strokeColor = SIGNAL; // the one orange mark: where the process ends
       fillColor   = '#FFFFFF';
@@ -323,9 +323,9 @@ class CustomRenderer extends BaseRenderer {
     const diamond = svgCreate('path');
     svgAttr(diamond, {
       d: `M ${cx},${cy - hw} L ${cx + hw},${cy} L ${cx},${cy + hw} L ${cx - hw},${cy} Z`,
-      fill: PAPER,
+      fill: '#FFFFFF',
       stroke: INK,
-      'stroke-width': 1.2,
+      'stroke-width': 1.4,
     });
     svgAppend(parentNode, diamond);
 
