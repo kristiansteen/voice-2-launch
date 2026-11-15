@@ -272,7 +272,7 @@ async function generateFlatXml(parsed) {
       const stroke = roleColor(act && act.performer);
       colorAttrs = ` bioc:stroke="${stroke}" bioc:fill="#ffffff"`;
     } else if (elTyp === 'gateway') {
-      colorAttrs = ' bioc:stroke="#B86C3D" bioc:fill="#fff4e6"';
+      colorAttrs = ' bioc:stroke="#151515" bioc:fill="#F1F1EE"';
     }
     return `      <bpmndi:BPMNShape id="${el.id}_di" bpmnElement="${el.id}"${colorAttrs}>
         <dc:Bounds x="${Math.round(pos.x - w / 2)}" y="${Math.round(pos.y - h / 2)}" width="${w}" height="${h}" />
@@ -419,7 +419,7 @@ ${refs}
       const stroke = roleColor(act && act.performer);
       colorAttrs = ` bioc:stroke="${stroke}" bioc:fill="#ffffff"`;
     } else if (elTyp === 'gateway') {
-      colorAttrs = ' bioc:stroke="#B86C3D" bioc:fill="#fff4e6"';
+      colorAttrs = ' bioc:stroke="#151515" bioc:fill="#F1F1EE"';
     }
     return `      <bpmndi:BPMNShape id="${el.id}_di" bpmnElement="${el.id}"${colorAttrs}>
         <dc:Bounds x="${Math.round(cx - w / 2)}" y="${Math.round(cy - h / 2)}" width="${w}" height="${h}" />

@@ -55,14 +55,15 @@ import { useSystemRepository } from './hooks/useSystemRepository.js';
 const BACKEND_URL    = 'https://backend-eight-rho-46.vercel.app';
 const VIMPL_LOGIN_URL = 'https://app.vimpl.com/login.html';
 
-function PanelShell({ num, label, children }) {
+// One step's working area. The step bar above names the step, so the panel has no header of its own.
+// The diagram (wide) runs edge to edge; the other steps sit in a centred panel.
+function PanelShell({ wide = false, children }) {
+  if (wide) {
+    return <div className="flex flex-col h-full bg-panel">{children}</div>;
+  }
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-gray-200 shrink-0">
-        <span className="text-xs font-bold text-paper bg-ink rounded px-1.5 py-0.5 leading-none">{num}</span>
-        <span className="text-sm font-semibold text-gray-700">{label}</span>
-      </div>
-      <div className="flex-1 overflow-hidden flex flex-col bg-white">
+    <div className="h-full overflow-hidden bg-paper px-3 sm:px-6 py-4">
+      <div className="flex flex-col h-full w-full max-w-[1100px] mx-auto bg-panel border border-line rounded-[10px] overflow-hidden">
         {children}
       </div>
     </div>
@@ -323,41 +324,14 @@ export default function App() {
   function getCarouselStyle(n) {
     const offset = n - activePanel;
     const base = {
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      transition: 'left 0.38s cubic-bezier(0.4,0,0.2,1), width 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.3s, box-shadow 0.38s, border-radius 0.38s',
-      overflow: 'hidden',
+      position: 'absolute', top: 0, bottom: 0, width: '100%', overflow: 'hidden',
+      transition: 'left 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.25s',
     };
-
-    // Mobile — full-width single panel, swipe left/right off-screen
-    if (isMobile) {
-      if (offset === 0) return { ...base, left: '0%', width: '100%', opacity: 1, zIndex: 10, borderRadius: 0 };
-      return { ...base, left: offset < 0 ? '-100%' : '100%', width: '100%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: 0 };
-    }
-
-    const r = '8px'; // standard radius from CSS design system
-
-    // Panel 3 (Map) — full width, no peeking, no radius (edge-to-edge)
-    if (activePanel === 3) {
-      if (offset === 0)  return { ...base, left: '0%',   width: '100%', opacity: 1, zIndex: 10, boxShadow: 'none', borderRadius: 0 };
-      return { ...base, left: offset < 0 ? '-100%' : '100%', width: '100%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: 0 };
-    }
-
-    // Panels 2, 4 & 5 (Identify / Plan / Launch) — 50% centred, neighbours peek on both sides
-    if (activePanel === 2 || activePanel === 4 || activePanel === 5) {
-      if (offset === 0)  return { ...base, left: '25%', width: '50%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
-      if (offset === -1) return { ...base, left: '0%',  width: '23%', opacity: 0.45, zIndex: 5,  cursor: 'pointer', borderRadius: r };
-      if (offset === 1)  return { ...base, left: '77%', width: '23%', opacity: 0.45, zIndex: 5,  cursor: 'pointer', borderRadius: r };
-      return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: r };
-    }
-
-    // Panels 1 & 2 — 30% flush-left, next panel fills the right
-    if (offset === 0)  return { ...base, left: '0%',  width: '30%', opacity: 1,    zIndex: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.22)', borderRadius: r };
-    if (offset === 1)  return { ...base, left: '31%', width: '60%', opacity: 0.55, zIndex: 5,  cursor: 'pointer', borderRadius: r };
-    if (offset === 2)  return { ...base, left: '92%', width: '7%',  opacity: 0.3,  zIndex: 3,  cursor: 'pointer', borderRadius: r };
-    return { ...base, left: offset < 0 ? '-20%' : '100%', width: '18%', opacity: 0, zIndex: 0, pointerEvents: 'none', borderRadius: r };
+    // One step at a time, full width; the others wait off-screen, still mounted
+    if (offset === 0) return { ...base, left: '0%', opacity: 1, zIndex: 10 };
+    return { ...base, left: offset < 0 ? '-100%' : '100%', opacity: 0, zIndex: 0, pointerEvents: 'none' };
   }
+
 
   // Process context
   const [processContext, setProcessContext] = useState({
@@ -1244,129 +1218,129 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-slate-100">
-      {/* Header */}
-      <header className="relative flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200 shadow-sm shrink-0">
-        <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
-          <span className="ailean-logo" style={{ fontSize: '15px' }}>AILEAN</span>
-        </div>
-        {/* Save status — left side */}
-        <div className="flex items-center gap-2">
-          {saveStatus === 'saving' && (
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
-              <span className="w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin shrink-0" />
-              Saving…
-            </span>
-          )}
-          {saveStatus === 'saved' && (
-            <span className="flex items-center gap-1 text-xs text-green-600">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Saved
-            </span>
-          )}
-          {saveStatus === 'error' && (
+    <div className="h-screen flex flex-col overflow-hidden bg-paper">
+      {/* Header — as on ailean.dk: wordmark, where you are, status and menu */}
+      <header className="bg-paper border-b border-line shrink-0">
+        <div className="flex items-center gap-4 sm:gap-6 h-14 px-4 sm:px-8">
+          <button onClick={handleBackToDashboard} className="ailean-logo" title={t.stepBackToFlows}>AILEAN</button>
+          <nav aria-label={t.stepWhere} className="hidden sm:flex items-center gap-2 text-sm min-w-0">
+            <button onClick={handleBackToDashboard} className="text-mid hover:text-ink shrink-0">{t.stepMyFlows}</button>
+            <span className="text-line">/</span>
+            <span className="truncate">{currentFlow?.process_name || currentFlow?.name || processDescription?.process_name || ''}</span>
+          </nav>
+          <div className="ml-auto flex items-center gap-3">
+            {saveStatus === 'saving' && (
+              <span className="flex items-center gap-1.5 text-xs text-mid">
+                <span className="w-3 h-3 border-2 border-line border-t-mid rounded-full animate-spin shrink-0" />
+                {t.stepSaving}
+              </span>
+            )}
+            {saveStatus === 'saved' && (
+              <span className="flex items-center gap-1.5 text-xs text-mid">
+                <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-ink" />
+                {t.stepSaved}
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <button
+                onClick={() => { setSaveStatus('idle'); upsertFlow(vimplToken, flows.find(f => f.id === currentFlowId)).catch(() => setSaveStatus('error')); }}
+                className="text-xs text-red-600 hover:text-red-800 underline"
+              >
+                {t.stepSaveFailed}
+              </button>
+            )}
             <button
-              onClick={() => { setSaveStatus('idle'); upsertFlow(vimplToken, flows.find(f => f.id === currentFlowId)).catch(() => setSaveStatus('error')); }}
-              className="text-xs text-red-500 hover:text-red-700 underline"
-              title="Click to retry"
+              onClick={handleToggleDemo}
+              className={[
+                'text-xs font-medium rounded-full px-3 py-1.5 border transition-colors',
+                isDemoFlow ? 'bg-ink text-paper border-ink' : 'text-mid border-line hover:border-ink hover:text-ink',
+              ].join(' ')}
+              title={isDemoFlow ? 'Exit demo mode' : t.loadDemoTitle}
             >
-              Save failed — retry
+              {isMobile ? (isDemoFlow ? '●' : 'Demo') : (isDemoFlow ? t.demoMode : t.tryDemo)}
             </button>
-          )}
-        </div>
-
-        {/* Burger — right side */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowBurger(true)}
-            className="flex flex-col gap-1 items-center justify-center w-9 h-9 rounded-lg bg-gray-100 border border-gray-200 hover:bg-gray-200 hover:border-vimpl-light transition-colors"
-            title="Settings"
-          >
-            <span className="w-4 h-0.5 bg-gray-500 rounded" />
-            <span className="w-4 h-0.5 bg-gray-500 rounded" />
-            <span className="w-4 h-0.5 bg-gray-500 rounded" />
-          </button>
+            {!isMobile && (transcript || xml) && (
+              <button
+                onClick={handleClearCurrentFlow}
+                className="text-xs text-mid hover:text-red-600 border border-line rounded-full px-3 py-1.5 transition-colors"
+                title={t.clearTitle}
+              >
+                {t.clear}
+              </button>
+            )}
+            <button
+              onClick={() => setShowBurger(true)}
+              aria-label={t.stepMenu}
+              className="w-9 h-9 rounded-full border border-line bg-panel hover:border-ink flex flex-col gap-1 items-center justify-center transition-colors"
+            >
+              <span className="w-3.5 h-px bg-ink" />
+              <span className="w-3.5 h-px bg-ink" />
+              <span className="w-3.5 h-px bg-ink" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Step navigator */}
+      {/* Step bar — the five steps, in the form of the selector on ailean.dk */}
       {(() => {
-        const steps = [
-          { num: 1, label: t.panel1 },
-          { num: 2, label: t.panel2 },
-          { num: 3, label: t.panel3 },
-          { num: 4, label: t.panel4 },
-          { num: 5, label: t.panel5 },
-        ];
+        const done = {
+          1: !!processDescription,
+          2: !!parsed,
+          3: !!(improvements && improvements.length),
+          4: !!(toBeXml || projectPlan),
+          5: !!projectPlan,
+        };
+        const steps = [1, 2, 3, 4, 5].map(n => ({ num: n, label: t[`panel${n}`], sub: t[`panel${n}Sub`] }));
         return (
-          <div className="relative flex items-center justify-center gap-1 px-4 py-2 bg-slate-100 border-b border-gray-200 shrink-0">
-            {/* Left: utility buttons — pinned to left edge */}
-            <div className="absolute left-2 flex items-center gap-1.5">
-              <button
-                onClick={handleToggleDemo}
-                className={[
-                  'text-xs font-medium rounded-md px-2 py-1 border transition-colors',
-                  isDemoFlow
-                    ? 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-50 hover:text-blue-500'
-                    : 'text-gray-500 bg-white hover:text-blue-600 hover:border-blue-300 border-gray-300 border-dashed',
-                ].join(' ')}
-                title={isDemoFlow ? 'Exit demo mode' : t.loadDemoTitle}
-              >
-                {isMobile ? (isDemoFlow ? '●' : 'Demo') : (isDemoFlow ? t.demoMode : t.tryDemo)}
-              </button>
-              {!isMobile && (transcript || xml) && (
-                <button
-                  onClick={handleClearCurrentFlow}
-                  className="text-xs text-gray-400 hover:text-red-400 border border-gray-200 rounded-md px-2 py-1 transition-colors"
-                  title={t.clearTitle}
-                >
-                  {t.clear}
-                </button>
-              )}
-            </div>
-            <button
-              onClick={() => setActivePanel(p => Math.max(1, p - 1))}
-              disabled={activePanel === 1}
-              className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors px-2 text-sm select-none"
-            >
-              ←
-            </button>
-            {steps.map(s => (
-              <button
-                key={s.num}
-                onClick={() => setActivePanel(s.num)}
-                className={[
-                  'flex items-center gap-1.5 rounded-full text-xs font-medium transition-all',
-                  isMobile ? 'px-2 py-1' : 'px-3 py-1',
-                  activePanel === s.num
-                    ? 'bg-vimpl text-gray-900'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200',
-                ].join(' ')}
-              >
-                <span className={[
-                  'w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
-                  activePanel === s.num ? 'bg-white/50 text-gray-800' : 'bg-gray-300 text-gray-500',
-                ].join(' ')}>{s.num}</span>
-                {!isMobile && s.label}
-              </button>
-            ))}
-            <button
-              onClick={() => setActivePanel(p => Math.min(5, p + 1))}
-              disabled={activePanel === 5}
-              className="text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors px-2 text-sm select-none"
-            >
-              →
-            </button>
-          </div>
+          <nav aria-label={t.stepSteps} className="shrink-0 bg-paper px-3 sm:px-8 pt-3">
+            <ol className="grid grid-cols-5 gap-1.5">
+              {steps.map(s => {
+                const active = activePanel === s.num;
+                const finished = !active && done[s.num];
+                return (
+                  <li key={s.num}>
+                    <button
+                      onClick={() => setActivePanel(s.num)}
+                      aria-current={active ? 'step' : undefined}
+                      className={[
+                        'w-full flex items-center gap-2.5 rounded-[10px] border text-left transition-colors min-h-[44px]',
+                        isMobile ? 'justify-center px-2 py-2' : 'px-3.5 py-2',
+                        active ? 'bg-ink text-paper border-ink' : 'bg-panel text-ink border-line hover:border-ink',
+                      ].join(' ')}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={[
+                          'w-[22px] h-[22px] rounded-full grid place-items-center text-xs tabular-nums shrink-0 border',
+                          active ? 'bg-signal border-signal text-white'
+                            : finished ? 'bg-ink border-ink text-paper'
+                            : 'border-line text-mid',
+                        ].join(' ')}
+                      >
+                        {finished ? '✓' : s.num}
+                      </span>
+                      {!isMobile && (
+                        <span className="flex flex-col leading-tight min-w-0">
+                          <span className="text-sm font-medium truncate">{s.label}</span>
+                          <span className={`text-xs truncate ${active ? 'text-[#B9B9B3]' : 'text-mid'}`}>{s.sub}</span>
+                        </span>
+                      )}
+                      {isMobile && <span className="sr-only">{s.label}</span>}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
         );
       })()}
 
       {/* Carousel */}
-      <div className="relative flex-1 bg-slate-100 overflow-hidden">
+      <div className="relative flex-1 bg-paper overflow-hidden mt-3 border-t border-line">
 
         {/* Panel 1 — Voice */}
         <div style={getCarouselStyle(1)} onClick={activePanel !== 1 ? () => setActivePanel(1) : undefined}>
-          <PanelShell num="1" label={t.panel1}>
+          <PanelShell>
             {voiceError && (
               <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-xs shrink-0">
                 {voiceError}
@@ -1390,7 +1364,7 @@ export default function App() {
 
         {/* Panel 2 — Description */}
         <div style={getCarouselStyle(2)} onClick={activePanel !== 2 ? () => setActivePanel(2) : undefined}>
-          <PanelShell num="2" label={t.panel2}>
+          <PanelShell>
             {showExtendedTokensPrompt && (
               <div className="absolute inset-x-0 top-0 z-20 mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-lg">
                 <p className="text-sm font-medium text-amber-900 mb-1">Large process detected</p>
@@ -1438,7 +1412,7 @@ export default function App() {
 
         {/* Panel 3 — Diagram */}
         <div style={getCarouselStyle(3)} onClick={activePanel !== 3 ? () => setActivePanel(3) : undefined}>
-          <PanelShell num="3" label={t.panel3}>
+          <PanelShell wide>
             <DiagramPanel
               xml={xml}
               onXmlChange={setXml}
@@ -1495,7 +1469,7 @@ export default function App() {
 
         {/* Panel 4 — Plan */}
         <div style={getCarouselStyle(4)} onClick={activePanel !== 4 ? () => setActivePanel(4) : undefined}>
-          <PanelShell num="4" label={t.panel4}>
+          <PanelShell>
             <ImprovePanel
               parsed={parsed}
               apiKey={hasAccess ? (effectiveApiKey || 'granted') : (isDemoFlow ? 'demo' : null)}
@@ -1522,7 +1496,7 @@ export default function App() {
 
         {/* Panel 5 — Launch */}
         <div style={getCarouselStyle(5)} onClick={activePanel !== 5 ? () => setActivePanel(5) : undefined}>
-          <PanelShell num="5" label={t.panel5}>
+          <PanelShell>
             <LaunchPanel
               projectPlan={projectPlan}
               parsed={parsed}

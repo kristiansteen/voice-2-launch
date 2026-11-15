@@ -5,6 +5,13 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
 
 // ── Brand palette ────────────────────────────────────────────────────────────
 
+// Braun palette, shared with ailean.dk: ink on white, paper gateways,
+// one orange signal for the end of the process.
+const INK = '#151515';
+const MID = '#62625D';
+const PAPER = '#F1F1EE';
+const SIGNAL = '#E8500A';
+
 const BRAND = {
   purple:     '#9D6BCF',
   teal:       '#5AC8D2',
@@ -24,7 +31,7 @@ const FONT = 'Inter, -apple-system, sans-serif';
 
 const TASK_W      = 140;
 const TASK_H      = 84;
-const TASK_RADIUS = 10;
+const TASK_RADIUS = 6;
 const ACCENT_W    = 5;
 
 const EVENT_R = 20;
@@ -100,7 +107,7 @@ function appendWrappedText(parentNode, text, cx, cy, opts = {}) {
   const {
     fontSize = 12,
     fontWeight = 500,
-    fill = '#1e293b',
+    fill = INK,
     maxWidth = TASK_W - 24,
     anchor = 'middle',
     maxLines = 2,
@@ -226,45 +233,24 @@ class CustomRenderer extends BaseRenderer {
 
   _drawTask(parentNode, element) {
     const { width: w = TASK_W, height: h = TASK_H } = element;
-    const accent = getAccentColor(element);
-    const tint   = hexTint(accent, 0.07); // very subtle bg tint
-    const filterId = ensureDropShadowFilter(parentNode);
 
-    // Base rect with tinted fill
+    // White card, ink outline — the lane says who does it, so no role colours
     const rect = svgCreate('rect');
     svgAttr(rect, {
       x: 0, y: 0, width: w, height: h,
       rx: TASK_RADIUS, ry: TASK_RADIUS,
-      fill: tint,
-      stroke: hexTint(accent, 0.55),
-      'stroke-width': 1,
-      filter: filterId !== 'none' ? `url(#${filterId})` : undefined,
+      fill: '#FFFFFF',
+      stroke: INK,
+      'stroke-width': 1.2,
     });
     svgAppend(parentNode, rect);
 
-    // Left accent bar — clipped via two rects
-    const bar = svgCreate('rect');
-    svgAttr(bar, {
-      x: 0, y: 0, width: ACCENT_W, height: h,
-      rx: TASK_RADIUS, ry: TASK_RADIUS,
-      fill: accent,
-    });
-    svgAppend(parentNode, bar);
-
-    const cover = svgCreate('rect');
-    svgAttr(cover, {
-      x: ACCENT_W, y: 0, width: ACCENT_W, height: h,
-      fill: tint,
-    });
-    svgAppend(parentNode, cover);
-
     const name = (element.businessObject && element.businessObject.name) || '';
-    const labelX = ACCENT_W + 4 + (w - ACCENT_W - 14) / 2;
-    appendWrappedText(parentNode, name, labelX, h / 2, {
+    appendWrappedText(parentNode, name, w / 2, h / 2, {
       fontSize: 12,
       fontWeight: 500,
-      fill: '#1e293b',
-      maxWidth: w - ACCENT_W - 18,
+      fill: INK,
+      maxWidth: w - 16,
       maxLines: 3,
     });
 
@@ -279,17 +265,17 @@ class CustomRenderer extends BaseRenderer {
 
     let strokeColor, fillColor, strokeWidth;
     if (kind === 'start') {
-      strokeColor = BRAND.green;
-      fillColor   = hexTint(BRAND.green, 0.12);
-      strokeWidth = 2.5;
+      strokeColor = INK;
+      fillColor   = '#FFFFFF';
+      strokeWidth = 1.4;
     } else if (kind === 'end') {
-      strokeColor = BRAND.crimson;
-      fillColor   = hexTint(BRAND.crimson, 0.10);
-      strokeWidth = 3.5;
+      strokeColor = SIGNAL; // the one orange mark: where the process ends
+      fillColor   = '#FFFFFF';
+      strokeWidth = 3.4;
     } else {
-      strokeColor = BRAND.amber;
-      fillColor   = hexTint(BRAND.amber, 0.10);
-      strokeWidth = 2;
+      strokeColor = INK;
+      fillColor   = '#FFFFFF';
+      strokeWidth = 1.2;
     }
 
     const outer = svgCreate('circle');
@@ -312,23 +298,13 @@ class CustomRenderer extends BaseRenderer {
       svgAppend(parentNode, inner);
     }
 
-    if (kind === 'end') {
-      // Filled inner disc
-      const disc = svgCreate('circle');
-      svgAttr(disc, {
-        cx, cy, r: EVENT_R - 6,
-        fill: strokeColor,
-        'fill-opacity': 0.25,
-      });
-      svgAppend(parentNode, disc);
-    }
 
     const name = (element.businessObject && element.businessObject.name) || '';
     if (name) {
       appendWrappedText(parentNode, name, cx, cy + EVENT_R + 10, {
         fontSize: 10,
-        fontWeight: 600,
-        fill: strokeColor,
+        fontWeight: 500,
+        fill: MID,
         maxWidth: 90,
         maxLines: 2,
       });
@@ -347,9 +323,9 @@ class CustomRenderer extends BaseRenderer {
     const diamond = svgCreate('path');
     svgAttr(diamond, {
       d: `M ${cx},${cy - hw} L ${cx + hw},${cy} L ${cx},${cy + hw} L ${cx - hw},${cy} Z`,
-      fill: hexTint(BRAND.amber, 0.10),
-      stroke: BRAND.bronze,
-      'stroke-width': 2,
+      fill: PAPER,
+      stroke: INK,
+      'stroke-width': 1.2,
     });
     svgAppend(parentNode, diamond);
 
@@ -360,9 +336,9 @@ class CustomRenderer extends BaseRenderer {
       'text-anchor': 'middle',
       'dominant-baseline': 'central',
       'font-family': FONT,
-      'font-size': 18,
-      'font-weight': 700,
-      fill: BRAND.bronze,
+      'font-size': 16,
+      'font-weight': 500,
+      fill: INK,
     });
     sym.textContent = symbol;
     svgAppend(parentNode, sym);
@@ -371,8 +347,8 @@ class CustomRenderer extends BaseRenderer {
     if (name) {
       appendWrappedText(parentNode, name, cx, cy - hw - 10, {
         fontSize: 10,
-        fontWeight: 600,
-        fill: BRAND.bronze,
+        fontWeight: 500,
+        fill: MID,
         maxWidth: 100,
         maxLines: 2,
       });
@@ -388,14 +364,14 @@ class CustomRenderer extends BaseRenderer {
     if (waypoints.length < 2) return this.bpmnRenderer.drawConnection(parentNode, element);
 
     const d = buildRoundedPath(waypoints, 8);
-    const markerId = ensureArrowMarker(parentNode, BRAND.periwinkle);
+    const markerId = ensureArrowMarker(parentNode, INK);
 
     const path = svgCreate('path');
     svgAttr(path, {
       d,
       fill: 'none',
-      stroke: BRAND.periwinkle,
-      'stroke-width': 1.5,
+      stroke: INK,
+      'stroke-width': 1.1,
       'marker-end': `url(#${markerId})`,
     });
     svgAppend(parentNode, path);
@@ -536,7 +512,7 @@ function _drawConditionPill(parentNode, label, mx, my) {
     'font-family': FONT,
     'font-size': 9,
     'font-weight': 600,
-    fill: BRAND.plum,
+    fill: MID,
   });
   // Truncate label to fit pill width
   const maxChars = Math.floor((pillW - pad * 2) / charPx);
