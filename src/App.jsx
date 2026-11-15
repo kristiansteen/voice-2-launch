@@ -31,7 +31,7 @@ import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
 import {
   INVITE_PARAM, readInviteFromSearch, rememberInvite, takePendingInvite, holdInvite, heldInvite, releaseInvite,
 } from './lib/roundInvite.js';
-import { onTokenRefreshed } from './services/roundService.js';
+import { onTokenRefreshed, listRounds } from './services/roundService.js';
 import { buildStructuredTranscript } from './lib/transcript.js';
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
@@ -171,6 +171,16 @@ export default function App() {
   // Invite token of an AS-IS round the user opened; shows the contribution screen once logged in
   const [pendingInvite, setPendingInvite] = useState(null);
   const [showRounds, setShowRounds] = useState(false);
+  // Rounds appear only once the backend serves them (its tables are created by hand with prisma db push)
+  const [roundsAvailable, setRoundsAvailable] = useState(false);
+  useEffect(() => {
+    if (!ROUNDS_ENABLED || !vimplToken) { setRoundsAvailable(false); return; }
+    let cancelled = false;
+    listRounds(vimplToken)
+      .then(() => { if (!cancelled) setRoundsAvailable(true); })
+      .catch(() => { if (!cancelled) setRoundsAvailable(false); });
+    return () => { cancelled = true; };
+  }, [vimplToken]);
   useEffect(() => {
     // A new invite from the login round trip, or the one held across a reload
     if (vimplToken) setPendingInvite(prev => prev || takePendingInvite(localStorage) || heldInvite(sessionStorage));
@@ -1122,7 +1132,7 @@ export default function App() {
           onLogout={logoutVimpl}
           onDemo={handleLoadDemo}
           onBurger={() => setShowBurger(true)}
-          onOpenRounds={ROUNDS_ENABLED ? () => setShowRounds(true) : undefined}
+          onOpenRounds={roundsAvailable ? () => setShowRounds(true) : undefined}
         />
         <BurgerMenu
           open={showBurger}
