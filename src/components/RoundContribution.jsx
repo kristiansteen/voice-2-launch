@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import VoicePanel from './VoicePanel.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import { getInvitation, saveContribution, withdrawContribution } from '../services/roundService.js';
-import { scopeContextMessage } from '../lib/roundInvite.js';
+import { scopeContextMessage, classifyRoundError } from '../lib/roundInvite.js';
 import { buildStructuredTranscript } from '../lib/transcript.js';
 import {
   checkContentSafety, parseVoiceToDescription, parseToBpmn, extractProcessMetrics,
@@ -35,11 +35,22 @@ export default function RoundContribution({ vimplToken, inviteToken, ailean, onS
     return ailean.turns.length > 0 ? buildStructuredTranscript(ailean.turns, '') : transcript;
   }
 
+  // A fatal error ends the screen: stop the voice session so the microphone does not stay
+  // open, and keep the transcript on screen so the participant can copy it out.
   function fail(err) {
-    if (err?.status === 404 || err?.code === 'INVITE_INVALID') setErrorKind('invalid');
-    else if (err?.code === 'ROUND_CLOSED') setErrorKind('closed');
-    else { setErrorKind('other'); setNotice(err?.message || null); }
+    const kind = classifyRoundError(err);
+    if (ailean.enabled) { try { ailean.toggle(); } catch { /* ignore */ } }
+    const text = effectiveTranscript();
+    if (text) setTranscript(text);
+    setErrorKind(kind === 'transient' ? 'other' : kind);
     setPhase('error');
+  }
+
+  // Background saves only matter for the owner's status view; a hiccup must not end the interview
+  function backgroundError(err) {
+    const kind = classifyRoundError(err);
+    if (kind === 'transient') console.warn('[round] background save failed', err);
+    else fail(err);
   }
 
   // Load the invitation; record that the participant opened it
@@ -74,7 +85,7 @@ export default function RoundContribution({ vimplToken, inviteToken, ailean, onS
     if (phase !== 'interview' || !hasContent || startedSaved.current) return;
     startedSaved.current = true;
     saveContribution(vimplToken, inviteToken, { status: 'started', contribution: { transcript: effectiveTranscript() } })
-      .catch(fail);
+      .catch(backgroundError);
   }, [phase, hasContent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleParse() {
@@ -89,7 +100,9 @@ export default function RoundContribution({ vimplToken, inviteToken, ailean, onS
       await saveContribution(vimplToken, inviteToken, { status: 'started', contribution: { transcript: text, description: desc } });
       setPhase('confirm');
     } catch (err) {
-      if (err?.status) fail(err); else setNotice(err?.message || t.roundSomethingWrong);
+      // Only round errors end the screen; AI or network errors leave the interview to retry
+      if (err?.status && classifyRoundError(err) !== 'transient') fail(err);
+      else setNotice(err?.message || t.roundSomethingWrong);
     } finally {
       setBusy(false);
     }
@@ -110,7 +123,7 @@ export default function RoundContribution({ vimplToken, inviteToken, ailean, onS
       await saveContribution(vimplToken, inviteToken, { status: 'submitted', contribution });
       setPhase('submitted');
     } catch (err) {
-      if (err?.status === 404 || err?.code) fail(err);
+      if (classifyRoundError(err) !== 'transient') fail(err);
       else { setNotice(err?.message || t.roundSomethingWrong); setPhase('confirm'); }
     }
   }
@@ -160,7 +173,15 @@ export default function RoundContribution({ vimplToken, inviteToken, ailean, onS
           <section className="bg-white rounded-xl border border-gray-200 p-5 text-sm text-gray-700">
             {errorKind === 'invalid' && t.roundInvalid.replace('{name}', owner)}
             {errorKind === 'closed' && t.roundClosed}
+            {errorKind === 'auth' && t.roundLoggedOut}
             {errorKind === 'other' && t.roundSomethingWrong}
+            {transcript && (
+              <div className="mt-4">
+                <p className="text-xs text-gray-500">{t.roundKeepTranscript}</p>
+                <textarea readOnly value={transcript} onFocus={e => e.target.select()}
+                  className="mt-1 w-full h-48 text-xs border border-gray-200 rounded-lg p-2 bg-gray-50" />
+              </div>
+            )}
             <div className="mt-4"><button onClick={onDone} className="text-sm font-medium text-violet-700 hover:underline">{t.roundToDashboard}</button></div>
           </section>
         )}

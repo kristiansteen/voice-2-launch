@@ -3,12 +3,33 @@
 
 import { BACKEND_URL, authHeaders } from '../lib/api.js';
 
+// Access tokens are short-lived, and an interview can outlast one. On a 401 the
+// token is refreshed once from the refresh cookie and the request retried; the
+// app is told the new token so the rest of it keeps working.
+let tokenListener = null;
+export function onTokenRefreshed(fn) { tokenListener = fn; }
+
+async function refreshAccessToken() {
+  const res = await fetch(`${BACKEND_URL}/api/v1/auth/refresh`, {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+  }).catch(() => null);
+  if (!res?.ok) return null;
+  const data = await res.json().catch(() => null);
+  if (data?.accessToken) tokenListener?.(data.accessToken);
+  return data?.accessToken || null;
+}
+
 async function call(token, path, { method = 'GET', body } = {}) {
-  const res = await fetch(`${BACKEND_URL}/api/v1/rounds${path}`, {
+  const send = t => fetch(`${BACKEND_URL}/api/v1/rounds${path}`, {
     method,
-    headers: authHeaders(token),
+    headers: authHeaders(t),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  let res = await send(token);
+  if (res.status === 401) {
+    const fresh = await refreshAccessToken();
+    if (fresh) res = await send(fresh);
+  }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const err = new Error(data?.error || `Request failed (${res.status})`);

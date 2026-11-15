@@ -28,7 +28,10 @@ import {
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { comparisonToImprovements } from './services/processComparison.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
-import { INVITE_PARAM, readInviteFromSearch, rememberInvite, takePendingInvite } from './lib/roundInvite.js';
+import {
+  INVITE_PARAM, readInviteFromSearch, rememberInvite, takePendingInvite, holdInvite, heldInvite, releaseInvite,
+} from './lib/roundInvite.js';
+import { onTokenRefreshed } from './services/roundService.js';
 import { buildStructuredTranscript } from './lib/transcript.js';
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
@@ -169,8 +172,12 @@ export default function App() {
   const [pendingInvite, setPendingInvite] = useState(null);
   const [showRounds, setShowRounds] = useState(false);
   useEffect(() => {
-    if (vimplToken) setPendingInvite(prev => prev || takePendingInvite(localStorage));
+    // A new invite from the login round trip, or the one held across a reload
+    if (vimplToken) setPendingInvite(prev => prev || takePendingInvite(localStorage) || heldInvite(sessionStorage));
   }, [vimplToken]);
+  useEffect(() => { if (pendingInvite) holdInvite(sessionStorage, pendingInvite); }, [pendingInvite]);
+  // The rounds client refreshes an expired access token itself; keep the app's copy in step
+  useEffect(() => { onTokenRefreshed(setVimplToken); return () => onTokenRefreshed(null); }, []);
   const userId = vimplUser?.id ?? null;
   const { logo: companyLogo, setLogo: setCompanyLogo, removeLogo: removeCompanyLogo, loadFile: loadLogoFile } = useCompanyLogo(userId);
   const { systems: systemRepository, addSystem, removeSystem, importFromText: importSystems } = useSystemRepository(userId);
@@ -423,6 +430,10 @@ export default function App() {
   }
 
   function logoutVimpl() {
+    // Never hand the previous user's round invitation to whoever logs in next in this tab
+    releaseInvite(sessionStorage);
+    takePendingInvite(localStorage);
+    setPendingInvite(null);
     // Flush any pending autosave to the server before the token is cleared
     clearTimeout(apiSaveTimer.current);
     const activeFlow = flows.find(f => f.id === currentFlowId);
@@ -1076,6 +1087,7 @@ export default function App() {
           // Clear the round's interview so it does not bleed into the user's own flows
           ailean.reset();
           setRoundScope(null);
+          releaseInvite(sessionStorage);
           setPendingInvite(null);
         }}
       />

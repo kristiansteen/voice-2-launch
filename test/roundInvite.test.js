@@ -60,3 +60,24 @@ test('statusCounts counts each status', () => {
   );
   assert.deepEqual(statusCounts(undefined), { opened: 0, started: 0, submitted: 0 });
 });
+
+test('a held invite survives a reload until it is released', async () => {
+  const { holdInvite, heldInvite, releaseInvite } = await import('../src/lib/roundInvite.js');
+  const s = fakeStorage();
+  holdInvite(s, 'abc');
+  assert.equal(heldInvite(s), 'abc');
+  assert.equal(heldInvite(s), 'abc'); // reading does not consume it
+  releaseInvite(s);
+  assert.equal(heldInvite(s), null);
+});
+
+test('classifyRoundError separates fatal from transient errors', async () => {
+  const { classifyRoundError } = await import('../src/lib/roundInvite.js');
+  const e = (status, code) => Object.assign(new Error('x'), { status, code });
+  assert.equal(classifyRoundError(e(404, 'INVITE_INVALID')), 'invalid');
+  assert.equal(classifyRoundError(e(404, 'NOT_FOUND')), 'invalid');
+  assert.equal(classifyRoundError(e(409, 'ROUND_CLOSED')), 'closed');
+  assert.equal(classifyRoundError(e(401)), 'auth');
+  assert.equal(classifyRoundError(e(500)), 'transient');
+  assert.equal(classifyRoundError(new TypeError('Failed to fetch')), 'transient');
+});

@@ -46,3 +46,32 @@ export function statusCounts(submissions) {
   (submissions || []).forEach(s => { if (s.status in counts) counts[s.status]++; });
   return counts;
 }
+
+// While the contribution screen is open the invite is held in sessionStorage,
+// so a reload returns to it. Released when the participant leaves or logs out.
+const HELD_KEY = 'ailean.heldRoundInvite';
+
+export function holdInvite(storage, token) {
+  try { storage.setItem(HELD_KEY, token); } catch { /* ignore */ }
+}
+
+export function heldInvite(storage) {
+  try { return storage.getItem(HELD_KEY) || null; } catch { return null; }
+}
+
+export function releaseInvite(storage) {
+  try { storage.removeItem(HELD_KEY); } catch { /* ignore */ }
+}
+
+/**
+ * invalid   — link unknown or renewed; nothing more can be saved
+ * closed    — round closed
+ * auth      — login expired and could not be refreshed
+ * transient — network or server hiccup; worth retrying, never fatal on its own
+ */
+export function classifyRoundError(err) {
+  if (err?.status === 404 || err?.code === 'INVITE_INVALID') return 'invalid';
+  if (err?.code === 'ROUND_CLOSED') return 'closed';
+  if (err?.status === 401) return 'auth';
+  return 'transient';
+}
