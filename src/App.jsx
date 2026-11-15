@@ -8,6 +8,7 @@ import DiagramPanel from './components/DiagramPanel.jsx';
 import ImprovePanel from './components/ImprovePanel.jsx';
 import LaunchPanel from './components/LaunchPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import RoundContribution from './components/RoundContribution.jsx';
 import LoginPage from './components/LoginPage.jsx';
 import RegisterPage from './components/RegisterPage.jsx';
 import {
@@ -24,6 +25,7 @@ import { generateBpmnXml } from './services/xmlGenerator.js';
 import { comparisonToImprovements } from './services/processComparison.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
 import { INVITE_PARAM, readInviteFromSearch, rememberInvite, takePendingInvite } from './lib/roundInvite.js';
+import { buildStructuredTranscript } from './lib/transcript.js';
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
   DEMO_TRANSCRIPT, DEMO_PARSED, DEMO_XML, DEMO_DESCRIPTION,
@@ -91,19 +93,6 @@ function blankFlowState() {
     board_url: null,
     board_id: null,
   };
-}
-
-// Build a structured "Interviewer / SME" transcript from Ailean conversation turns.
-function buildStructuredTranscript(turns, currentDraft) {
-  const parts = turns.map(turn =>
-    turn.type === 'ailean'
-      ? `Interviewer: ${turn.text}`
-      : `SME: ${turn.text}`
-  );
-  if (currentDraft?.trim()) {
-    parts.push(`SME: ${currentDraft.trim()}`);
-  }
-  return parts.join('\n\n');
 }
 
 export default function App() {
@@ -1065,6 +1054,18 @@ export default function App() {
       return <RegisterPage onLogin={handleLogin} onSwitchToLogin={() => setAuthView('login')} />;
     }
     return <LoginPage onLogin={handleLogin} onSwitchToRegister={() => setAuthView('register')} />;
+  }
+
+  // ── AS-IS round contribution (opened from an invite link) ──────────
+  if (vimplToken && pendingInvite) {
+    return (
+      <RoundContribution
+        key={pendingInvite}
+        vimplToken={vimplToken}
+        inviteToken={pendingInvite}
+        onDone={() => setPendingInvite(null)}
+      />
+    );
   }
 
   // ── Dashboard ──────────────────────────────────────────────────────
