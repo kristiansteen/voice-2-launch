@@ -1376,7 +1376,7 @@ export default function App() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleApproveToBpmn(true)}
-                    className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                    className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-ink text-paper hover:bg-ink-hover transition-colors"
                   >
                     Use extended limit (8 000 tokens)
                   </button>
@@ -1388,7 +1388,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => setShowExtendedTokensPrompt(false)}
-                    className="px-3 text-xs text-amber-400 hover:text-amber-700 transition-colors"
+                    className="px-3 text-xs text-amber-700 hover:text-amber-700 transition-colors"
                   >
                     Cancel
                   </button>

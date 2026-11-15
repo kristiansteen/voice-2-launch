@@ -87,7 +87,7 @@ function SavePanel({ parsed, processContext, onSaved, onCancel }) {
               <div className="text-[10px] text-gray-500 leading-tight">
                 The standard/reference version of this process for APQC {processContext.apqcNodeId}.
                 {existingBlueprint && (
-                  <span className="text-orange-500"> Replaces existing blueprint "{existingBlueprint.processName}".</span>
+                  <span className="text-orange-700"> Replaces existing blueprint "{existingBlueprint.processName}".</span>
                 )}
               </div>
             </div>

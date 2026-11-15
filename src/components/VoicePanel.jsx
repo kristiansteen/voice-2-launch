@@ -122,41 +122,6 @@ export default function VoicePanel({
       {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-center gap-2 shrink-0">
 
-        {/* Ailean toggle — leftmost, always visible when available */}
-        {ailean && !aileanActive && (
-          <button
-            onClick={handleAileanToggle}
-            title="Start a guided Ailean interview"
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md border bg-purple-600 text-white border-purple-600 hover:bg-purple-700 transition-all"
-          >
-            <svg className="shrink-0" width="13" height="11" viewBox="0 0 13 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0"   y="4"   width="2" height="3"  rx="1" fill="currentColor" opacity="0.6"/>
-              <rect x="2.5" y="2"   width="2" height="7"  rx="1" fill="currentColor" opacity="0.8"/>
-              <rect x="5"   y="0"   width="2" height="11" rx="1" fill="currentColor"/>
-              <rect x="7.5" y="2"   width="2" height="7"  rx="1" fill="currentColor" opacity="0.8"/>
-              <rect x="10"  y="4"   width="2" height="3"  rx="1" fill="currentColor" opacity="0.6"/>
-            </svg>
-            <span className="flex flex-col items-start leading-tight">
-              <span className="text-xs font-semibold">{t.aileanStart}</span>
-              <span className="text-[9px] font-normal opacity-75">{t.aileanStartSub}</span>
-            </span>
-          </button>
-        )}
-
-        {/* Ailean mode: end button */}
-        {aileanActive && (
-          <button
-            onClick={handleAileanToggle}
-            title="End Ailean interview session"
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md border bg-purple-600 text-white border-purple-600 hover:bg-purple-700 transition-all"
-          >
-            <span className="flex flex-col items-start leading-tight">
-              <span className="text-xs font-semibold">{t.aileanEnd}</span>
-              <span className="text-[9px] font-normal opacity-75">{t.aileanEndSub}</span>
-            </span>
-          </button>
-        )}
-
         {/* Clear — after an Ailean session ends the chat view stays; let user wipe it */}
         {!aileanActive && aileanTurns.length > 0 && (
           <button
@@ -213,7 +178,7 @@ export default function VoicePanel({
           </button>
         )}
         {!aileanActive && !supported && (
-          <p className="flex-1 text-xs text-orange-500 text-center">{t.recordNotSupported}</p>
+          <p className="flex-1 text-xs text-orange-700 text-center">{t.recordNotSupported}</p>
         )}
         {error && <p className="text-xs text-red-500">{t.recordError}: {error}</p>}
 
@@ -311,19 +276,58 @@ export default function VoicePanel({
         </div>
       )}
 
-      {/* ── Main area: transcript ─────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      {/* ── Main area: the interview instrument beside the transcript ── */}
+      <div className="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0 bg-case p-2 sm:p-3 gap-2 sm:gap-3">
+
+        {/* Instrument — speaker grille and the one orange button (start / stop Ailean) */}
+        {ailean && (
+          <div className="shrink-0 flex sm:flex-col items-center justify-between gap-3 sm:w-36 px-2 sm:px-0 sm:py-5">
+            <div className="flex sm:flex-col items-center gap-3">
+              <div
+                aria-hidden="true"
+                className={`rounded-full w-14 h-14 sm:w-28 sm:h-28 ${aileanActive && ailean.speaking ? 'animate-pulse' : ''}`}
+                style={{
+                  background: 'radial-gradient(circle, #151515 1.7px, transparent 2.1px) 0 0/10px 10px',
+                  opacity: aileanActive ? 0.95 : 0.28,
+                }}
+              />
+              <p className="text-xs text-mid text-center min-h-[1.4em]">
+                {!aileanActive ? t.aileanStartSub
+                  : ailean.thinking ? t.aileanConnecting
+                  : ailean.speaking ? t.aileanSpeaking
+                  : t.aileanListening}
+              </p>
+            </div>
+            <div className="flex sm:flex-col items-center gap-2">
+              <button
+                onClick={handleAileanToggle}
+                aria-label={aileanActive ? t.aileanEnd : t.aileanStart}
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-signal grid place-items-center transition-transform active:translate-y-px"
+                style={{ boxShadow: '0 2px 0 rgba(0,0,0,.25), 0 0 0 6px #F1F1EE' }}
+              >
+                {aileanActive ? (
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                ) : (
+                  <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+                )}
+              </button>
+              <span className="text-xs text-mid mt-1 hidden sm:block">{aileanActive ? t.aileanEnd : t.aileanStart}</span>
+            </div>
+          </div>
+        )}
+
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-panel border border-line rounded-[10px]">
 
         {/* Transcript — structured view when Ailean has turns, plain textarea otherwise */}
         <div className="flex-1 relative overflow-hidden">
           {isStructured ? (
-            <div className="absolute inset-0 overflow-y-auto p-3 space-y-3 bg-white" id="ailean-transcript-scroll">
+            <div className="absolute inset-0 overflow-y-auto p-4 space-y-3 bg-panel" id="ailean-transcript-scroll">
               {displayTurns.map((turn, i) => (
                 <div key={i} className={`flex gap-2 ${turn.type === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-[9px] font-bold ${turn.type === 'ailean' ? 'bg-purple-600' : 'bg-gray-400'}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-[9px] font-bold ${turn.type === 'ailean' ? 'bg-ink' : 'bg-mid'}`}>
                     {turn.type === 'ailean' ? 'A' : 'S'}
                   </div>
-                  <div className={`flex-1 min-w-0 text-xs rounded-xl px-3 py-2 leading-relaxed ${turn.type === 'ailean' ? 'bg-purple-50 text-purple-900' : 'bg-gray-100 text-gray-700'}`}>
+                  <div className={`flex-1 min-w-0 text-xs rounded-xl px-3 py-2 leading-relaxed ${turn.type === 'ailean' ? 'bg-white border border-line text-ink' : 'bg-ink text-paper'}`}>
                     <span className="block text-[9px] font-semibold uppercase tracking-wider opacity-50 mb-0.5">
                       {turn.type === 'ailean' ? 'Ailean' : 'SME'}
                     </span>
@@ -387,8 +391,8 @@ export default function VoicePanel({
                 readOnly={isRecording}
                 placeholder={t.transcriptPlaceholder}
                 className={[
-                  'absolute inset-0 w-full h-full p-3 text-sm text-gray-700 resize-none focus:outline-none',
-                  isRecording ? 'bg-red-50/30 cursor-default' : 'bg-white',
+                  'absolute inset-0 w-full h-full p-4 text-sm text-ink resize-none focus:outline-none',
+                  isRecording ? 'bg-signal-50 cursor-default' : 'bg-panel',
                 ].join(' ')}
               />
               {isRecording && interimText && (
@@ -481,6 +485,7 @@ export default function VoicePanel({
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* ── Parse confirm bar ─────────────────────────────────────── */}

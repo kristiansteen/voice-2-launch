@@ -906,14 +906,11 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
   const launchedCount = realFlows.filter(f => !!f.board_url).length;
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      {/* Header */}
-      <header className="relative flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-sm shrink-0">
-        <div className="w-24" />
-        <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
-          <span className="ailean-logo" style={{ fontSize: '15px' }}>AILEAN</span>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className="h-screen flex flex-col bg-paper overflow-hidden">
+      {/* Header — as on ailean.dk */}
+      <header className="flex items-center gap-6 h-14 px-4 sm:px-8 bg-paper border-b border-line shrink-0">
+        <span className="ailean-logo">AILEAN</span>
+        <div className="ml-auto flex items-center gap-3">
           <LangSwitcher />
           {vimplUser && (
             isTrial ? (
@@ -927,7 +924,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
               </span>
             )
           )}
-          <button onClick={onBurger} className="p-1.5 rounded hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800" title="Menu">
+          <button onClick={onBurger} className="w-9 h-9 grid place-items-center rounded-full border border-line bg-panel hover:border-ink transition-colors text-ink" aria-label="Menu">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <rect x="2" y="4" width="14" height="1.5" rx="0.75" fill="currentColor"/>
               <rect x="2" y="8.25" width="14" height="1.5" rx="0.75" fill="currentColor"/>
@@ -941,56 +938,47 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
       {isTrial && (
         <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-amber-500 text-sm">⚡</span>
+            <span className="text-amber-700 text-sm">⚡</span>
             <p className="text-xs text-amber-800">
               <span className="font-semibold">{t.dashTrialTitle}</span>{t.dashTrialBody}
             </p>
           </div>
           <a href={PRICING_URL} target="_blank" rel="noopener noreferrer"
-            className="shrink-0 text-xs bg-amber-500 text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors">
+            className="shrink-0 text-xs bg-ink text-paper font-semibold px-3 py-1.5 rounded-lg hover:bg-ink-hover transition-colors">
             {t.dashSeePlans}
           </a>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-8">
+       <div className="max-w-[1360px] mx-auto">
         {/* Title bar */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{t.dashTitle}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{t.dashSubtitle}</p>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-xs text-gray-400">{realFlowCount} {realFlowCount !== 1 ? t.dashProcesses : t.dashProcess}</span>
-              {mappedCount > 0 && <span className="text-xs text-gray-300">·</span>}
-              {mappedCount > 0 && <span className="text-xs text-indigo-500">{mappedCount} {t.dashMappedStat}</span>}
-              {plannedCount > 0 && <span className="text-xs text-gray-300">·</span>}
-              {plannedCount > 0 && <span className="text-xs text-green-600">{plannedCount} {t.dashPlannedStat}</span>}
-              {launchedCount > 0 && <span className="text-xs text-gray-300">·</span>}
-              {launchedCount > 0 && <span className="text-xs text-emerald-600">{launchedCount} {t.dashLaunchedStat}</span>}
-              {isTrial && <span className="text-xs text-gray-300">·</span>}
-              {isTrial && <span className="text-xs text-amber-500">{t.dashTrialIncluded}</span>}
-            </div>
+            <h1 className="text-4xl sm:text-5xl font-medium tracking-[-0.03em] leading-[1.05] text-ink">{t.dashTitle}</h1>
+            <p className="text-sm text-mid mt-2">{t.dashSubtitle}</p>
+            {isTrial && <p className="text-xs text-mid mt-1">{t.dashTrialIncluded}</p>}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* View toggle */}
             {!loading && flows.length > 0 && (
-              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs">
+              <div className="flex rounded-full border border-line overflow-hidden text-xs">
                 <button
                   onClick={() => setView('matrix')}
-                  className={`px-3 py-1.5 transition-colors ${view === 'matrix' ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                  className={`px-3 py-1.5 transition-colors ${view === 'matrix' ? 'bg-ink text-paper' : 'bg-transparent text-mid hover:text-ink'}`}
                 >
                   {t.dashViewMatrix}
                 </button>
                 <button
                   onClick={() => setView('cards')}
-                  className={`px-3 py-1.5 transition-colors ${view === 'cards' ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                  className={`px-3 py-1.5 transition-colors ${view === 'cards' ? 'bg-ink text-paper' : 'bg-transparent text-mid hover:text-ink'}`}
                 >
                   {t.dashViewCards}
                 </button>
               </div>
             )}
             {onOpenRounds && (
-              <button onClick={onOpenRounds} className="text-sm font-medium text-gray-700 border border-gray-200 bg-white rounded-lg px-4 py-2 hover:border-violet-400 hover:text-violet-700 transition-colors">
+              <button onClick={onOpenRounds} className="text-sm font-medium text-ink border border-ink rounded-full px-4 py-2 hover:bg-ink hover:text-paper transition-colors">
                 {t.dashRounds}
               </button>
             )}
@@ -1000,12 +988,29 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
               </button>
             ) : (
               <a href={PRICING_URL} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 bg-amber-500 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors">
+                className="flex items-center gap-1.5 bg-ink text-paper text-sm font-semibold px-4 py-2 rounded-lg hover:bg-ink-hover transition-colors">
                 {t.dashUpgradeAdd}
               </a>
             )}
           </div>
         </div>
+
+        {/* Figures — large numbers over an ink rule, as on ailean.dk */}
+        {!loading && realFlowCount > 0 && (
+          <dl className="grid grid-cols-2 sm:grid-cols-4 border-t border-ink mb-10">
+            {[
+              [realFlowCount, realFlowCount !== 1 ? t.dashProcesses : t.dashProcess],
+              [mappedCount, t.dashMappedStat],
+              [plannedCount, t.dashPlannedStat],
+              [launchedCount, t.dashLaunchedStat],
+            ].map(([n, label], i) => (
+              <div key={i} className={`py-4 ${i ? 'sm:pl-6 sm:border-l border-line' : ''} ${i % 2 ? 'pl-6 border-l border-line sm:border-l' : ''}`}>
+                <dd className="text-4xl font-medium tracking-[-0.03em] leading-none tabular-nums">{n}</dd>
+                <dt className="text-sm text-mid mt-1">{label}</dt>
+              </div>
+            ))}
+          </dl>
+        )}
 
         {/* Loading skeleton */}
         {loading && (
@@ -1096,22 +1101,23 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
               <p className="text-xs text-gray-500 mt-0.5">{t.dashUpgradeBody}</p>
             </div>
             <a href={PRICING_URL} target="_blank" rel="noopener noreferrer"
-              className="shrink-0 text-sm bg-amber-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors">
+              className="shrink-0 text-sm bg-ink text-paper font-semibold px-4 py-2 rounded-lg hover:bg-ink-hover transition-colors">
               {t.dashUpgradeBtn}
             </a>
           </div>
         )}
 
         {/* Try Demo card — only shown before user has any real flows */}
-        {realFlowCount === 0 && <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 flex items-center justify-between gap-4">
+        {realFlowCount === 0 && <div className="mt-6 bg-panel border border-line rounded-[10px] p-5 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-gray-800">{t.dashDemoTitle}</p>
             <p className="text-xs text-gray-500 mt-0.5">{t.dashDemoDesc}</p>
           </div>
-          <button onClick={onDemo} className="shrink-0 text-sm bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
+          <button onClick={onDemo} className="shrink-0 text-sm border border-ink text-ink font-medium px-4 py-2 rounded-full hover:bg-ink hover:text-paper transition-colors whitespace-nowrap">
             {t.dashDemoBtn}
           </button>
         </div>}
+       </div>
       </div>
 
       {deletingFlow && (

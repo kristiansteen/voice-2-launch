@@ -319,7 +319,7 @@ export default function StepCurtain({ element, parsed, processDescription, metri
 
               {/* Backlog */}
               <div className="mt-3 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5 flex items-center gap-3">
-                <p className="text-[10px] text-orange-400 uppercase tracking-wide font-medium flex-1">Backlog (open cases)</p>
+                <p className="text-[10px] text-orange-700 uppercase tracking-wide font-medium flex-1">Backlog (open cases)</p>
                 <input
                   type="number"
                   min="0"

@@ -56,7 +56,7 @@ export default function RoundsPanel({ vimplToken, vimplUser, onBack, onContribut
               </div>
               {canStart
                 ? <button onClick={() => setShowForm(v => !v)} className="bg-ink text-paper text-sm font-semibold px-4 py-2 rounded-full hover:bg-ink-hover">{t.roundsNew}</button>
-                : <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" className="bg-amber-500 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-amber-600">{t.roundsUpgrade}</a>}
+                : <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" className="bg-ink text-paper text-sm font-semibold px-4 py-2 rounded-lg hover:bg-ink-hover">{t.roundsUpgrade}</a>}
             </div>
 
             {showForm && canStart && (
