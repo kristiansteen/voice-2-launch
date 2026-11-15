@@ -151,3 +151,25 @@ Access rules, each with a test: a participant never receives another participant
 ## Left to the builder
 
 File and component names, exact endpoint paths, prompt wording for matching and quotes, the marker's visual style, and how the invite token is carried through login.
+
+## Update, 15 November 2026: parts 2 and 3 go through the Review pane
+
+Decided by Kristian after testing part 1:
+
+- On the round screen the owner selects one or more submitted versions and chooses **Open in Review** or **Open as process diagram**. Both create a new flow of the owner's.
+- **Open in Review** opens the flow in the Review pane with one combined description. The disagreements are listed there, per step, with who said what and a link to the source. The owner settles them, edits freely, and approves to get the diagram as usual.
+- **Open as process diagram** does the same and approves automatically. The diagram follows the majority; a chip on the diagram shows how many points are still open and leads to the Review pane. Re-approving regenerates the diagram.
+- With one version selected, that version's description is used as is.
+- **Snapshot:** the flow copies the selected versions when the button is clicked. The round stays open; later submissions mean using the submissions again, which creates a new flow.
+
+This replaces the draft-with-markers design above: there is no separate draft or promotion step; approving in the Review pane is the promotion. Parts 2 and 3 become one part.
+
+Calls I made, for Kristian to check:
+
+1. Combining works on what the Review pane holds (steps, roles, exceptions, known issues), not on diagrams.
+2. Disagreement types in this part: a step some versions have and others lack, the order of two steps, and who does a step. Times, decision rules and rework loops are left for later: the Review pane has no structured fields for them yet.
+3. Exceptions and known issues from all versions are listed together, without duplicates.
+4. The source shown for each version is a passage copied word for word from that person's transcript, found by matching words, never written by the AI. When no passage matches well, the person's own step text is shown, labelled as such. The full transcript is one click away.
+5. Ties follow the owner's own version if selected, otherwise the earliest submitted.
+6. The flow's transcript is the selected transcripts one after another, each under the participant's name, so metrics extraction works as for a normal flow.
+7. Each resolution (what was disputed, what was chosen, when) is saved with the flow.
