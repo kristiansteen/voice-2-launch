@@ -73,7 +73,7 @@ function slugify(name) {
   return (name || 'process').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-export default function LaunchPanel({ projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, boardUrl, boardId, boardVersion, onNewFlow, isDemoFlow, asIsXml, toBeXml }) {
+export default function LaunchPanel({ timeComparison = null, projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, boardUrl, boardId, boardVersion, onNewFlow, isDemoFlow, asIsXml, toBeXml }) {
   const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
@@ -178,12 +178,25 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto">
 
-        {/* ── Plan summary ─────────────────────────────────────────── */}
-        <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-          <p className="text-sm font-semibold text-gray-800">{projectPlan.plan_name}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {projectPlan.duration_weeks} {t.weeks}
-          </p>
+        {/* ── Plan summary: figures over an ink rule, as on ailean.dk ─ */}
+        <div className="px-4 pt-5 pb-4 border-b border-line">
+          <p className="text-xl font-medium tracking-[-0.015em] text-ink">{projectPlan.plan_name}</p>
+          <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 border-t border-ink">
+            {[
+              [`${projectPlan.duration_weeks ?? '—'}`, t.weeks],
+              [`${(projectPlan.tasks || []).length}`, t.planTasksInTracks.replace('{n}', (projectPlan.tracks || []).length)],
+              [timeComparison?.touchReduction != null ? `${timeComparison.touchReduction} %` : '—', t.planShorterTouch, timeComparison?.basedOnEstimates],
+              [`${(projectPlan.risks || []).length + customRisks.length}`, t.risks],
+            ].map(([n, label, est], i) => (
+              <div key={i} className={`py-3 ${i ? 'pl-4 border-l border-line' : 'pr-4'} ${i === 2 ? 'max-sm:border-l-0 max-sm:pl-0' : ''}`}>
+                <dd className="text-3xl font-medium tracking-[-0.03em] leading-none tabular-nums">{n}</dd>
+                <dt className="text-xs text-mid mt-1">
+                  {label}
+                  {est && <span className="ml-1.5 border border-dashed border-mid rounded-full px-1.5 text-[11px]">{t.dashEffEst}</span>}
+                </dt>
+              </div>
+            ))}
+          </dl>
         </div>
 
         {/* ── Tracks & tasks ───────────────────────────────────────── */}

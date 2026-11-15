@@ -93,9 +93,9 @@ function formatDuration(value, unit) {
 
 // Where a number comes from. "Estimated" is the AI's guess and the default.
 const SOURCE_OPTIONS = [
-  { value: 'stated',    label: 'Stated',    cls: 'text-blue-700 bg-blue-50 border-blue-200' },
-  { value: 'estimated', label: 'Estimated', cls: 'text-amber-700 bg-amber-50 border-amber-200' },
-  { value: 'measured',  label: 'Measured',  cls: 'text-green-700 bg-green-50 border-green-200' },
+  { value: 'stated',    label: 'Stated',    cls: 'text-ink bg-white border-line' },
+  { value: 'estimated', label: 'Estimated', cls: 'text-mid bg-transparent border-mid border-dashed' },
+  { value: 'measured',  label: 'Measured',  cls: 'text-paper bg-ink border-ink' },
 ];
 
 function SourceSelect({ value, onChange }) {

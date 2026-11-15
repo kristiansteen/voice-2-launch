@@ -12,18 +12,19 @@ const CAT_LABEL_KEYS = {
   risk:       'catRisk',
 };
 
+// Braun: categories and effort are told apart by their words, not by colour
 const CATEGORY_COLOURS = {
-  automation: 'bg-blue-100 text-blue-700',
-  governance: 'bg-purple-100 text-purple-700',
-  clarity:    'bg-yellow-100 text-yellow-700',
-  efficiency: 'bg-green-100 text-green-700',
-  risk:       'bg-red-100 text-red-700',
+  automation: 'border border-line text-mid',
+  governance: 'border border-line text-mid',
+  clarity:    'border border-line text-mid',
+  efficiency: 'border border-line text-mid',
+  risk:       'border border-line text-mid',
 };
 
 const EFFORT_COLOURS = {
-  low:    'bg-green-50 text-green-600',
-  medium: 'bg-yellow-50 text-yellow-700',
-  high:   'bg-red-50 text-red-600',
+  low:    'text-mid',
+  medium: 'text-mid',
+  high:   'text-ink font-medium',
 };
 
 const BLANK_IDEA = { title: '', description: '', category: 'efficiency', effort: 'medium', ai_candidate: false };
@@ -114,6 +115,10 @@ export default function ImprovePanel({
   }
 
   const hasImprovements = improvements && improvements.length > 0;
+  // Filter by category, as in the Braun proposal; 'all' shows everything
+  const [catFilter, setCatFilter] = useState('all');
+  const presentCats = CATEGORIES.filter(c => (improvements || []).some(i => i.category === c));
+  const shown = catFilter === 'all' ? (improvements || []) : (improvements || []).filter(i => i.category === catFilter);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -123,7 +128,21 @@ export default function ImprovePanel({
         {hasImprovements && (
           <div className="px-4 pb-2 space-y-2">
             <p className="text-xs text-gray-500">{selectedIds.length} {t.selected}</p>
-            {improvements.map(imp => (
+            {presentCats.length > 1 && (
+              <div role="group" aria-label={t.impFilter} className="flex flex-wrap gap-1.5 pb-1">
+                {['all', ...presentCats].map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setCatFilter(c)}
+                    aria-pressed={catFilter === c}
+                    className={`text-xs font-medium rounded-full px-3 py-1 border transition-colors ${catFilter === c ? 'bg-ink text-paper border-ink' : 'border-line text-ink hover:border-ink'}`}
+                  >
+                    {c === 'all' ? `${t.impFilterAll} ${improvements.length}` : (t[CAT_LABEL_KEYS[c]] || c)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {shown.map(imp => (
               <div key={imp.id}>
                 {editingImpId === imp.id ? (
                   <IdeaForm

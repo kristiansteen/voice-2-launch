@@ -37,6 +37,7 @@ import {
 } from './lib/roundInvite.js';
 import { onTokenRefreshed, listRounds } from './services/roundService.js';
 import { buildStructuredTranscript } from './lib/transcript.js';
+import { compareTimes } from './lib/processMetrics.js';
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
   DEMO_TRANSCRIPT, DEMO_PARSED, DEMO_XML, DEMO_DESCRIPTION,
@@ -1498,6 +1499,7 @@ export default function App() {
         <div style={getCarouselStyle(5)} onClick={activePanel !== 5 ? () => setActivePanel(5) : undefined}>
           <PanelShell>
             <LaunchPanel
+              timeComparison={compareTimes(asIsParsed || parsed, asIsMetrics, toBeParsed, toBeMetrics)}
               projectPlan={projectPlan}
               parsed={parsed}
               processDescription={processDescription}
