@@ -1,3 +1,4 @@
+import { buildQuickPlaybook, quickPlaybookFilename } from '../services/quickPlaybook.js';
 import { useState, useRef, useEffect } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
 import BpmnErrorBoundary from './BpmnErrorBoundary.jsx';
@@ -163,6 +164,24 @@ export default function DiagramPanel({
     }
   }
 
+  // ── Amazon Quick Suite playbook (no AI call — built from the diagram) ──
+  function handleDownloadQuick() {
+    const variantParsed = activeTab === 'tobe' ? (toBeParsed || parsed) : parsed;
+    const md = buildQuickPlaybook({
+      parsed: variantParsed, processName, processDescription,
+      metrics: activeTab === 'tobe' ? toBeMetrics : asIsMetrics,
+      systemMap, variant: activeVariant, lang,
+    });
+    if (!md) return;
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = quickPlaybookFilename(processName, activeVariant);
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const activeXml     = activeTab === 'tobe' ? toBeXml : activeTab === 'blueprint' ? blueprintXml : (asIsXml || xml);
   const activeRef     = activeTab === 'tobe' ? toBeViewerRef.current : activeTab === 'blueprint' ? blueprintRef.current : viewerRef.current;
   const activeVariant = activeTab === 'tobe' ? 'to-be' : activeTab === 'blueprint' ? 'blueprint' : 'as-is';
@@ -232,6 +251,14 @@ export default function DiagramPanel({
           {sopLoading
             ? <><span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-purple-500 rounded-full animate-spin" /> SOP</>
             : sopError ? '⚠ SOP' : 'SOP'}
+        </button>
+        <button
+          onClick={handleDownloadQuick}
+          disabled={!parsed}
+          className="text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-ink hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          title={t.quickPlaybookTitle}
+        >
+          {t.quickPlaybook}
         </button>
         <div className="bpmn-zoom-divider" />
         <button onClick={() => activeRef?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>

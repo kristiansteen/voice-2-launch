@@ -35,7 +35,7 @@ function makeClient(apiKey, proxyAuth) {
 // ── Build sequential steps from BPMN graph ───────────────────────────────────
 // Returns an ordered list of steps (topological sort) with role, action, type.
 
-function buildSteps(parsed) {
+export function buildSteps(parsed) {
   const { events, activities, gateways, sequence_flows, roles } = parsed;
   const roleMap = Object.fromEntries((roles || []).map(r => [r.id, r.name]));
 
@@ -70,6 +70,7 @@ function buildSteps(parsed) {
   order.forEach((id, idx) => {
     const el = byId[id];
     if (!el) return;
+    const n0 = steps.length;
     const outFlows = out[id] || [];
 
     if (el._kind === 'event') {
@@ -92,6 +93,7 @@ function buildSteps(parsed) {
         step: steps.length + 1,
       });
     }
+    if (steps.length > n0) steps[steps.length - 1].id = id;
   });
 
   return steps;
