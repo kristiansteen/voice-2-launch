@@ -44,7 +44,7 @@ export default function RoundDisagreements({ snapshot, onResolve }) {
           </button>
           {showResolved && resolved.map(d => (
             <p key={d.id} className="text-[11px] text-gray-600 mt-1">
-              {title(d, t)} → <b>{optionLabel(d, d.options.find(o => o.key === resolutions[d.id].option), t)}</b>
+              {title(d, t)} → <b>{resolutions[d.id].option === 'kept' ? t.roundDisKept : optionLabel(d, d.options.find(o => o.key === resolutions[d.id].option), t)}</b>
             </p>
           ))}
         </div>
@@ -103,7 +103,7 @@ function Item({ d, names, t, onResolve, onTranscript }) {
         ))}
       </div>
       <div className="mt-2 flex gap-3">
-        <button onClick={() => onResolve(d.id, d.chosen)} className="text-[11px] text-gray-500 hover:text-gray-800">{t.roundDisKeep}</button>
+        <button onClick={() => onResolve(d.id, null)} className="text-[11px] text-gray-500 hover:text-gray-800">{t.roundDisKeep}</button>
         <button onClick={() => setShowSources(v => !v)} className="text-[11px] text-violet-700 hover:underline">
           {showSources ? t.roundDisHideSources : t.roundDisShowSources}
         </button>

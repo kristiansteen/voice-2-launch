@@ -27,7 +27,7 @@ import {
   matchRoundSteps,
 } from './services/anthropicService.js';
 import {
-  versionsFromRound, stepRefs, validateGroups, combine, applyResolution, combinedTranscript,
+  versionsFromRound, stepRefs, validateGroups, combine, combinedTranscript, groupingLooksBroken, resolveDisagreement,
 } from './lib/roundMerge.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { comparisonToImprovements } from './services/processComparison.js';
@@ -902,7 +902,14 @@ export default function App() {
         setRoundUseError(t.roundsUseFailed);
         return;
       }
-      ({ description, disagreements } = combine(versions, validateGroups(raw, refs), round.processName));
+      const groups = validateGroups(raw, refs);
+      // A grouping that matched almost nothing would give an empty draft; treat it as a failure
+      if (groupingLooksBroken(groups, refs)) {
+        console.error('[matchRoundSteps] grouping matched almost nothing:', raw);
+        setRoundUseError(t.roundsUseFailed);
+        return;
+      }
+      ({ description, disagreements } = combine(versions, groups, round.processName));
     }
     const snapshot = {
       roundId: round.id,
@@ -929,14 +936,11 @@ export default function App() {
   }
 
   // The owner settles one disagreement in the Review pane
+  // optionKey null = keep the draft as it is (records the decision, leaves hand edits alone)
   function handleResolveDisagreement(disagreementId, optionKey) {
-    const d = roundSnapshot?.disagreements?.find(x => x.id === disagreementId);
-    if (!d) return;
-    setProcessDescription(prev => applyResolution(prev, d, optionKey));
-    setRoundSnapshot(prev => ({
-      ...prev,
-      resolutions: { ...prev.resolutions, [disagreementId]: { option: optionKey, at: new Date().toISOString() } },
-    }));
+    const r = resolveDisagreement(processDescription, roundSnapshot, disagreementId, optionKey);
+    setProcessDescription(r.description);
+    setRoundSnapshot(r.snapshot);
   }
 
   async function handleApproveToBpmn(useExtendedTokens = false, override = null) {

@@ -57,6 +57,20 @@ export function validateGroups(raw, refs) {
   return groups.map((g, i) => ({ key: `g${i}`, ...g }));
 }
 
+/**
+ * True when the AI's grouping matched almost nothing across versions (e.g. it returned []).
+ * Combining such a grouping gives an empty draft full of "missing" points, so callers
+ * treat it as a failed comparison instead.
+ */
+export function groupingLooksBroken(groups, refs) {
+  const versionsOf = new Map(refs.map(r => [r.ref, r.versionId]));
+  if (new Set(refs.map(r => r.versionId)).size < 2) return false;
+  const matched = groups
+    .filter(g => new Set(g.refs.map(r => versionsOf.get(r))).size >= 2)
+    .reduce((n, g) => n + g.refs.length, 0);
+  return matched < refs.length / 2;
+}
+
 // ── Source passages ──────────────────────────────────────────────────────────
 
 const STOPWORDS = new Set([
@@ -77,13 +91,16 @@ function terms(text) {
 export function findPassage(transcript, text) {
   const wanted = terms(text).map(t => (t.length > 5 ? t.slice(0, 5) : t));
   if (!transcript || !wanted.length) return null;
+  // Scored per sentence, so a long paragraph yields the sentence that matched, not its opening
   let best = null, bestScore = 0;
   for (const para of transcript.split(/\n+/)) {
     if (!para.trim() || INTERVIEWER.test(para)) continue;
     const clean = para.replace(SPEAKER, '').trim();
-    const words = clean.toLowerCase().split(/[^\p{L}\p{N}]+/u);
-    const score = wanted.filter(t => words.some(w => w.startsWith(t))).length;
-    if (score > bestScore) { bestScore = score; best = clean; }
+    for (const sentence of clean.split(/(?<=[.!?])\s+/)) {
+      const words = sentence.toLowerCase().split(/[^\p{L}\p{N}]+/u);
+      const score = wanted.filter(t => words.some(w => w.startsWith(t))).length;
+      if (score > bestScore) { bestScore = score; best = sentence.trim(); }
+    }
   }
   if (bestScore < Math.min(2, wanted.length)) return null;
   return best.length > 300 ? `${best.slice(0, 300).trimEnd()}…` : best;
@@ -156,10 +173,12 @@ export function combine(versions, groups, processName) {
     const own = g.perVersion.get(pref.id);
 
     // Performer: majority, ties follow the earliest version in preference order
+    // Blank performers do not vote: someone who did not name a performer does not disagree
     const byPerformer = new Map();
     for (const id of g.present) {
       const p = g.perVersion.get(id).performer;
       const k = norm(p);
+      if (!k) continue;
       if (!byPerformer.has(k)) byPerformer.set(k, { label: p, versionIds: [] });
       byPerformer.get(k).versionIds.push(id);
     }
@@ -247,6 +266,24 @@ export function combine(versions, groups, processName) {
 
 function renumber(steps) {
   return steps.map((s, i) => ({ ...s, order: i + 1 }));
+}
+
+/**
+ * Settle one disagreement. optionKey null means "keep the draft as it is": the decision is
+ * recorded and the description, including any edits the owner made by hand, is left alone.
+ * Returns { description, snapshot }.
+ */
+export function resolveDisagreement(description, snapshot, disagreementId, optionKey) {
+  const d = snapshot?.disagreements?.find(x => x.id === disagreementId);
+  if (!d) return { description, snapshot };
+  const next = optionKey == null ? description : applyResolution(description, d, optionKey);
+  return {
+    description: next,
+    snapshot: {
+      ...snapshot,
+      resolutions: { ...snapshot.resolutions, [d.id]: { option: optionKey ?? 'kept', at: new Date().toISOString() } },
+    },
+  };
 }
 
 /** Apply the owner's choice to the current description. Acts on steps by key, so other edits survive. */

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   versionsFromRound, stepRefs, validateGroups, combine, applyResolution, findPassage, combinedTranscript,
+  groupingLooksBroken, resolveDisagreement,
 } from '../src/lib/roundMerge.js';
 
 const step = (order, name, performer, description = '') => ({ order, name, performer, description });
@@ -207,4 +208,76 @@ test('combinedTranscript puts each transcript under the participant\'s name', ()
   assert.match(t, /^=== Anna ===\n/);
   assert.match(t, /=== Lars ===/);
   assert.match(t, /We receive the invoice by email/);
+});
+
+
+// ── Fixes from review ────────────────────────────────────────────────────────
+
+function threeWith(stepsA, stepsB, stepsC) {
+  const r = { processName: 'p', submissions: [
+    sub('a', 'A', 'a@x', '2026-01-01', desc(stepsA)),
+    sub('b', 'B', 'b@x', '2026-01-02', desc(stepsB)),
+    sub('c', 'C', 'c@x', '2026-01-03', desc(stepsC)),
+  ] };
+  return versionsFromRound(r, ['a', 'b', 'c'], null);
+}
+
+test('a blank performer never outvotes a named one', () => {
+  const versions = threeWith([step(1, 'S', 'AP clerk')], [step(1, 'S', '')], [step(1, 'S', '  ')]);
+  const { description, disagreements } = combine(versions, validateGroups([{ name: 'S', refs: ['v0s0', 'v1s0', 'v2s0'] }], stepRefs(versions)), 'p');
+  assert.equal(description.steps[0].performer, 'AP clerk');
+  assert.equal(disagreements.filter(d => d.type === 'performer').length, 0);
+});
+
+test('two different named performers are still a disagreement when others left it blank', () => {
+  const versions = threeWith([step(1, 'S', 'AP clerk')], [step(1, 'S', 'Manager')], [step(1, 'S', '')]);
+  const { disagreements } = combine(versions, validateGroups([{ name: 'S', refs: ['v0s0', 'v1s0', 'v2s0'] }], stepRefs(versions)), 'p');
+  const d = disagreements.find(x => x.type === 'performer');
+  assert.deepEqual(d.options.map(o => o.label), ['AP clerk', 'Manager']);
+});
+
+test('findPassage quotes the matching sentence of a long paragraph, not its opening', () => {
+  const para = 'SME: Every morning I start by sorting the shared mailbox and moving newsletters away from the inbox so that the real messages stand out. '
+    + 'Most days that takes a while because people send all sorts of things there. '
+    + 'When an invoice is there, the department manager approves the invoice before anything else happens.';
+  assert.equal(findPassage(para, 'Manager approves invoice'), 'When an invoice is there, the department manager approves the invoice before anything else happens.');
+});
+
+test('groupingLooksBroken flags a grouping that matched almost nothing', () => {
+  const versions = threeWith(
+    [step(1, 'Receive', 'x'), step(2, 'Approve', 'x'), step(3, 'Pay', 'x')],
+    [step(1, 'Receive', 'x'), step(2, 'Approve', 'x'), step(3, 'Pay', 'x')],
+    [step(1, 'Receive', 'x'), step(2, 'Approve', 'x'), step(3, 'Pay', 'x')],
+  );
+  const refs = stepRefs(versions);
+  assert.equal(groupingLooksBroken(validateGroups([], refs), refs), true);
+  const good = validateGroups([
+    { name: 'Receive', refs: ['v0s0', 'v1s0', 'v2s0'] }, { name: 'Approve', refs: ['v0s1', 'v1s1', 'v2s1'] }, { name: 'Pay', refs: ['v0s2', 'v1s2'] },
+  ], refs); // v2s2 left on its own: a real difference, not a broken grouping
+  assert.equal(groupingLooksBroken(good, refs), false);
+});
+
+test('resolveDisagreement', async (t) => {
+  const { versions, groups } = threeVersions();
+  const { description, disagreements } = combine(versions, groups, 'p');
+  const snapshot = { versions: [], disagreements, resolutions: {} };
+  const performer = disagreements.find(d => d.type === 'performer');
+
+  await t.test('"keep the draft" records the decision without touching the user\'s edits', () => {
+    const edited = { ...description, steps: description.steps.map((s, i) => (i === 0 ? { ...s, performer: 'Typed by hand' } : s)) };
+    const r = resolveDisagreement(edited, snapshot, performer.id, null);
+    assert.equal(r.description, edited);
+    assert.equal(r.snapshot.resolutions[performer.id].option, 'kept');
+  });
+  await t.test('choosing an option applies it and records it', () => {
+    const r = resolveDisagreement(description, snapshot, performer.id, 'p1');
+    assert.equal(r.description.steps[0].performer, 'Finance');
+    assert.equal(r.snapshot.resolutions[performer.id].option, 'p1');
+    assert.ok(r.snapshot.resolutions[performer.id].at);
+  });
+  await t.test('an unknown disagreement changes nothing', () => {
+    const r = resolveDisagreement(description, snapshot, 'nope', 'p1');
+    assert.equal(r.description, description);
+    assert.equal(r.snapshot, snapshot);
+  });
 });
