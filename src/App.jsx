@@ -24,7 +24,11 @@ import {
   extractProcessMetrics,
   estimateToBeMetrics,
   checkContentSafety,
+  matchRoundSteps,
 } from './services/anthropicService.js';
+import {
+  versionsFromRound, stepRefs, validateGroups, combine, applyResolution, combinedTranscript,
+} from './lib/roundMerge.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { comparisonToImprovements } from './services/processComparison.js';
 import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
@@ -97,6 +101,7 @@ function blankFlowState() {
     systemMap: {},
     videoMap: {},
     comparisonResult: null,
+    roundSnapshot: null,
     board_url: null,
     board_id: null,
   };
@@ -426,6 +431,9 @@ export default function App() {
   const [systemMap, setSystemMap] = useState({});
   const [videoMap, setVideoMap] = useState({});
   const [comparisonResult, setComparisonResult] = useState(null);
+  // Set when the flow was created from AS-IS round submissions: versions, disagreements, resolutions
+  const [roundSnapshot, setRoundSnapshot] = useState(null);
+  const [roundUseError, setRoundUseError] = useState(null);
   const [planSource, setPlanSource] = useState('improvements'); // 'improvements' | 'comparison'
 
   function loginWithGoogle() {
@@ -544,6 +552,7 @@ export default function App() {
     setSystemMap(flow.systemMap || {});
     setVideoMap(flow.videoMap || {});
     setComparisonResult(flow.comparisonResult || null);
+    setRoundSnapshot(flow.roundSnapshot || null);
     setBoardUrl(flow.board_url || null);
     setBoardId(flow.board_id || null);
     setBoardVersion(flow.board_version || 1);
@@ -564,6 +573,7 @@ export default function App() {
       transcript, processDescription, parsed, xml,
       improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
       asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult,
+      roundSnapshot,
     };
     setFlows(prev => {
       const updated = prev.map(f => f.id === currentFlowId ? updatedFlow : f);
@@ -605,7 +615,7 @@ export default function App() {
           });
       }, 2000);
     }
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult, roundSnapshot]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleConfirmLang() {
@@ -628,6 +638,11 @@ export default function App() {
       window.open(PRICING_URL, '_blank', 'noopener,noreferrer');
       return;
     }
+    createFlowWith(null);
+  }
+
+  // Creates a flow and opens it; `initial` pre-fills it (used for AS-IS round submissions)
+  function createFlowWith(initial) {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
@@ -639,6 +654,7 @@ export default function App() {
       board_id: null,
       board_url: null,
       ...blankFlowState(),
+      ...(initial || {}),
     };
     setFlows(prev => {
       const updated = [newFlow, ...prev];
@@ -648,8 +664,10 @@ export default function App() {
     if (vimplToken) upsertFlow(vimplToken, newFlow).catch(() => {});
     ailean.reset(); // clear interviewer turns so they don't bleed into the new flow
     // Reset all content state
-    setTranscript('');
-    setProcessDescription(null);
+    setTranscript(initial?.transcript || '');
+    setProcessDescription(initial?.processDescription || null);
+    setRoundSnapshot(initial?.roundSnapshot || null);
+    setComparisonResult(null);
     setParsed(null);
     setXml(null);
     setImprovements(null);
@@ -663,7 +681,7 @@ export default function App() {
     setBlueprintXml(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
-    setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
+    setProcessContext(initial?.processContext || { apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setBoardUrl(null);
     setBoardId(null);
     setCurrentFlowId(id);
@@ -863,7 +881,70 @@ export default function App() {
     }
   }
 
-  async function handleApproveToBpmn(useExtendedTokens = false) {
+  // ── AS-IS rounds: turn submissions into a flow (snapshot) ──────────
+  // One version: its description as is. Several: the AI groups steps that are the same,
+  // the rest (disagreements, majority draft) is computed in roundMerge.js.
+  async function handleUseSubmissions({ round, submissionIds, mode }) {
+    setRoundUseError(null);
+    const versions = versionsFromRound(round, submissionIds, vimplUser?.email);
+    if (!versions.length) return;
+    const roundLang = round.language === 'da' ? 'da' : 'en';
+    let description, disagreements = [];
+    if (versions.length === 1) {
+      description = { ...versions[0].description, process_name: round.processName };
+    } else {
+      const refs = stepRefs(versions);
+      let raw;
+      try {
+        raw = await matchRoundSteps(refs, effectiveApiKey, getProxyAuth(), roundLang);
+      } catch (err) {
+        console.error('[matchRoundSteps] failed:', err);
+        setRoundUseError(t.roundsUseFailed);
+        return;
+      }
+      ({ description, disagreements } = combine(versions, validateGroups(raw, refs), round.processName));
+    }
+    const snapshot = {
+      roundId: round.id,
+      processName: round.processName,
+      createdAt: new Date().toISOString(),
+      versions: versions.map(v => ({ id: v.id, name: v.name, transcript: v.transcript })),
+      disagreements,
+      resolutions: {},
+    };
+    const initial = {
+      process_name: round.processName,
+      transcript: versions.length === 1 ? versions[0].transcript : combinedTranscript(versions),
+      processDescription: description,
+      processContext: { apqcNodeId: null, apqcNodeName: null, isCustom: true, customLabel: round.processName },
+      roundSnapshot: snapshot,
+    };
+    createFlowWith(initial);
+    setShowRounds(false);
+    setLangConfirmed(true);
+    setActivePanel(2);
+    if (mode === 'diagram') {
+      await handleApproveToBpmn(false, { description, transcript: initial.transcript, processContext: initial.processContext });
+    }
+  }
+
+  // The owner settles one disagreement in the Review pane
+  function handleResolveDisagreement(disagreementId, optionKey) {
+    const d = roundSnapshot?.disagreements?.find(x => x.id === disagreementId);
+    if (!d) return;
+    setProcessDescription(prev => applyResolution(prev, d, optionKey));
+    setRoundSnapshot(prev => ({
+      ...prev,
+      resolutions: { ...prev.resolutions, [disagreementId]: { option: optionKey, at: new Date().toISOString() } },
+    }));
+  }
+
+  async function handleApproveToBpmn(useExtendedTokens = false, override = null) {
+    // override: { description, transcript, processContext } for a flow whose state has not landed yet
+    // ("Open as process diagram" approves in the same click that creates the flow)
+    const ov = override && !override.nativeEvent ? override : null;
+    const description = ov?.description || processDescription;
+    const context = ov?.processContext || processContext;
     if (isDemoFlow) {
       const isDa = lang === 'da';
       const demoParsed = isDa ? DA_DEMO_PARSED : DEMO_PARSED;
@@ -878,7 +959,7 @@ export default function App() {
     }
 
     // If the description is large, warn before proceeding with standard 4 000-token limit
-    const descSize = JSON.stringify(processDescription).length;
+    const descSize = JSON.stringify(description).length;
     if (!useExtendedTokens && descSize > 8000) {
       setShowExtendedTokensPrompt(true);
       return;
@@ -895,7 +976,7 @@ export default function App() {
     setToBeMetrics(null);
     try {
       const maxTokens = useExtendedTokens ? 8000 : 4000;
-      const bpmnJson = await parseToBpmn(processDescription, effectiveApiKey, processContext, getProxyAuth(), lang, maxTokens);
+      const bpmnJson = await parseToBpmn(description, effectiveApiKey, context, getProxyAuth(), lang, maxTokens);
       setParsed(bpmnJson);
       let generatedXml;
       try {
@@ -907,7 +988,7 @@ export default function App() {
       setXml(generatedXml);
       setActivePanel(3);
       // Background: extract AS-IS metrics from transcript
-      const _transcript = getEffectiveTranscript();
+      const _transcript = ov ? ov.transcript : getEffectiveTranscript();
       const _apiKey = effectiveApiKey;
       const _proxyAuth = getProxyAuth();
       setMetricsLoading(true);
