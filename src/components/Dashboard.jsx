@@ -881,7 +881,7 @@ function FlowCard({ flow, onOpen, onDelete }) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate, onDelete, onUpdateRag, canCreate, onLogout, onDemo, onBurger }) {
+export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate, onDelete, onUpdateRag, canCreate, onLogout, onDemo, onBurger, onOpenRounds }) {
   const { t } = useLang();
   const [deletingFlow, setDeletingFlow] = useState(null);
   const [view, setView] = useState('matrix'); // 'matrix' | 'cards'
@@ -977,6 +977,11 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
                   {t.dashViewCards}
                 </button>
               </div>
+            )}
+            {onOpenRounds && (
+              <button onClick={onOpenRounds} className="text-sm font-medium text-gray-700 border border-gray-200 bg-white rounded-lg px-4 py-2 hover:border-violet-400 hover:text-violet-700 transition-colors">
+                {t.dashRounds}
+              </button>
             )}
             {canCreate ? (
               <button onClick={onCreate} className="flex items-center gap-1.5 bg-green-400 text-black text-sm font-semibold px-4 py-2 rounded-lg hover:bg-green-300 transition-colors">

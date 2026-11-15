@@ -9,6 +9,10 @@ import ImprovePanel from './components/ImprovePanel.jsx';
 import LaunchPanel from './components/LaunchPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import RoundContribution from './components/RoundContribution.jsx';
+import RoundsPanel from './components/RoundsPanel.jsx';
+
+// AS-IS rounds need the online backend; the offline build hides them
+const ROUNDS_ENABLED = import.meta.env.VITE_OFFLINE !== 'true';
 import LoginPage from './components/LoginPage.jsx';
 import RegisterPage from './components/RegisterPage.jsx';
 import {
@@ -163,6 +167,7 @@ export default function App() {
   const [vimplUser, setVimplUser] = useState(null);
   // Invite token of an AS-IS round the user opened; shows the contribution screen once logged in
   const [pendingInvite, setPendingInvite] = useState(null);
+  const [showRounds, setShowRounds] = useState(false);
   useEffect(() => {
     if (vimplToken) setPendingInvite(prev => prev || takePendingInvite(localStorage));
   }, [vimplToken]);
@@ -363,7 +368,9 @@ export default function App() {
   const [voiceError, setVoiceError] = useState(null);
 
   // ── Ailean AI Interviewer ──────────────────────────────────────────
-  const ailean = useAileanInterviewer(lang);
+  // Scope of the AS-IS round being contributed to: its language and the context sent to the interviewer
+  const [roundScope, setRoundScope] = useState(null);
+  const ailean = useAileanInterviewer(roundScope?.language || lang, { contextMessage: roundScope?.message });
 
   // Panel 2 — Description
   const [processDescription, setProcessDescription] = useState(null);
@@ -1057,13 +1064,32 @@ export default function App() {
   }
 
   // ── AS-IS round contribution (opened from an invite link) ──────────
-  if (vimplToken && pendingInvite) {
+  if (ROUNDS_ENABLED && vimplToken && pendingInvite) {
     return (
       <RoundContribution
         key={pendingInvite}
         vimplToken={vimplToken}
         inviteToken={pendingInvite}
-        onDone={() => setPendingInvite(null)}
+        ailean={ailean}
+        onScope={setRoundScope}
+        onDone={() => {
+          // Clear the round's interview so it does not bleed into the user's own flows
+          ailean.reset();
+          setRoundScope(null);
+          setPendingInvite(null);
+        }}
+      />
+    );
+  }
+
+  // ── AS-IS rounds (owner) ───────────────────────────────────────────
+  if (ROUNDS_ENABLED && showRounds && !currentFlowId) {
+    return (
+      <RoundsPanel
+        vimplToken={vimplToken}
+        vimplUser={vimplUser}
+        onBack={() => setShowRounds(false)}
+        onContribute={token => setPendingInvite(token)}
       />
     );
   }
@@ -1084,6 +1110,7 @@ export default function App() {
           onLogout={logoutVimpl}
           onDemo={handleLoadDemo}
           onBurger={() => setShowBurger(true)}
+          onOpenRounds={ROUNDS_ENABLED ? () => setShowRounds(true) : undefined}
         />
         <BurgerMenu
           open={showBurger}

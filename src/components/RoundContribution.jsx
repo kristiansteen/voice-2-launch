@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import VoicePanel from './VoicePanel.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
-import { useAileanInterviewer } from '../hooks/useAileanInterviewer.js';
 import { getInvitation, saveContribution, withdrawContribution } from '../services/roundService.js';
 import { scopeContextMessage } from '../lib/roundInvite.js';
 import { buildStructuredTranscript } from '../lib/transcript.js';
@@ -15,7 +14,9 @@ const API_KEY = import.meta.env.DEV ? (import.meta.env.VITE_ANTHROPIC_API_KEY ||
  * A participant's contribution to an AS-IS round: invitation → interview →
  * confirm steps → submit. Stored in the round, never as one of the user's flows.
  */
-export default function RoundContribution({ vimplToken, inviteToken, onDone }) {
+// The voice SDK keeps one conversation per app, so the app's single interviewer is passed in
+// (`ailean`) and the round's language and scope go back up through `onScope`.
+export default function RoundContribution({ vimplToken, inviteToken, ailean, onScope, onDone }) {
   const { t } = useLang();
   const [invite, setInvite]         = useState(null);
   const [phase, setPhase]           = useState('loading'); // loading | invitation | interview | confirm | submitting | submitted | error
@@ -27,7 +28,6 @@ export default function RoundContribution({ vimplToken, inviteToken, onDone }) {
   const startedSaved = useRef(false);
 
   const lang = invite?.language === 'da' ? 'da' : 'en';
-  const ailean = useAileanInterviewer(lang, { contextMessage: invite ? scopeContextMessage(invite, lang) : undefined });
   const proxyAuth = vimplToken ? { token: vimplToken } : null;
   const processContext = invite ? { isCustom: true, customLabel: invite.processName } : {};
 
@@ -45,10 +45,13 @@ export default function RoundContribution({ vimplToken, inviteToken, onDone }) {
   // Load the invitation; record that the participant opened it
   useEffect(() => {
     let cancelled = false;
+    ailean.reset?.(); // start from a clean interview, not leftovers from a flow
     getInvitation(vimplToken, inviteToken)
       .then(async inv => {
         if (cancelled) return;
         setInvite(inv);
+        const l = inv.language === 'da' ? 'da' : 'en';
+        onScope?.({ language: l, message: scopeContextMessage(inv, l) });
         const own = inv.ownSubmission;
         if (inv.status !== 'open') { setErrorKind('closed'); setPhase('error'); return; }
         if (own?.status === 'submitted') {
