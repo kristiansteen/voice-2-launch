@@ -68,7 +68,7 @@ export default function VimplExportModal({ projectPlan, processName, selectedImp
               </p>
               <button
                 onClick={loginWithVimpl}
-                className="w-full bg-vimpl text-black text-sm font-semibold py-2.5 rounded hover:bg-vimpl-dark hover:text-white transition-colors"
+                className="w-full bg-ink text-paper text-sm font-semibold py-2.5 rounded-full hover:bg-ink-hover transition-colors"
               >
                 Log in with vimpl
               </button>
@@ -144,7 +144,7 @@ export default function VimplExportModal({ projectPlan, processName, selectedImp
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="flex-1 bg-vimpl text-black text-sm font-medium py-2 rounded hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-ink text-paper text-sm font-medium py-2 rounded-full hover:bg-ink-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {exporting ? (
                 <>

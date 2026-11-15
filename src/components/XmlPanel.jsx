@@ -33,7 +33,7 @@ export default function XmlPanel({ parsed, setParsed, xml, onGenerateXml }) {
         <button
           onClick={onGenerateXml}
           disabled={!parsed}
-          className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-ink text-paper text-sm font-medium py-2 rounded-full hover:bg-ink-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Generate XML →
         </button>

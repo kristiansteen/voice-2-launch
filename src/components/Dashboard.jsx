@@ -493,7 +493,7 @@ function AutomationCell({ flow }) {
         <div className="flex items-center gap-1.5">
           <span className="text-[9px] text-gray-400 w-6 shrink-0">{t.dashAutoGoal}</span>
           <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-green-400 rounded-full" style={{ width: `${(future / 5) * 100}%` }} />
+            <div className="h-full bg-ink rounded-full" style={{ width: `${(future / 5) * 100}%` }} />
           </div>
           <span className="text-[9px] text-green-600 w-14 shrink-0 truncate">{t[AUTO_T_KEYS[future]]}</span>
         </div>
@@ -922,7 +922,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
                 {t.dashTrialBadge}
               </a>
             ) : (
-              <span className="text-xs bg-vimpl/10 text-vimpl-dark px-2 py-0.5 rounded-full font-medium capitalize border border-vimpl/20">
+              <span className="text-xs bg-case text-ink px-2 py-0.5 rounded-full font-medium capitalize border border-ink/20">
                 {vimplUser.subscriptionTier}
               </span>
             )
@@ -995,7 +995,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
               </button>
             )}
             {canCreate ? (
-              <button onClick={onCreate} className="flex items-center gap-1.5 bg-green-400 text-black text-sm font-semibold px-4 py-2 rounded-lg hover:bg-green-300 transition-colors">
+              <button onClick={onCreate} className="flex items-center gap-1.5 bg-ink text-paper text-sm font-semibold px-4 py-2 rounded-full hover:bg-ink-hover transition-colors">
                 {t.dashNewFlow}
               </button>
             ) : (
@@ -1022,7 +1022,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
             <div className="w-16 h-16 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-3xl">🎙️</div>
             <p className="text-sm font-medium text-gray-700">{t.dashEmptyTitle}</p>
             <p className="text-xs text-gray-400">{t.dashEmptyBody}</p>
-            <button onClick={onCreate} className="mt-2 bg-green-400 text-black text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-green-300 transition-colors">
+            <button onClick={onCreate} className="mt-2 bg-ink text-paper text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-ink-hover transition-colors">
               {t.dashEmptyBtn}
             </button>
           </div>

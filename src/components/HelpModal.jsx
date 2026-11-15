@@ -65,7 +65,7 @@ export default function HelpModal({ onClose }) {
             <ol className="space-y-3">
               {[t.helpSetStep1, t.helpSetStep2, t.helpSetStep3].map((step, i) => (
                 <li key={i} className="flex gap-3">
-                  <span className="shrink-0 w-5 h-5 rounded-full bg-vimpl text-black text-xs font-bold flex items-center justify-center mt-0.5">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-ink text-paper text-xs font-bold flex items-center justify-center mt-0.5">
                     {i + 1}
                   </span>
                   <span className="leading-relaxed">{step}</span>

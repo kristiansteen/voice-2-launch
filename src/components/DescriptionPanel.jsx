@@ -136,7 +136,7 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
           {t.parseVoiceFirst}
         </div>
         <div className="px-4 py-3 border-t border-gray-100 shrink-0">
-          <button disabled className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md opacity-40 cursor-not-allowed">
+          <button disabled className="w-full bg-ink text-paper text-sm font-medium py-2 rounded-full opacity-40 cursor-not-allowed">
             {t.approveBpmn}
           </button>
         </div>
@@ -224,7 +224,7 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
         <button
           onClick={handleApprove}
           disabled={!canApprove || approvingBpmn}
-          className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-ink text-paper text-sm font-medium py-2 rounded-full hover:bg-ink-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {approvingBpmn ? (
             <>

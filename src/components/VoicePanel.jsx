@@ -497,7 +497,7 @@ export default function VoicePanel({
                 if (aileanActive) ailean?.toggle();
                 onParse();
               }}
-              className="flex-1 text-xs font-medium py-1 rounded-md bg-vimpl text-black border border-vimpl hover:bg-vimpl-dark hover:text-white transition-colors"
+              className="flex-1 text-xs font-medium py-1 rounded-full bg-ink text-paper border border-ink hover:bg-ink-hover transition-colors"
             >
               {aileanActive ? t.voiceParseEnd : t.voiceParseYes}
             </button>
@@ -516,7 +516,7 @@ export default function VoicePanel({
         <button
           onClick={() => { if (canParse && !loading) setConfirmParse(true); }}
           disabled={!canParse || loading}
-          className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-ink text-paper text-sm font-medium py-2 rounded-full hover:bg-ink-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

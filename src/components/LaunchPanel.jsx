@@ -339,7 +339,7 @@ export default function LaunchPanel({ projectPlan, parsed, processDescription, i
 
             <button
               onClick={() => setShowExport(true)}
-              className="w-full bg-vimpl text-black text-sm font-semibold py-2.5 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-ink text-paper text-sm font-semibold py-2.5 rounded-full hover:bg-ink-hover transition-colors flex items-center justify-center gap-2"
             >
               🚀 {t.exportToVimpl}
             </button>

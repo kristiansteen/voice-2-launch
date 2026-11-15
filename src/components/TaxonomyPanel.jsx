@@ -115,7 +115,7 @@ function SavePanel({ parsed, processContext, onSaved, onCancel }) {
       <div className="flex gap-2">
         <button
           onClick={handleSave}
-          className="flex-1 bg-vimpl text-black py-1.5 rounded text-xs font-medium hover:bg-vimpl-dark hover:text-white transition-colors"
+          className="flex-1 bg-ink text-paper py-1.5 rounded-full text-xs font-medium hover:bg-ink-hover transition-colors"
         >
           Save
         </button>
@@ -253,7 +253,7 @@ export default function TaxonomyPanel({ parsed, processContext }) {
         <button
           onClick={() => setShowSave(s => !s)}
           disabled={!parsed}
-          className="text-xs font-medium bg-vimpl text-black px-3 py-1 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="text-xs font-medium bg-ink text-paper px-3 py-1 rounded-full hover:bg-ink-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {showSave ? '✕ Cancel' : '⬆ Save current'}
         </button>

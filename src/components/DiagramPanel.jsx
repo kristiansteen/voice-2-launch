@@ -517,7 +517,7 @@ export default function DiagramPanel({
           <button
             onClick={handleGetImprovements}
             disabled={!parsed || !apiKey || impLoading}
-            className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-ink text-paper text-sm font-medium py-2 rounded-full hover:bg-ink-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {impLoading ? (
               <>

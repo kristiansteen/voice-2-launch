@@ -192,7 +192,7 @@ export default function RoundContribution({ vimplToken, inviteToken, ailean, onS
             <p className="mt-3 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2">
               {t.roundVisibility.replace('{name}', owner)}
             </p>
-            <button onClick={() => setPhase('interview')} className="mt-4 bg-green-400 text-black text-sm font-semibold px-5 py-2 rounded-lg hover:bg-green-300">
+            <button onClick={() => setPhase('interview')} className="mt-4 bg-ink text-paper text-sm font-semibold px-5 py-2 rounded-full hover:bg-ink-hover">
               {t.roundStart}
             </button>
           </section>
@@ -234,7 +234,7 @@ export default function RoundContribution({ vimplToken, inviteToken, ailean, onS
             <div className="mt-5 flex flex-wrap gap-2">
               {phase === 'confirm' && (
                 <>
-                  <button onClick={handleSubmit} className="bg-green-400 text-black text-sm font-semibold px-5 py-2 rounded-lg hover:bg-green-300">{t.roundConfirm}</button>
+                  <button onClick={handleSubmit} className="bg-ink text-paper text-sm font-semibold px-5 py-2 rounded-full hover:bg-ink-hover">{t.roundConfirm}</button>
                   <button onClick={handleRedo} className="text-sm font-medium text-gray-600 border border-gray-200 rounded-lg px-4 py-2 hover:border-gray-400">{t.roundRedo}</button>
                 </>
               )}

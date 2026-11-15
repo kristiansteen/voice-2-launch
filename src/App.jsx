@@ -59,7 +59,7 @@ function PanelShell({ num, label, children }) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-gray-200 shrink-0">
-        <span className="text-xs font-bold text-white bg-vimpl rounded px-1.5 py-0.5 leading-none">{num}</span>
+        <span className="text-xs font-bold text-paper bg-ink rounded px-1.5 py-0.5 leading-none">{num}</span>
         <span className="text-sm font-semibold text-gray-700">{label}</span>
       </div>
       <div className="flex-1 overflow-hidden flex flex-col bg-white">
@@ -1611,7 +1611,7 @@ export default function App() {
             <div className="flex gap-2 mt-1">
               <button
                 onClick={planSource === 'comparison' ? handleGeneratePlanFromComparison : handleGeneratePlan}
-                className="flex-1 bg-vimpl text-black text-sm font-semibold py-2 rounded-lg hover:bg-vimpl-dark hover:text-white transition-colors"
+                className="flex-1 bg-ink text-paper text-sm font-semibold py-2 rounded-full hover:bg-ink-hover transition-colors"
               >
                 Generate
               </button>

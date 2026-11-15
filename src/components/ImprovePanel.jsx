@@ -73,7 +73,7 @@ function IdeaForm({ initial = BLANK_IDEA, onSave, onCancel, saveLabel }) {
       </label>
       <div className="flex gap-2 pt-1">
         <button onClick={() => v.title.trim() && onSave(v)} disabled={!v.title.trim()}
-          className="flex-1 text-xs bg-green-500 text-white rounded px-3 py-1.5 hover:bg-green-600 disabled:opacity-40 transition-colors">
+          className="flex-1 text-xs bg-ink text-paper rounded-full px-3 py-1.5 hover:bg-ink-hover disabled:opacity-40 transition-colors">
           {saveLabel}
         </button>
         <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 px-2">
@@ -236,7 +236,7 @@ export default function ImprovePanel({
               {/* Step 1 — Generate TO-BE */}
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${step1Done ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-500'}`}>
+                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${step1Done ? 'bg-ink text-paper' : 'bg-gray-300 text-gray-500'}`}>
                     {step1Done ? '✓' : '1'}
                   </span>
                   <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{t.generateToBe}</span>
@@ -247,7 +247,7 @@ export default function ImprovePanel({
                   className={[
                     'w-full text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed',
                     !step1Done
-                      ? 'bg-vimpl text-black hover:bg-vimpl-dark hover:text-white disabled:opacity-40'
+                      ? 'bg-ink text-paper hover:bg-ink-hover disabled:opacity-40'
                       : 'border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40',
                   ].join(' ')}
                 >
@@ -264,7 +264,7 @@ export default function ImprovePanel({
               {step1Done && (
                 <div className={step2Done ? 'opacity-60' : ''}>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${step2Done ? 'bg-green-500 text-white' : 'bg-amber-400 text-white'}`}>
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${step2Done ? 'bg-ink text-paper' : 'bg-amber-400 text-white'}`}>
                       {step2Done ? '✓' : '2'}
                     </span>
                     <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{t.reviewApproveToBe}</span>
@@ -298,7 +298,7 @@ export default function ImprovePanel({
               {/* Step 3 — Project plan */}
               <div className={step2Done ? '' : 'opacity-40 pointer-events-none'}>
                 <div className="flex items-center gap-1.5 mb-1.5">
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${step3Done ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-500'}`}>
+                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${step3Done ? 'bg-ink text-paper' : 'bg-gray-300 text-gray-500'}`}>
                     {step3Done ? '✓' : '3'}
                   </span>
                   <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{t.draftPlan}</span>
@@ -309,7 +309,7 @@ export default function ImprovePanel({
                   className={[
                     'w-full text-sm font-medium py-2 rounded-md transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed',
                     step2Done && !step3Done
-                      ? 'bg-vimpl text-black hover:bg-vimpl-dark hover:text-white disabled:opacity-40'
+                      ? 'bg-ink text-paper hover:bg-ink-hover disabled:opacity-40'
                       : 'border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40',
                   ].join(' ')}
                 >

@@ -179,7 +179,7 @@ export default function ElementReviewPanel({ parsed, setParsed, onGenerateXml })
         <div className="px-4 py-3 border-t border-gray-200">
           <button
             onClick={onGenerateXml}
-            className="w-full bg-vimpl text-black text-sm font-medium py-2 rounded-md hover:bg-vimpl-dark hover:text-white transition-colors"
+            className="w-full bg-ink text-paper text-sm font-medium py-2 rounded-full hover:bg-ink-hover transition-colors"
           >
             Generate XML
           </button>
