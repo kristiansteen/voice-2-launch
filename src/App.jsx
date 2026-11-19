@@ -39,6 +39,7 @@ import { onTokenRefreshed, listRounds } from './services/roundService.js';
 import { buildStructuredTranscript } from './lib/transcript.js';
 import { compareTimes } from './lib/processMetrics.js';
 import { computeBusinessCase } from './lib/businessCase.js';
+import { carryValueFields } from './lib/valueAnalysis.js';
 import { setPreferencesToken, loadPreferences, savePreferences, applyPreferencesToStorage, taxonomyPreferencesFromStorage } from './services/preferencesService.js';
 
 // Business case shown in the demo (inputs only; the money is computed from the demo times)
@@ -1034,7 +1035,7 @@ export default function App() {
       const _proxyAuth = getProxyAuth();
       setMetricsLoading(true);
       extractProcessMetrics(bpmnJson, _transcript, _apiKey, _proxyAuth, lang)
-        .then(m => { if (m) setAsIsMetrics(m); })
+        .then(m => { if (m) setAsIsMetrics(prev => carryValueFields(prev, m)); })
         .catch(() => {})
         .finally(() => setMetricsLoading(false));
     } finally {
@@ -1147,7 +1148,7 @@ export default function App() {
       // Background: estimate TO-BE metrics
       const _asIsMetrics = asIsMetrics;
       estimateToBeMetrics(parsed, toBeParsedResult, _asIsMetrics, selected, effectiveApiKey, getProxyAuth(), lang)
-        .then(m => { if (m) setToBeMetrics(m); })
+        .then(m => { if (m) setToBeMetrics(prev => carryValueFields(prev, m)); })
         .catch(() => {});
     } finally {
       setToBeLoading(false);
@@ -1484,6 +1485,8 @@ export default function App() {
         <div style={getCarouselStyle(3)} onClick={activePanel !== 3 ? () => setActivePanel(3) : undefined}>
           <PanelShell wide>
             <DiagramPanel
+              flowId={currentFlowId}
+              isDemo={isDemoFlow}
               xml={xml}
               onXmlChange={setXml}
               bpmnLoading={bpmnParsing}
@@ -1510,7 +1513,7 @@ export default function App() {
                 if (!parsed) return;
                 setMetricsLoading(true);
                 extractProcessMetrics(parsed, getEffectiveTranscript(), effectiveApiKey, getProxyAuth(), lang)
-                  .then(m => { if (m) setAsIsMetrics(m); })
+                  .then(m => { if (m) setAsIsMetrics(prev => carryValueFields(prev, m)); })
                   .catch(() => {})
                   .finally(() => setMetricsLoading(false));
               }}
@@ -1518,7 +1521,7 @@ export default function App() {
                 if (!parsed || !toBeParsed) return;
                 const selected = (improvements || []).filter(i => selectedImprovementIds.includes(i.id));
                 estimateToBeMetrics(parsed, toBeParsed, asIsMetrics, selected, effectiveApiKey, getProxyAuth(), lang)
-                  .then(m => { if (m) setToBeMetrics(m); })
+                  .then(m => { if (m) setToBeMetrics(prev => carryValueFields(prev, m)); })
                   .catch(() => {});
               }}
               systemRepository={systemRepository}

@@ -40,7 +40,7 @@ export default function ValueSection({ metric, onSetValue }) {
         <>
           <p className="mt-4 mb-1.5 text-[11px] font-semibold tracking-wide uppercase text-mid">{t.valWasteType}</p>
           <div role="group" aria-label={t.valWasteType} className="flex flex-wrap gap-1.5">
-            {WASTE_TYPES.filter(w => w !== 'waiting').map(w => (
+            {WASTE_TYPES.map(w => (
               <button
                 key={w}
                 type="button"

@@ -1,7 +1,7 @@
 import ExportMenu from './ExportMenu.jsx';
 import { businessCaseSummary } from '../lib/businessCase.js';
 import { buildQuickPlaybook, quickPlaybookFilename } from '../services/quickPlaybook.js';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
 import BpmnErrorBoundary from './BpmnErrorBoundary.jsx';
 import StepCurtain from './StepCurtain.jsx';
@@ -12,6 +12,7 @@ import { compareProcesses } from '../services/processComparison.js';
 import { processTimes, formatMinutes, updateActivityMetric, updateGatewayBranch } from '../lib/processMetrics.js';
 import { valueSummary, valueMapFor, applySuggestions, setValueClass } from '../lib/valueAnalysis.js';
 import { suggestValueClasses } from '../services/anthropicService.js';
+import { demoValueSuggestions } from '../data/demoValue.js';
 
 // Minimal valid BPMN XML for a blank blueprint canvas
 const BLANK_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
@@ -44,6 +45,7 @@ export default function DiagramPanel({
   videoMap, onUpdateVideoMap,
   comparisonResult, onComparisonResultChange, onUseComparisonForPlan,
   blueprintXml, onBlueprintXmlChange,
+  flowId = null, isDemo = false,
 }) {
   const { t, lang } = useLang();
   const viewerRef     = useRef(null);
@@ -60,38 +62,51 @@ export default function DiagramPanel({
 
   // ── Value view (B06) ──────────────────────────────────────────────
   const [valueMode, setValueMode] = useState(false);
-  const [valueLoading, setValueLoading] = useState(false);
+  const [valueLoading, setValueLoading] = useState({}); // per tab: { asis: true }
   const [valueError, setValueError] = useState(null);
   const valueTab = activeTab === 'tobe' ? 'tobe' : 'asis';
   const valueParsed = valueTab === 'tobe' ? toBeParsed : parsed;
   const valueMetrics = valueTab === 'tobe' ? toBeMetrics : asIsMetrics;
-  const setValueMetrics = updater => (valueTab === 'tobe' ? onToBeMetricsChange : onAsIsMetricsChange)?.(updater);
-  const valueMap = valueMode && activeTab !== 'blueprint' ? valueMapFor(valueMetrics) : null;
-  const valueLabels = { va: t.valBand_va, nnva: t.valBand_nnva, waste: t.valBand_waste };
-  const vSummary = valueMode && activeTab !== 'blueprint' ? valueSummary(valueParsed, valueMetrics) : null;
+  const valueOn = valueMode && activeTab !== 'blueprint';
+  const valueMap = useMemo(() => (valueOn ? valueMapFor(valueMetrics) : null), [valueOn, valueMetrics]);
+  const valueLabels = useMemo(() => ({ va: t.valBand_va, nnva: t.valBand_nnva, waste: t.valBand_waste }), [t]);
+  const vSummary = useMemo(() => (valueOn ? valueSummary(valueParsed, valueMetrics) : null), [valueOn, valueParsed, valueMetrics]);
+  // Placeholder keys ('granted', 'demo') mean "use the proxy", never a real key
+  const realKey = apiKey && apiKey !== 'granted' && apiKey !== 'demo' ? apiKey : null;
+  const canAskAilean = isDemo || !!realKey || !!proxyAuth?.token;
+  // A result that arrives after the user has moved to another flow is dropped
+  const flowRef = useRef(flowId);
+  flowRef.current = flowId;
 
   function handleSetValue(id, patch) {
-    setValueMetrics(prev => setValueClass(prev, id, patch));
+    const setter = valueTab === 'tobe' ? onToBeMetricsChange : onAsIsMetricsChange;
+    setter?.(prev => setValueClass(prev, id, patch));
   }
-  async function handleSuggestValue() {
-    if (!valueParsed?.activities?.length || valueLoading) return;
-    setValueLoading(true); setValueError(null);
+  async function handleSuggestValue(tab = valueTab) {
+    const model = tab === 'tobe' ? toBeParsed : parsed;
+    const setter = tab === 'tobe' ? onToBeMetricsChange : onAsIsMetricsChange;
+    if (!model?.activities?.length || valueLoading[tab] || !canAskAilean) return;
+    const ids = model.activities.map(a => a.id);
+    if (isDemo) { setter?.(prev => applySuggestions(prev, demoValueSuggestions(lang), ids)); return; }
+    const startFlow = flowRef.current;
+    setValueLoading(l => ({ ...l, [tab]: true })); setValueError(null);
     try {
-      const steps = await suggestValueClasses(valueParsed, processDescription, valueMetrics, apiKey, proxyAuth, lang);
+      const steps = await suggestValueClasses(model, processDescription, tab === 'tobe' ? toBeMetrics : asIsMetrics, realKey, proxyAuth, lang);
       if (!steps) throw new Error('no answer');
-      setValueMetrics(prev => applySuggestions(prev, steps));
+      if (flowRef.current !== startFlow) return;
+      setter?.(prev => applySuggestions(prev, steps, ids));
     } catch {
-      setValueError(t.valSuggestFailed);
+      if (flowRef.current === startFlow) setValueError(t.valSuggestFailed);
     } finally {
-      setValueLoading(false);
+      setValueLoading(l => ({ ...l, [tab]: false }));
     }
   }
-  // Opening the value view on a diagram with no classes asks Ailean once
+  // Opening the value view on a diagram with no classes asks Ailean once per tab
   useEffect(() => {
-    if (valueMode && activeTab !== 'blueprint' && valueParsed?.activities?.length && !Object.keys(valueMapFor(valueMetrics)).length) {
-      handleSuggestValue();
+    if (valueOn && valueParsed?.activities?.length && !Object.keys(valueMapFor(valueMetrics)).length) {
+      handleSuggestValue(valueTab);
     }
-  }, [valueMode, valueTab]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [valueOn, valueTab, flowId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleUpdateGatewayBranch(gatewayId, condition, changes) {
     const model = activeTab === 'tobe' ? toBeParsed : parsed;
@@ -474,8 +489,8 @@ export default function DiagramPanel({
         )}
 
         {/* Value view: shares, waste and legend */}
-        {valueMode && activeTab !== 'blueprint' && (
-          <div className="absolute bottom-3 left-3 z-10 max-w-[78%] bg-white/95 border border-line rounded-[10px] shadow-sm px-4 py-3 text-xs text-ink">
+        {valueOn && (
+          <div aria-live="polite" className="absolute bottom-3 left-3 z-10 max-w-[78%] bg-white/95 border border-line rounded-[10px] shadow-sm px-4 py-3 text-xs text-ink">
             {vSummary ? (
               <>
                 <dl className="flex flex-wrap gap-x-6 gap-y-2">
@@ -498,7 +513,7 @@ export default function DiagramPanel({
                 )}
               </>
             ) : (
-              <p className="text-mid">{valueLoading ? t.valSuggesting : t.valNone}</p>
+              <p className="text-mid">{valueLoading[valueTab] ? t.valSuggesting : t.valNone}</p>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-mid">
               <span className="inline-flex items-center gap-1.5"><span className="value-band value-band--va" style={{ width: 22, height: 8 }} />{t.valLegend_va}</span>
@@ -508,17 +523,19 @@ export default function DiagramPanel({
             <div className="mt-2 flex flex-wrap items-center gap-3">
               {vSummary?.unconfirmed > 0 && <span className="text-[11px]">{t.valUnconfirmed.replace('{n}', vSummary.unconfirmed)}</span>}
               {vSummary?.basedOnEstimates && <span className="text-[11px] border border-dashed border-mid rounded-full px-1.5 text-mid">{t.dashEffEst}</span>}
-              <button type="button" onClick={handleSuggestValue} disabled={valueLoading}
-                className="text-[11px] font-medium border border-ink rounded-full px-2.5 py-1 hover:bg-ink hover:text-paper disabled:opacity-50">
-                {valueLoading ? t.valSuggesting : t.valSuggestAgain}
-              </button>
+              {canAskAilean && (
+                <button type="button" onClick={() => handleSuggestValue(valueTab)} disabled={!!valueLoading[valueTab]}
+                  className="text-[11px] font-medium border border-ink rounded-full px-2.5 py-1 hover:bg-ink hover:text-paper disabled:opacity-50">
+                  {valueLoading[valueTab] ? t.valSuggesting : t.valSuggestAgain}
+                </button>
+              )}
               {valueError && <span className="text-[11px] text-red-700">{valueError}</span>}
             </div>
           </div>
         )}
 
         {/* Time per case for the visible diagram, with how much of it rests on estimates */}
-        {times && !valueMode && (
+        {times && !valueOn && (
           <div className="absolute bottom-3 left-3 z-10 max-w-[70%] bg-white/95 border border-gray-200 rounded-lg shadow-sm px-3 py-2 text-xs text-gray-600">
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
               <span className="text-[10px] uppercase tracking-wide font-medium text-gray-400">{t.metricsPerCase}</span>

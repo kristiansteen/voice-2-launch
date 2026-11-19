@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { MODEL_SONNET, MODEL_HAIKU } from '../config/models.js';
 import { normaliseMetrics } from '../lib/processMetrics.js';
+import { withoutValueFields } from '../lib/valueAnalysis.js';
 
 // ── Client factory ────────────────────────────────────────────────────────────
 // Returns either a real Anthropic client (BYOK, dev only) or a proxy shim (vimpl auth).
@@ -559,7 +560,7 @@ export async function estimateToBeMetrics(asParsed, toBeParsed, asIsMetrics, imp
     system,
     messages: [{ role: 'user', content: JSON.stringify({
       as_is_process: asParsed,
-      as_is_metrics: asIsMetrics,
+      as_is_metrics: withoutValueFields(asIsMetrics),
       tobe_process: toBeParsed,
       tobe_gateway_branches: gatewayBranches,
       selected_improvements: improvements.map(i => ({ title: i.title, description: i.description, category: i.category })),

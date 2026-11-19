@@ -91,3 +91,33 @@ test('every value-view text exists in English and Danish', async () => {
   for (const w of WASTE_TYPES) keys.add(`valWaste_${w}`);
   for (const lang of ['en', 'da']) for (const k of keys) assert.ok(translations[lang][k], `${lang}.${k}`);
 });
+
+import { carryValueFields } from '../src/lib/valueAnalysis.js';
+
+test('new AI metrics keep the classes already set', () => {
+  const fresh = { activities: [{ id: 'a', duration_value: 99, duration_unit: 'min' }, { id: 'z', duration_value: 1 }] };
+  const out = carryValueFields(metrics, fresh);
+  const a = out.activities.find(x => x.id === 'a');
+  assert.equal(a.duration_value, 99);
+  assert.equal(a.value_class, 'va');
+  assert.equal(a.value_source, 'user');
+  assert.equal(out.activities.find(x => x.id === 'z').value_class, undefined);
+  assert.equal(carryValueFields(null, fresh), fresh);
+  assert.equal(carryValueFields(metrics, null), null);
+});
+
+test('suggestions for ids not in the process are ignored when ids are known', () => {
+  const out = applySuggestions({ activities: [] }, [{ id: 'ghost', class: 'va' }, { id: 'a', class: 'va' }], ['a']);
+  assert.deepEqual(out.activities.map(x => x.id), ['a']);
+});
+
+test('overriding Ailean drops its reason; accepting keeps it', () => {
+  const ai = { activities: [{ id: 'x', value_class: 'nnva', value_reason: 'audit', value_source: 'ai' }] };
+  assert.equal(setValueClass(ai, 'x', { value_class: 'nnva' }).activities[0].value_reason, 'audit');
+  assert.equal(setValueClass(ai, 'x', { value_class: 'waste' }).activities[0].value_reason, undefined);
+});
+
+test('a waste step without a type is counted as untyped, not guessed', () => {
+  const s = valueSummary(parsed, { activities: [m('a', 10, 0, { value_class: 'waste' })] });
+  assert.equal(s.byType[0].type, 'untyped');
+});

@@ -41,7 +41,7 @@ export function valueSummary(parsed, metrics) {
     const t = has(a.duration_value) ? k * toMinutes(Number(a.duration_value), a.duration_unit) : 0;
     touch += t;
     if (a.value_class === 'va') vaTouch += t;
-    if (a.value_class === 'waste') addType(WASTE_TYPES.includes(a.waste_type) ? a.waste_type : 'overprocessing', t);
+    if (a.value_class === 'waste') addType(WASTE_TYPES.includes(a.waste_type) ? a.waste_type : 'untyped', t);
     if (has(a.wait_value)) {
       const w = k * toMinutes(Number(a.wait_value), a.wait_unit);
       wait += w;
@@ -75,11 +75,13 @@ function cleanClass(patch) {
 }
 
 /** AI suggestions for steps the user has not classified; the user's own choices stand. */
-export function applySuggestions(metrics, suggestions = []) {
+export function applySuggestions(metrics, suggestions = [], knownIds = null) {
   const base = metrics || {};
   let activities = [...(base.activities || [])];
+  const known = knownIds ? new Set(knownIds) : null;
   for (const s of suggestions || []) {
     if (!s?.id || !VALUE_CLASSES.includes(s.class)) continue;
+    if (known && !known.has(s.id)) continue;
     const i = activities.findIndex(a => a.id === s.id);
     if (i >= 0 && activities[i].value_source === 'user') continue;
     const prev = i >= 0 ? activities[i] : { id: s.id };
@@ -96,6 +98,8 @@ export function setValueClass(metrics, id, patch) {
   const activities = base.activities || [];
   const apply = a => {
     const { waste_type: _w, ...rest } = a;
+    // Overriding Ailean's class drops its reason, which would now contradict the choice
+    if (patch.value_class && patch.value_class !== a.value_class && a.value_source !== 'user') delete rest.value_reason;
     return cleanClass({ ...rest, waste_type: patch.waste_type ?? (patch.value_class === 'waste' ? a.waste_type : undefined), ...patch, value_source: 'user' });
   };
   return {
@@ -106,3 +110,31 @@ export function setValueClass(metrics, id, patch) {
   };
 }
 
+
+const VALUE_FIELDS = ['value_class', 'waste_type', 'value_reason', 'value_source'];
+
+/** Fresh metrics from Ailean replace times; the classes already on the steps are kept. */
+export function carryValueFields(prev, next) {
+  if (!next || !prev?.activities?.length) return next;
+  const old = Object.fromEntries(prev.activities.map(a => [a.id, a]));
+  return {
+    ...next,
+    activities: (next.activities || []).map(a => {
+      const o = old[a.id];
+      if (!o?.value_class) return a;
+      const keep = {};
+      for (const f of VALUE_FIELDS) if (o[f] !== undefined) keep[f] = o[f];
+      return { ...a, ...keep };
+    }),
+  };
+}
+
+/** Times-only copy, for prompts that must not see or echo the value fields. */
+export function withoutValueFields(metrics) {
+  if (!metrics?.activities) return metrics;
+  return { ...metrics, activities: metrics.activities.map(a => {
+    const out = { ...a };
+    for (const f of VALUE_FIELDS) delete out[f];
+    return out;
+  }) };
+}
