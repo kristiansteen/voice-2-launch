@@ -1,4 +1,5 @@
 import ExportMenu from './ExportMenu.jsx';
+import { buildN8nWorkflow, n8nFilename } from '../services/n8nExport.js';
 import { businessCaseSummary } from '../lib/businessCase.js';
 import { buildQuickPlaybook, quickPlaybookFilename } from '../services/quickPlaybook.js';
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -238,6 +239,24 @@ export default function DiagramPanel({
     URL.revokeObjectURL(url);
   }
 
+  // ── n8n workflow (no AI call — built from the diagram) ───────────
+  function handleDownloadN8n() {
+    const tobe = activeTab === 'tobe';
+    const wf = buildN8nWorkflow({
+      parsed: tobe ? (toBeParsed || parsed) : parsed,
+      metrics: tobe ? toBeMetrics : asIsMetrics,
+      systemMap, processName, variant: activeVariant, lang,
+    });
+    if (!wf) return;
+    const blob = new Blob([JSON.stringify(wf, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const el   = document.createElement('a');
+    el.href     = url;
+    el.download = n8nFilename(processName, activeVariant);
+    el.click();
+    URL.revokeObjectURL(url);
+  }
+
   const activeXml     = activeTab === 'tobe' ? toBeXml : activeTab === 'blueprint' ? blueprintXml : (asIsXml || xml);
   const activeRef     = activeTab === 'tobe' ? toBeViewerRef.current : activeTab === 'blueprint' ? blueprintRef.current : viewerRef.current;
   const activeVariant = activeTab === 'tobe' ? 'to-be' : activeTab === 'blueprint' ? 'blueprint' : 'as-is';
@@ -296,8 +315,8 @@ export default function DiagramPanel({
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('task', e); }} className="bpmn-zoom-btn" title="Task">▭</button>
         <div className="bpmn-zoom-divider" />
         <ExportMenu
-          handlers={{ bpmn: () => setShowXmlModal(true), sop: handleDownloadSop, quick: handleDownloadQuick }}
-          disabled={{ sop: !parsed || sopLoading, quick: !parsed }}
+          handlers={{ bpmn: () => setShowXmlModal(true), sop: handleDownloadSop, quick: handleDownloadQuick, n8n: handleDownloadN8n }}
+          disabled={{ sop: !parsed || sopLoading, quick: !parsed, n8n: !parsed }}
           busy={sopLoading}
           error={sopError}
         />

@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { EXPORT_FORMATS } from '../src/lib/exportFormats.js';
 import { translations } from '../src/i18n/translations.js';
 
-test('export menu lists BPMN, SOP and Quick Suite in that order', () => {
-  assert.deepEqual(EXPORT_FORMATS.map(f => f.id), ['bpmn', 'sop', 'quick']);
+test('export menu lists BPMN, SOP, Quick Suite and n8n in that order', () => {
+  assert.deepEqual(EXPORT_FORMATS.map(f => f.id), ['bpmn', 'sop', 'quick', 'n8n']);
 });
 test('every format has a label and hint in English and Danish', () => {
   for (const lang of ['en', 'da']) {

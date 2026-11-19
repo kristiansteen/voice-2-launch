@@ -10,7 +10,7 @@ import { buildSteps } from './sopGenerator.js';
 import { toMinutes, formatMinutes } from '../lib/processMetrics.js';
 import { businessCaseSummary } from '../lib/businessCase.js';
 
-const APPROVAL = /approv|godkend|review|gennemg|vurder|beslut|decide|decision|sign[- ]?off|accept|reject|afvis|kontroll/i;
+export const APPROVAL = /approv|authori[sz]|godkend|review|gennemg|vurder|beslut|decide|decision|sign[- ]?off|accept|reject|afvis|kontroll/i;
 
 const TXT = {
   en: {
