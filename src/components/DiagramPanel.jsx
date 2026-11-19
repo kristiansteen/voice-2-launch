@@ -1,3 +1,4 @@
+import ExportMenu from './ExportMenu.jsx';
 import { buildQuickPlaybook, quickPlaybookFilename } from '../services/quickPlaybook.js';
 import { useState, useRef, useEffect } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
@@ -225,7 +226,7 @@ export default function DiagramPanel({
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Toolbar ─────────────────────────────────────────────────── */}
-      <div className="bpmn-toolbar px-3 py-2 flex items-center gap-1.5 shrink-0">
+      <div className="bpmn-toolbar relative z-20 px-3 py-2 flex items-center gap-1.5 shrink-0">
         {/* Palette tools */}
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('hand', e); }} className="bpmn-zoom-btn" title="Hand tool">☚</button>
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('lasso', e); }} className="bpmn-zoom-btn" title="Lasso select">⬚</button>
@@ -239,27 +240,12 @@ export default function DiagramPanel({
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('gateway', e); }} className="bpmn-zoom-btn" title="Gateway">◇</button>
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('task', e); }} className="bpmn-zoom-btn" title="Task">▭</button>
         <div className="bpmn-zoom-divider" />
-        <button onClick={() => setShowXmlModal(true)} className="text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-gray-400 hover:text-gray-800 transition-colors whitespace-nowrap">
-          {t.bpmnXml}
-        </button>
-        <button
-          onClick={handleDownloadSop}
-          disabled={!parsed || sopLoading}
-          className="text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex items-center gap-1"
-          title={sopError || 'Download SOP document'}
-        >
-          {sopLoading
-            ? <><span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-purple-500 rounded-full animate-spin" /> SOP</>
-            : sopError ? '⚠ SOP' : 'SOP'}
-        </button>
-        <button
-          onClick={handleDownloadQuick}
-          disabled={!parsed}
-          className="text-xs font-medium text-gray-600 border border-gray-200 rounded-md px-2 py-1.5 hover:border-ink hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-          title={t.quickPlaybookTitle}
-        >
-          {t.quickPlaybook}
-        </button>
+        <ExportMenu
+          handlers={{ bpmn: () => setShowXmlModal(true), sop: handleDownloadSop, quick: handleDownloadQuick }}
+          disabled={{ sop: !parsed || sopLoading, quick: !parsed }}
+          busy={sopLoading}
+          error={sopError}
+        />
         <div className="bpmn-zoom-divider" />
         <button onClick={() => activeRef?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>
         <button onClick={() => activeRef?.redo()} className="bpmn-zoom-btn" title="Redo (Ctrl+Shift+Z)">↪</button>
