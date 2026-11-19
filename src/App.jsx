@@ -8,6 +8,7 @@ import DiagramPanel from './components/DiagramPanel.jsx';
 import ImprovePanel from './components/ImprovePanel.jsx';
 import LaunchPanel from './components/LaunchPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import TrustBadge from './components/TrustBadge.jsx';
 import RoundContribution from './components/RoundContribution.jsx';
 import RoundsPanel from './components/RoundsPanel.jsx';
 
@@ -1302,6 +1303,7 @@ export default function App() {
             <span className="truncate">{currentFlow?.process_name || currentFlow?.name || processDescription?.process_name || ''}</span>
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            <TrustBadge compact={isMobile} />
             {saveStatus === 'saving' && (
               <span className="flex items-center gap-1.5 text-xs text-mid">
                 <span className="w-3 h-3 border-2 border-line border-t-mid rounded-full animate-spin shrink-0" />

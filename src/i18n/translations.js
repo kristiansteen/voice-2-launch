@@ -1,5 +1,16 @@
 export const translations = {
   en: {
+    trustTitle: 'Where your data goes',
+    trustBadgeOnline: 'EU-hosted · not used for training',
+    trustBadgeOffline: 'Local · data stays on this computer',
+    trustStorage: 'Stored in the EU (Frankfurt), encrypted in transit and at rest.',
+    trustTextAi: 'Text AI: Anthropic (US). Only what a step needs is sent, and it is deleted within 30 days.',
+    trustVoice: 'Voice interview: ElevenLabs (US). Live transcription only; no audio is kept.',
+    trustNoTraining: 'Your process data is never used to train AI models.',
+    trustLocalOffer: 'Must the data stay in-house? Ailean also runs locally on your own hardware.',
+    trustLocalOnly: 'Nothing leaves this computer. The AI runs here, and nothing is sent to vimpl, Anthropic or ElevenLabs.',
+    trustDpa: 'Data Processing Agreement',
+    trustPrivacy: 'Privacy notice',
     // ── App / header ──────────────────────────────────────────────
     appTitle:       'Voice-to-Launch',
     poweredBy:      'Powered by',
@@ -604,6 +615,17 @@ export const translations = {
   },
 
   da: {
+    trustTitle: 'Hvor jeres data er',
+    trustBadgeOnline: 'Hostet i EU · bruges ikke til træning',
+    trustBadgeOffline: 'Lokal · data bliver på denne computer',
+    trustStorage: 'Gemmes i EU (Frankfurt), krypteret under overførsel og i hvile.',
+    trustTextAi: 'Tekst-AI: Anthropic (USA). Kun det, et trin skal bruge, sendes, og det slettes inden for 30 dage.',
+    trustVoice: 'Stemmeinterview: ElevenLabs (USA). Kun live-transskription; ingen lyd gemmes.',
+    trustNoTraining: 'Jeres procesdata bruges aldrig til at træne AI-modeller.',
+    trustLocalOffer: 'Må data ikke forlade huset? Ailean kan også køre lokalt på jeres egen hardware.',
+    trustLocalOnly: 'Intet forlader denne computer. AI kører her, og intet sendes til vimpl, Anthropic eller ElevenLabs.',
+    trustDpa: 'Databehandleraftale',
+    trustPrivacy: 'Privatlivspolitik',
     // ── App / header ──────────────────────────────────────────────
     appTitle:       'Voice-to-Launch',
     poweredBy:      'Drevet af',

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
 import LangSwitcher from './LangSwitcher.jsx';
+import TrustBadge from './TrustBadge.jsx';
 import ProcessOverview from './ProcessOverview.jsx';
 
 const PRICING_URL = 'https://ailean.dk/ailean-pricing';
@@ -62,6 +63,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
       <header className="flex items-center gap-6 h-14 px-4 sm:px-8 bg-paper border-b border-line shrink-0">
         <span className="ailean-logo">AILEAN</span>
         <div className="ml-auto flex items-center gap-3">
+          <TrustBadge />
           <LangSwitcher />
           {vimplUser && (
             isTrial ? (
