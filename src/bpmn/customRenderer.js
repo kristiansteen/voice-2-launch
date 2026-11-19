@@ -11,8 +11,10 @@ const INK = '#151515';
 const MID = '#62625D';
 const PAPER = '#F1F1EE';
 const SIGNAL = '#E8500A';
-// Tasks: Braun's warm yellow (as on the ET66 calculator keys), so steps stand out from paper and lanes
-const TASK_FILL = '#F2DC8A';
+// Tasks: a calm blue with white text, so the steps stand out from paper and lanes (white on it: 4.5:1)
+const TASK_FILL = '#357ABC';
+const TASK_STROKE = '#245A92';
+const TASK_TEXT = '#FFFFFF';
 
 const BRAND = {
   purple:     '#9D6BCF',
@@ -242,7 +244,7 @@ class CustomRenderer extends BaseRenderer {
       x: 0, y: 0, width: w, height: h,
       rx: TASK_RADIUS, ry: TASK_RADIUS,
       fill: TASK_FILL,
-      stroke: INK,
+      stroke: TASK_STROKE,
       'stroke-width': 1.4,
     });
     svgAppend(parentNode, rect);
@@ -251,7 +253,7 @@ class CustomRenderer extends BaseRenderer {
     appendWrappedText(parentNode, name, w / 2, h / 2, {
       fontSize: 12,
       fontWeight: 500,
-      fill: INK,
+      fill: TASK_TEXT,
       maxWidth: w - 16,
       maxLines: 3,
     });
