@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { touchTimeFigure } from '../lib/processMetrics.js';
+import BusinessCase from './BusinessCase.jsx';
 import VimplExportModal from './VimplExportModal.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 
@@ -74,7 +75,7 @@ function slugify(name) {
   return (name || 'process').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-export default function LaunchPanel({ timeComparison = null, projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, boardUrl, boardId, boardVersion, onNewFlow, isDemoFlow, asIsXml, toBeXml }) {
+export default function LaunchPanel({ timeComparison = null, businessCase = null, businessCaseInputs = {}, onBusinessCaseChange, projectPlan, parsed, processDescription, improvements, selectedIds, customRisks = [], onAddRisk, onUpdateRisk, onRemoveRisk, onExported, vimplToken, boardUrl, boardId, boardVersion, onNewFlow, isDemoFlow, asIsXml, toBeXml }) {
   const { t } = useLang();
   const [showExport, setShowExport] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
@@ -169,10 +170,13 @@ export default function LaunchPanel({ timeComparison = null, projectPlan, parsed
 
   if (!projectPlan) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-center px-6 gap-3">
+      <div className="flex flex-col h-full overflow-y-auto">
+        {businessCase && <BusinessCase bc={businessCase} inputs={businessCaseInputs} onChange={onBusinessCaseChange} improvements={improvements} selectedIds={selectedIds} />}
+      <div className="flex flex-col flex-1 items-center justify-center text-center px-6 py-10 gap-3">
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl">🚀</div>
         <p className="text-sm font-medium text-gray-500">{t.launchEmpty}</p>
         <p className="text-xs text-gray-400">{t.launchEmptyDesc}</p>
+      </div>
       </div>
     );
   }
@@ -201,6 +205,8 @@ export default function LaunchPanel({ timeComparison = null, projectPlan, parsed
             ))}
           </dl>
         </div>
+
+        <BusinessCase bc={businessCase} inputs={businessCaseInputs} onChange={onBusinessCaseChange} improvements={improvements} selectedIds={selectedIds} />
 
         {/* ── Tracks & tasks ───────────────────────────────────────── */}
         {(projectPlan.tracks || []).map(track => {

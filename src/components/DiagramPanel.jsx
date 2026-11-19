@@ -1,4 +1,5 @@
 import ExportMenu from './ExportMenu.jsx';
+import { businessCaseSummary } from '../lib/businessCase.js';
 import { buildQuickPlaybook, quickPlaybookFilename } from '../services/quickPlaybook.js';
 import { useState, useRef, useEffect } from 'react';
 import BpmnViewer from './BpmnViewer.jsx';
@@ -37,6 +38,7 @@ export default function DiagramPanel({
   openRoundPoints = 0, onShowReview,
   asIsMetrics, onAsIsMetricsChange, toBeMetrics, onToBeMetricsChange,
   systemRepository, systemMap, onUpdateSystemMap, onAddSystem,
+  businessCase = null, businessCaseInputs = {},
   videoMap, onUpdateVideoMap,
   comparisonResult, onComparisonResultChange, onUseComparisonForPlan,
   blueprintXml, onBlueprintXmlChange,
@@ -149,6 +151,7 @@ export default function DiagramPanel({
       const html = await generateSop({
         parsed, processDescription, processName,
         companyLogo, apiKey, proxyAuth, lang, diagramSvg,
+        businessCaseLine: businessCaseSummary(businessCase, lang),
       });
       const blob = new Blob([html], { type: 'text/html' });
       const url  = URL.createObjectURL(blob);
@@ -171,7 +174,7 @@ export default function DiagramPanel({
     const md = buildQuickPlaybook({
       parsed: variantParsed, processName, processDescription,
       metrics: activeTab === 'tobe' ? toBeMetrics : asIsMetrics,
-      systemMap, variant: activeVariant, lang,
+      systemMap, variant: activeVariant, lang, businessCase, businessCaseInputs,
     });
     if (!md) return;
     const blob = new Blob([md], { type: 'text/markdown' });

@@ -208,7 +208,7 @@ function esc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-export function buildSopHtml({ content = {}, parsed, processName, companyLogo, diagramSvg, lang }) {
+export function buildSopHtml({ content = {}, parsed, processName, companyLogo, diagramSvg, lang, businessCaseLine = null }) {
   const steps = buildSteps(parsed);
   const roles = parsed.roles || [];
   const da = isDa(lang);
@@ -627,6 +627,7 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
     <p class="editable">${esc(content.purpose || '—')}</p>
     <h3>${T.scopeH}</h3>
     <p class="editable">${esc(content.scope || '—')}</p>
+    ${businessCaseLine ? `<h3>${da ? 'Business case' : 'Business case'}</h3>\n    <p class="editable">${esc(businessCaseLine)}</p>` : ''}
   </div>
 
   <!-- Section 3: Roles & Responsibilities -->
@@ -740,7 +741,7 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-export async function generateSop({ parsed, processDescription, processName, companyLogo, apiKey, proxyAuth, lang, diagramSvg }) {
+export async function generateSop({ parsed, processDescription, processName, companyLogo, apiKey, proxyAuth, lang, diagramSvg, businessCaseLine = null }) {
   const content = await fetchNarrativeSections(parsed, processDescription, processName, apiKey, proxyAuth, lang);
-  return buildSopHtml({ content, parsed, processName, companyLogo, diagramSvg, lang });
+  return buildSopHtml({ content, parsed, processName, companyLogo, diagramSvg, lang, businessCaseLine });
 }

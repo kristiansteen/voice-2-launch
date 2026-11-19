@@ -8,6 +8,7 @@
 
 import { buildSteps } from './sopGenerator.js';
 import { toMinutes, formatMinutes } from '../lib/processMetrics.js';
+import { businessCaseSummary } from '../lib/businessCase.js';
 
 const APPROVAL = /approv|godkend|review|gennemg|vurder|beslut|decide|decision|sign[- ]?off|accept|reject|afvis|kontroll/i;
 
@@ -25,7 +26,7 @@ const TXT = {
       'Test with the cases at the end before you publish the automation.',
     ],
     project: 'Project definition',
-    name: 'Name', purpose: 'Purpose', scope: 'Scope', business: 'Business case',
+    name: 'Name', purpose: 'Purpose', scope: 'Scope', business: 'Business case', problem: 'Problem', target: 'Target',
     roles: 'People involved', connectors: 'Action connectors to set up',
     noSystems: 'No systems are mapped yet. Map a system to each task in the diagram, or list them here: [fill in: systems and APIs this process uses]',
     usedIn: 'used in step',
@@ -67,7 +68,7 @@ const TXT = {
       'Test med casene sidst i dokumentet, før du udgiver automatiseringen.',
     ],
     project: 'Projektdefinition',
-    name: 'Navn', purpose: 'Formål', scope: 'Omfang', business: 'Business case',
+    name: 'Navn', purpose: 'Formål', scope: 'Omfang', business: 'Business case', problem: 'Problem', target: 'Mål',
     roles: 'Involverede', connectors: 'Action connectors, der skal opsættes',
     noSystems: 'Der er ikke koblet systemer på endnu. Kobl et system på hver opgave i diagrammet, eller skriv dem her: [udfyld: systemer og API’er, processen bruger]',
     usedIn: 'bruges i trin',
@@ -105,7 +106,7 @@ export function quickPlaybookFilename(processName, variant = 'to-be') {
 
 const norm = s => (s || '').trim().toLowerCase();
 
-export function buildQuickPlaybook({ parsed, processName, processDescription, metrics, systemMap = {}, variant = 'to-be', lang = 'en' } = {}) {
+export function buildQuickPlaybook({ parsed, processName, processDescription, metrics, systemMap = {}, variant = 'to-be', lang = 'en', businessCase = null, businessCaseInputs = {} } = {}) {
   if (!parsed) return null;
   const T = TXT[lang] || TXT.en;
   const fill = T.fill;
@@ -132,7 +133,9 @@ export function buildQuickPlaybook({ parsed, processName, processDescription, me
   L.push(`- **${T.name}:** ${name}`);
   L.push(`- **${T.purpose}:** ${processDescription?.overview || fill(T.purpose.toLowerCase())}`);
   if (processDescription?.scope) L.push(`- **${T.scope}:** ${processDescription.scope}`);
-  L.push(`- **${T.business}:** ${fill(T.fillCase)}`);
+  if (businessCaseInputs?.problem) L.push(`- **${T.problem}:** ${businessCaseInputs.problem}`);
+  if (businessCaseInputs?.target) L.push(`- **${T.target}:** ${businessCaseInputs.target}`);
+  L.push(`- **${T.business}:** ${businessCaseSummary(businessCase, lang) || fill(T.fillCase)}`);
   const roleNames = p.roles.map(r => r.name).filter(Boolean);
   if (roleNames.length) L.push(`- **${T.roles}:** ${roleNames.join(', ')}`);
   L.push('');

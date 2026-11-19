@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import HelpModal from './components/HelpModal.jsx';
 import BurgerMenu from './components/BurgerMenu.jsx';
 import { useLang } from './i18n/LangContext.jsx';
@@ -38,6 +38,7 @@ import {
 import { onTokenRefreshed, listRounds } from './services/roundService.js';
 import { buildStructuredTranscript } from './lib/transcript.js';
 import { compareTimes } from './lib/processMetrics.js';
+import { computeBusinessCase } from './lib/businessCase.js';
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
   DEMO_TRANSCRIPT, DEMO_PARSED, DEMO_XML, DEMO_DESCRIPTION,
@@ -100,6 +101,7 @@ function blankFlowState() {
     blueprintXml: null,
     asIsMetrics: null,
     toBeMetrics: null,
+    businessCase: {},
     systemMap: {},
     videoMap: {},
     comparisonResult: null,
@@ -401,6 +403,7 @@ export default function App() {
 
   // Process metrics (activities: duration + backlog; gateways: branch rates)
   const [asIsMetrics, setAsIsMetrics] = useState(null);
+  const [businessCaseInputs, setBusinessCaseInputs] = useState({});
   const [toBeMetrics, setToBeMetrics] = useState(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [systemMap, setSystemMap] = useState({});
@@ -524,6 +527,7 @@ export default function App() {
     setBlueprintXml(flow.blueprintXml || null);
     setAsIsMetrics(flow.asIsMetrics || null);
     setToBeMetrics(flow.toBeMetrics || null);
+    setBusinessCaseInputs(flow.businessCase || {});
     setSystemMap(flow.systemMap || {});
     setVideoMap(flow.videoMap || {});
     setComparisonResult(flow.comparisonResult || null);
@@ -532,6 +536,16 @@ export default function App() {
     setBoardId(flow.board_id || null);
     setBoardVersion(flow.board_version || 1);
   }
+
+  // Times and money for the Plan screen and exports; recomputed only when their inputs change
+  const timeComparison = useMemo(
+    () => compareTimes(asIsParsed || parsed, asIsMetrics, toBeParsed, toBeMetrics),
+    [asIsParsed, parsed, asIsMetrics, toBeParsed, toBeMetrics],
+  );
+  const businessCase = useMemo(
+    () => computeBusinessCase({ asIsParsed: asIsParsed || parsed, asIsMetrics, toBeParsed, toBeMetrics, inputs: businessCaseInputs }),
+    [asIsParsed, parsed, asIsMetrics, toBeParsed, toBeMetrics, businessCaseInputs],
+  );
 
   // ── Auto-save current flow whenever key state changes ─────────────
   useEffect(() => {
@@ -548,7 +562,7 @@ export default function App() {
       transcript, processDescription, parsed, xml,
       improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
       asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult,
-      roundSnapshot,
+      roundSnapshot, businessCase: businessCaseInputs,
     };
     setFlows(prev => {
       const updated = prev.map(f => f.id === currentFlowId ? updatedFlow : f);
@@ -590,7 +604,7 @@ export default function App() {
           });
       }, 2000);
     }
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult, roundSnapshot]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult, roundSnapshot, businessCaseInputs]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleConfirmLang() {
@@ -656,6 +670,7 @@ export default function App() {
     setBlueprintXml(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
+    setBusinessCaseInputs({});
     setProcessContext(initial?.processContext || { apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setBoardUrl(null);
     setBoardId(null);
@@ -685,6 +700,7 @@ export default function App() {
     setBlueprintXml(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
+    setBusinessCaseInputs({});
     setSystemMap({});
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setBoardUrl(null);
@@ -804,6 +820,7 @@ export default function App() {
     setToBeParsed(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
+    setBusinessCaseInputs({});
     setProcessContext(demoContext);
     setBoardUrl(null);
     setBoardId(null);
@@ -1421,6 +1438,8 @@ export default function App() {
               processName={parsed?.process_name}
               parsed={parsed}
               toBeParsed={toBeParsed}
+              businessCase={businessCase}
+              businessCaseInputs={businessCaseInputs}
               processDescription={processDescription}
               onGetImprovements={handleGetImprovements}
               apiKey={hasAccess ? (effectiveApiKey || 'granted') : (isDemoFlow ? 'demo' : null)}
@@ -1499,7 +1518,10 @@ export default function App() {
         <div style={getCarouselStyle(5)} onClick={activePanel !== 5 ? () => setActivePanel(5) : undefined}>
           <PanelShell>
             <LaunchPanel
-              timeComparison={compareTimes(asIsParsed || parsed, asIsMetrics, toBeParsed, toBeMetrics)}
+              timeComparison={timeComparison}
+              businessCase={businessCase}
+              businessCaseInputs={businessCaseInputs}
+              onBusinessCaseChange={setBusinessCaseInputs}
               projectPlan={projectPlan}
               parsed={parsed}
               processDescription={processDescription}
