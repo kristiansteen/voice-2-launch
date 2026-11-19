@@ -121,3 +121,11 @@ test('a waste step without a type is counted as untyped, not guessed', () => {
   const s = valueSummary(parsed, { activities: [m('a', 10, 0, { value_class: 'waste' })] });
   assert.equal(s.byType[0].type, 'untyped');
 });
+
+test('value-adding band is green with white text, distinct from waste and from black', async () => {
+  const { readFileSync } = await import('node:fs');
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  const rule = css.match(/\.value-band--va\s*\{([^}]*)\}/)[1];
+  assert.match(rule, /background:\s*#2E7D4F/i);
+  assert.match(rule, /color:\s*#FFFFFF/i);
+});

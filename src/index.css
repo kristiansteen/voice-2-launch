@@ -447,6 +447,6 @@ body {
   white-space: nowrap;
   overflow: hidden;
 }
-.value-band--va { background: #151515; color: #FFFFFF; }
+.value-band--va { background: #2E7D4F; color: #FFFFFF; }
 .value-band--nnva { background: repeating-linear-gradient(45deg, #EEEEEA 0 3px, #D0D0C9 3px 5px); color: #151515; border: 1px solid #151515; line-height: 12px; }
 .value-band--waste { background: #E8500A; color: #151515; }
