@@ -159,3 +159,11 @@ export function taxonomyCoverage(flows, nodes = []) {
   }
   return { covered: covered.size, total: nodes.filter(n => n.level === 1).length, unclassified };
 }
+
+export const COLLAPSE_ABOVE = 7;
+export const areaKey = a => (a.node ? `${a.node.id}|${a.node.name}` : '__loose__');
+
+/** Which areas start open: all of them for a small portfolio, none (level 1 only) above 7 processes. */
+export function defaultOpenAreas(areas, processCount) {
+  return new Set(processCount > COLLAPSE_ABOVE ? [] : areas.map(areaKey));
+}

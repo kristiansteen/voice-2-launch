@@ -116,3 +116,11 @@ test('processes inside a group follow the chosen sort', () => {
   ], nodes, { sortBy: 'benefit' });
   assert.deepEqual(g[0].groups[0].flows.map(f => f.id), ['big', 'small']);
 });
+
+import { defaultOpenAreas, areaKey } from '../src/lib/portfolio.js';
+
+test('more than 7 processes start collapsed to level 1; up to 7 start fully open', () => {
+  const areas = [{ node: { id: '8.0', name: 'Fin' } }, { node: null }];
+  assert.deepEqual([...defaultOpenAreas(areas, 8)], []);
+  assert.deepEqual([...defaultOpenAreas(areas, 7)].sort(), [areaKey(areas[0]), areaKey(areas[1])].sort());
+});

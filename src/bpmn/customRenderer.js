@@ -11,6 +11,8 @@ const INK = '#151515';
 const MID = '#62625D';
 const PAPER = '#F1F1EE';
 const SIGNAL = '#E8500A';
+// Tasks: Braun's warm yellow (as on the ET66 calculator keys), so steps stand out from paper and lanes
+const TASK_FILL = '#F2DC8A';
 
 const BRAND = {
   purple:     '#9D6BCF',
@@ -239,7 +241,7 @@ class CustomRenderer extends BaseRenderer {
     svgAttr(rect, {
       x: 0, y: 0, width: w, height: h,
       rx: TASK_RADIUS, ry: TASK_RADIUS,
-      fill: '#FFFFFF',
+      fill: TASK_FILL,
       stroke: INK,
       'stroke-width': 1.4,
     });

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
 import { APQC_NODES } from '../data/apqcTaxonomy.js';
 import { MSBPC_NODES } from '../data/msbpcTaxonomy.js';
-import { STAGES, flowStage, flowBusinessCase, summarisePortfolio, groupPortfolio, taxonomyCoverage, makeResolver } from '../lib/portfolio.js';
+import { STAGES, flowStage, flowBusinessCase, summarisePortfolio, groupPortfolio, taxonomyCoverage, makeResolver, defaultOpenAreas, areaKey } from '../lib/portfolio.js';
 import { formatMoney } from '../lib/businessCase.js';
 import { BeforeAfter } from './BusinessCase.jsx';
 
@@ -184,10 +184,9 @@ export default function ProcessOverview({ flows, onOpen, onUpdateRag, onDelete, 
   const coverage = useMemo(() => taxonomyCoverage(real, tax.nodes), [real, tax]);
   const bcById = useMemo(() => Object.fromEntries(real.map(f => [f.id, flowBusinessCase(f)])), [real]);
   const areas = useMemo(() => groupPortfolio(shownFlows, taxLists, { sortBy }), [shownFlows, taxLists, sortBy]);
-  // null = the default: the top area is open
+  // null = the default: everything open for a small portfolio, level 1 only above 7 processes
   const [openSet, setOpenSet] = useState(null);
-  const firstKey = areas[0] ? (areas[0].node?.id || '__loose__') : null;
-  const current = openSet ?? new Set(firstKey ? [firstKey] : []);
+  const current = openSet ?? defaultOpenAreas(areas, real.length);
   const isOpen = key => current.has(key);
   const toggle = key => {
     const next = new Set(current);
@@ -320,7 +319,7 @@ export default function ProcessOverview({ flows, onOpen, onUpdateRag, onDelete, 
                 </tr>
               </thead>
               {areas.map(a => {
-                const key = a.node?.id || '__loose__';
+                const key = areaKey(a);
                 const expanded = isOpen(key);
                 return (
                   <tbody key={key}>
