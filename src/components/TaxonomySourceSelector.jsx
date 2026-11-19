@@ -1,3 +1,4 @@
+import { savePreferences, taxonomyPreferencesFromStorage } from '../services/preferencesService.js';
 import { useState, useRef, useMemo } from 'react';
 import { APQC_NODES } from '../data/apqcTaxonomy.js';
 import { MSBPC_NODES, MSBPC_VERSION } from '../data/msbpcTaxonomy.js';
@@ -299,6 +300,7 @@ export default function TaxonomySourceSelector({ processContext, onChange }) {
   function switchSource(s) {
     setSourceRaw(s);
     localStorage.setItem(STORAGE_SOURCE, s);
+    savePreferences(taxonomyPreferencesFromStorage());
     onChange({ ...processContext, apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setOpen(true);
   }
@@ -318,6 +320,7 @@ export default function TaxonomySourceSelector({ processContext, onChange }) {
     setCustomNodes(nodes); setCustomName(name);
     localStorage.setItem(STORAGE_CUSTOM, JSON.stringify(nodes));
     localStorage.setItem(STORAGE_CUSTOM_NAME, name);
+    savePreferences(taxonomyPreferencesFromStorage());
   }
 
   function handleCustomClear() {
@@ -325,6 +328,7 @@ export default function TaxonomySourceSelector({ processContext, onChange }) {
     localStorage.removeItem(STORAGE_CUSTOM);
     localStorage.removeItem(STORAGE_CUSTOM_NAME);
     handleClear();
+    savePreferences({ ...taxonomyPreferencesFromStorage(), customTaxonomy: null, customTaxonomyName: null });
   }
 
   const badgeLabel = source === 'apqc' ? 'APQC' : source === 'msbpc' ? 'MS BPC' : 'Custom';

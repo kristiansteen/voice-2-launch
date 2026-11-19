@@ -39,6 +39,7 @@ import { onTokenRefreshed, listRounds } from './services/roundService.js';
 import { buildStructuredTranscript } from './lib/transcript.js';
 import { compareTimes } from './lib/processMetrics.js';
 import { computeBusinessCase } from './lib/businessCase.js';
+import { setPreferencesToken, loadPreferences, savePreferences, applyPreferencesToStorage, taxonomyPreferencesFromStorage } from './services/preferencesService.js';
 
 // Business case shown in the demo (inputs only; the money is computed from the demo times)
 const DEMO_BUSINESS_CASE = {
@@ -125,7 +126,7 @@ function blankFlowState() {
 }
 
 export default function App() {
-  const { t, lang, setLang } = useLang();
+  const { t, lang, setLang, syncLang } = useLang();
   const [langConfirmed, setLangConfirmed] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showBurger, setShowBurger] = useState(false);
@@ -189,6 +190,22 @@ export default function App() {
         .finally(() => setAuthLoading(false));
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Account preferences (B40): language and taxonomy follow the user across browsers
+  useEffect(() => {
+    setPreferencesToken(vimplToken);
+    if (!vimplToken) return;
+    let cancelled = false;
+    loadPreferences().then(prefs => {
+      if (cancelled || !prefs) return; // null: not available yet, keep this browser's choices
+      if (Object.keys(prefs).length === 0) {
+        savePreferences({ preferredLang: lang, ...taxonomyPreferencesFromStorage() });
+        return;
+      }
+      const saved = applyPreferencesToStorage(prefs);
+      if (saved && saved !== lang) syncLang(saved);
+    });
+    return () => { cancelled = true; };
+  }, [vimplToken]); // eslint-disable-line react-hooks/exhaustive-deps
   const [vimplUser, setVimplUser] = useState(null);
   // Invite token of an AS-IS round the user opened; shows the contribution screen once logged in
   const [pendingInvite, setPendingInvite] = useState(null);
