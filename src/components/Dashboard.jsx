@@ -54,6 +54,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
   const isTrial = !vimplUser || (vimplUser.subscriptionTier !== 'commercial' && vimplUser.subscriptionTier !== 'enterprise');
   const realFlows     = flows.filter(f => !f._demo);
   const realFlowCount = realFlows.length;
+  const demoFlow      = flows.find(f => f._demo) || null;
 
   return (
     <div className="h-screen flex flex-col bg-paper overflow-hidden">
@@ -138,7 +139,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
         )}
 
         {/* Empty state */}
-        {!loading && flows.length === 0 && (
+        {!loading && realFlowCount === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <div className="w-16 h-16 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-3xl">🎙️</div>
             <p className="text-sm font-medium text-gray-700">{t.dashEmptyTitle}</p>
@@ -150,7 +151,7 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
         )}
 
         {/* Process overview: portfolio → areas → processes */}
-        {!loading && flows.length > 0 && (
+        {!loading && realFlowCount > 0 && (
           <ProcessOverview flows={flows} onOpen={onOpen} onUpdateRag={onUpdateRag} onDelete={setDeletingFlow} onClassify={onClassify} />
         )}
 
@@ -169,13 +170,13 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
         )}
 
         {/* Try Demo card — only shown before user has any real flows */}
-        {realFlowCount === 0 && <div className="mt-6 bg-panel border border-line rounded-[10px] p-5 flex items-center justify-between gap-4">
+        {(realFlowCount === 0 || demoFlow) && <div className="mt-6 bg-panel border border-line rounded-[10px] p-5 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-gray-800">{t.dashDemoTitle}</p>
             <p className="text-xs text-gray-500 mt-0.5">{t.dashDemoDesc}</p>
           </div>
-          <button onClick={onDemo} className="shrink-0 text-sm border border-ink text-ink font-medium px-4 py-2 rounded-full hover:bg-ink hover:text-paper transition-colors whitespace-nowrap">
-            {t.dashDemoBtn}
+          <button onClick={() => (demoFlow ? onOpen(demoFlow.id) : onDemo())} className="shrink-0 text-sm border border-ink text-ink font-medium px-4 py-2 rounded-full hover:bg-ink hover:text-paper transition-colors whitespace-nowrap">
+            {demoFlow ? t.dashDemoContinue : t.dashDemoBtn}
           </button>
         </div>}
        </div>

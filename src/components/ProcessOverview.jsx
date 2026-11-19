@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
 import { APQC_NODES } from '../data/apqcTaxonomy.js';
 import { MSBPC_NODES } from '../data/msbpcTaxonomy.js';
-import { STAGES, flowStage, flowBusinessCase, summarisePortfolio, groupPortfolio, taxonomyCoverage } from '../lib/portfolio.js';
+import { STAGES, flowStage, flowBusinessCase, summarisePortfolio, groupPortfolio, taxonomyCoverage, makeResolver } from '../lib/portfolio.js';
 import { formatMoney } from '../lib/businessCase.js';
 import { BeforeAfter } from './BusinessCase.jsx';
 
@@ -14,7 +14,6 @@ const STAGE_FILL = {
   improve: ['#7E7E78', '#FFFFFF'], plan: ['#62625D', '#FFFFFF'], launched: ['#151515', '#FFFFFF'],
 };
 const STATUS_DOT = { green: 'bg-ink', amber: 'bg-signal', red: 'bg-red-600' };
-const STATUS_RANK = { red: 3, amber: 2, green: 1 };
 
 function readCustomTaxonomy() {
   try { return JSON.parse(localStorage.getItem('voice2bpmn_custom_taxonomy') || '[]'); } catch { return []; }
@@ -49,7 +48,7 @@ function Status({ value, t }) {
 
 function BenefitBar({ value, max, currency, lang, est, t }) {
   if (value == null) return <span className="text-mid">—</span>;
-  const w = max > 0 ? Math.max(2, (Math.max(0, value) / max) * 100) : 0;
+  const w = max > 0 && value > 0 ? Math.max(2, (value / max) * 100) : 0;
   return (
     <div className="flex items-center gap-2.5">
       <span className="w-[110px] shrink-0 h-2.5 flex" aria-hidden="true">
@@ -172,26 +171,19 @@ function ClassifySelect({ flow, nodes, onClassify, t }) {
 export default function ProcessOverview({ flows, onOpen, onUpdateRag, onDelete, onClassify }) {
   const { t, lang } = useLang();
   const tax = useMemo(activeTaxonomy, []);
-  // Group by every known taxonomy, so a flow lands under the taxonomy it was classified in
-  const allNodes = useMemo(() => [...APQC_NODES, ...MSBPC_NODES, ...readCustomTaxonomy()], []);
+  // Resolve against every known taxonomy (active first), so a flow lands under the one it was classified in
+  const taxLists = useMemo(() => [tax.nodes, APQC_NODES, MSBPC_NODES, readCustomTaxonomy()].filter((l, i, a) => l.length && a.indexOf(l) === i), [tax]);
+  const resolve = useMemo(() => makeResolver(taxLists), [taxLists]);
   const [sortBy, setSortBy] = useState('benefit');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedId, setSelectedId] = useState(null);
 
   const real = useMemo(() => (flows || []).filter(f => !f._demo), [flows]);
-  const shownFlows = statusFilter === 'all' ? real : real.filter(f => (f.ragStatus || 'none') === statusFilter);
+  const shownFlows = useMemo(() => (statusFilter === 'all' ? real : real.filter(f => (f.ragStatus || 'none') === statusFilter)), [real, statusFilter]);
   const summary = useMemo(() => summarisePortfolio(real), [real]);
   const coverage = useMemo(() => taxonomyCoverage(real, tax.nodes), [real, tax]);
   const bcById = useMemo(() => Object.fromEntries(real.map(f => [f.id, flowBusinessCase(f)])), [real]);
-  const areas = useMemo(() => {
-    const g = groupPortfolio(shownFlows, allNodes);
-    if (sortBy === 'status') g.sort((a, b) => (STATUS_RANK[b.status] || 0) - (STATUS_RANK[a.status] || 0) || !a.node - !b.node);
-    if (sortBy === 'updated') {
-      const last = a => Math.max(...a.flows.map(f => new Date(f.updated_at || 0).getTime()));
-      g.sort((a, b) => !a.node - !b.node || last(b) - last(a));
-    }
-    return g;
-  }, [shownFlows, allNodes, sortBy]);
+  const areas = useMemo(() => groupPortfolio(shownFlows, taxLists, { sortBy }), [shownFlows, taxLists, sortBy]);
   // null = the default: the top area is open
   const [openSet, setOpenSet] = useState(null);
   const firstKey = areas[0] ? (areas[0].node?.id || '__loose__') : null;
@@ -203,14 +195,10 @@ export default function ProcessOverview({ flows, onOpen, onUpdateRag, onDelete, 
     setOpenSet(next);
   };
 
-  const selected = real.find(f => f.id === selectedId) || null;
-  const nodeMap = useMemo(() => Object.fromEntries(allNodes.map(n => [n.id, n])), [allNodes]);
+  const selected = shownFlows.find(f => f.id === selectedId) || null;
   const pathOf = f => {
-    const parts = [];
-    let n = nodeMap[f.processContext?.apqcNodeId];
-    while (n) { parts.unshift(`${n.id}`); n = nodeMap[n.parentId]; }
-    const leaf = nodeMap[f.processContext?.apqcNodeId];
-    return parts.length ? `${parts.join(' › ')} ${leaf?.name || ''}` : '';
+    const r = resolve(f.processContext);
+    return r.leaf ? `${r.path.join(' › ')} ${r.leaf.name}` : '';
   };
 
   const mixed = summary.currency === 'mixed';
@@ -235,7 +223,7 @@ export default function ProcessOverview({ flows, onOpen, onUpdateRag, onDelete, 
         <td className={TD}><BenefitBar value={bc?.netSavingPerYear ?? null} max={maxFlowBenefit} currency={bc?.currency || cur} lang={lang} est={bc?.basedOnEstimates} t={t} /></td>
         <td className={`${TD} tabular-nums`}>{bc?.paybackMonths != null ? t.ovMonths.replace('{n}', bc.paybackMonths) : '—'}</td>
         <td className={`${TD} pr-0`}>
-          {f.processContext?.apqcNodeId || !onClassify
+          {resolve(f.processContext).l1 || !onClassify
             ? <Status value={f.ragStatus} t={t} />
             : <ClassifySelect flow={f} nodes={tax.nodes} onClassify={onClassify} t={t} />}
         </td>
@@ -285,14 +273,12 @@ export default function ProcessOverview({ flows, onOpen, onUpdateRag, onDelete, 
         <div>
           <p className="text-[13px] text-mid mb-2">{t.ovCoverage.replace('{n}', coverage.covered).replace('{m}', coverage.total).replace('{tax}', tax.name)}</p>
           <div aria-hidden="true" className="flex gap-[3px] flex-wrap">
-            {tax.nodes.filter(n => n.level === 1).map(n => {
-              const has = real.some(f => {
-                let x = nodeMap[f.processContext?.apqcNodeId];
-                while (x && x.level > 1) x = nodeMap[x.parentId];
-                return x?.id === n.id;
-              });
-              return <span key={n.id} title={`${n.id} ${n.name}`} className={`w-[18px] h-2 rounded-sm ${has ? 'bg-ink' : 'bg-case'}`} />;
-            })}
+            {(() => {
+              const coveredIds = new Set(real.map(f => makeResolver(tax.nodes)(f.processContext).l1?.id).filter(Boolean));
+              return tax.nodes.filter(n => n.level === 1).map(n => (
+                <span key={n.id} title={`${n.id} ${n.name}`} className={`w-[18px] h-2 rounded-sm ${coveredIds.has(n.id) ? 'bg-ink' : 'bg-case'}`} />
+              ));
+            })()}
           </div>
           {coverage.unclassified > 0 && <p className="mt-2 text-xs text-mid">{t.ovUnclassifiedCount.replace('{n}', coverage.unclassified)}</p>}
         </div>
@@ -326,7 +312,7 @@ export default function ProcessOverview({ flows, onOpen, onUpdateRag, onDelete, 
             <table className="w-full min-w-[720px] border-collapse">
               <thead>
                 <tr>
-                  <th scope="col" className={`${TH} pl-3`}>{t.ovColArea}</th>
+                  <th scope="col" className={`${TH} pl-3 w-[36%]`}>{t.ovColArea}</th>
                   <th scope="col" className={TH}>{t.ovColStage}</th>
                   <th scope="col" className={TH}>{t.ovNetPerYear}</th>
                   <th scope="col" className={TH}>{t.ovPayback}</th>

@@ -66,11 +66,11 @@ export function formatMoney(value, currency = 'DKK', lang = 'en', { compact = fa
   if (value == null || !Number.isFinite(value)) return '—';
   if (!CURRENCIES.includes(currency)) currency = 'DKK';
   const locale = lang === 'da' ? 'da-DK' : 'en-GB';
-  // Compact: two significant digits for large sums (DKK 820K, DKK 4.4M), whole units below 10 000
+  // Compact: three significant digits for large sums (DKK 823K, DKK 4.37M), whole units below 10 000
   const big = compact && Math.abs(value) >= 10000;
   return new Intl.NumberFormat(locale, {
     style: 'currency', currency,
-    ...(big ? { notation: 'compact', maximumSignificantDigits: 2 } : { maximumFractionDigits: 0 }),
+    ...(big ? { notation: 'compact', maximumSignificantDigits: 3 } : { maximumFractionDigits: 0 }),
   }).format(value);
 }
 

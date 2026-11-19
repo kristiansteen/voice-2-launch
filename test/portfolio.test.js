@@ -81,3 +81,38 @@ test('every text the overview uses exists in English and Danish', async () => {
   for (const s of STAGES) keys.add(`ovStage_${s}`);
   for (const lang of ['en', 'da']) for (const k of keys) assert.ok(translations[lang][k], `${lang}.${k}`);
 });
+
+test('mixed currencies give no money totals or payback, but hours still add up', () => {
+  const eur = { ...money(100, 1000), businessCase: { ...money(100, 1000).businessCase, currency: 'EUR' } };
+  const s = summarisePortfolio([{ id: 'a', ...money(100, 1000) }, { id: 'b', ...eur }]);
+  assert.equal(s.currency, 'mixed');
+  assert.equal(s.netPerYear, null);
+  assert.equal(s.oneOff, null);
+  assert.equal(s.paybackMonths, null);
+  assert.equal(s.hours, 1200);
+});
+
+test('hours count even when a flow has no hourly rate yet', () => {
+  const noRate = { ...money(100), businessCase: { volumePerMonth: 100, currency: 'DKK' } };
+  const s = summarisePortfolio([{ id: 'a', ...noRate }]);
+  assert.equal(s.netPerYear, null);
+  assert.equal(s.hours, 600);
+});
+
+test('a colliding id is resolved by the stored node name', () => {
+  const apqc = [{ id: '1.0', level: 1, name: 'Strategy' }, { id: '1.1', level: 2, parentId: '1.0', name: 'Define vision' }];
+  const custom = [{ id: '1', level: 1, name: 'Sales' }, { id: '1.1', level: 2, parentId: '1', name: 'Leads' }];
+  const fa = { id: 'a', processContext: { apqcNodeId: '1.1', apqcNodeName: 'Define vision' } };
+  const fc = { id: 'c', processContext: { apqcNodeId: '1.1', apqcNodeName: 'Leads' } };
+  const g = groupPortfolio([fa, fc], [apqc, custom]);
+  const byArea = Object.fromEntries(g.map(a => [a.node?.name, a.flows.map(f => f.id)]));
+  assert.deepEqual(byArea, { Strategy: ['a'], Sales: ['c'] });
+});
+
+test('processes inside a group follow the chosen sort', () => {
+  const g = groupPortfolio([
+    { id: 'small', processContext: { apqcNodeId: '8.2' }, ...money(10) },
+    { id: 'big', processContext: { apqcNodeId: '8.2' }, ...money(500) },
+  ], nodes, { sortBy: 'benefit' });
+  assert.deepEqual(g[0].groups[0].flows.map(f => f.id), ['big', 'small']);
+});

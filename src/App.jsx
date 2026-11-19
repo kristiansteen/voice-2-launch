@@ -748,14 +748,14 @@ export default function App() {
     setFlows(prev => {
       const updated = prev.map(f => {
         if (f.id !== flowId) return f;
-        const updatedFlow = { ...f, processContext: { ...(f.processContext || {}), apqcNodeId: node.id, apqcNodeName: node.name, isCustom: false, customLabel: null } };
+        const updatedFlow = { ...f, processContext: { ...(f.processContext || {}), apqcNodeId: node.id, apqcNodeName: node.name, apqcNodeLevel: node.level, isCustom: false } };
         if (vimplToken && !f._demo) upsertFlow(vimplToken, updatedFlow).catch(() => {});
         return updatedFlow;
       });
       try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
       return updated;
     });
-    if (flowId === currentFlowId) setProcessContext(pc => ({ ...pc, apqcNodeId: node.id, apqcNodeName: node.name, isCustom: false, customLabel: null }));
+    if (flowId === currentFlowId) setProcessContext(pc => ({ ...pc, apqcNodeId: node.id, apqcNodeName: node.name, apqcNodeLevel: node.level, isCustom: false }));
   }
 
   async function handleDeleteFlow(flowId, deleteBoard) {
