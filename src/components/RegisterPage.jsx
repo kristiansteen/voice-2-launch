@@ -183,7 +183,9 @@ export default function RegisterPage({ onLogin, onSwitchToLogin }) {
             By creating an account you agree to our{' '}
             <a href="https://app.vimpl.com/terms.html" target="_blank" rel="noreferrer" className="underline">Terms</a>
             {' '}and{' '}
-            <a href="https://app.vimpl.com/privacy.html" target="_blank" rel="noreferrer" className="underline">Privacy Policy</a>.
+            <a href="https://app.vimpl.com/dpa.html" target="_blank" rel="noreferrer" className="underline">Data Processing Agreement</a>.
+            {' '}See our{' '}
+            <a href="https://app.vimpl.com/privacy.html" target="_blank" rel="noreferrer" className="underline">Privacy Notice</a>.
           </p>
 
           <p className="mt-4 text-center text-sm text-slate-500">
