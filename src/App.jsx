@@ -743,6 +743,21 @@ export default function App() {
     });
   }
 
+  // Classify a process from the overview: same shape the taxonomy picker writes
+  function handleClassifyFlow(flowId, node) {
+    setFlows(prev => {
+      const updated = prev.map(f => {
+        if (f.id !== flowId) return f;
+        const updatedFlow = { ...f, processContext: { ...(f.processContext || {}), apqcNodeId: node.id, apqcNodeName: node.name, isCustom: false, customLabel: null } };
+        if (vimplToken && !f._demo) upsertFlow(vimplToken, updatedFlow).catch(() => {});
+        return updatedFlow;
+      });
+      try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    if (flowId === currentFlowId) setProcessContext(pc => ({ ...pc, apqcNodeId: node.id, apqcNodeName: node.name, isCustom: false, customLabel: null }));
+  }
+
   async function handleDeleteFlow(flowId, deleteBoard) {
     const flow = flows.find(f => f.id === flowId);
     if (deleteBoard && flow?.board_id && vimplToken) {
@@ -1222,6 +1237,7 @@ export default function App() {
           onCreate={handleCreateFlow}
           onDelete={handleDeleteFlow}
           onUpdateRag={handleUpdateFlowRag}
+          onClassify={handleClassifyFlow}
           canCreate={canCreateFlow}
           onLogout={logoutVimpl}
           onDemo={handleLoadDemo}

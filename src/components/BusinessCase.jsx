@@ -17,7 +17,7 @@ function EstTag({ children }) {
 }
 
 // ── Before / after bars: one quantity, two rows, own scale ────────────────────
-function BeforeAfter({ title, asIs, toBe, reduction, t, note }) {
+export function BeforeAfter({ title, asIs, toBe, reduction, t, note }) {
   const max = Math.max(asIs || 0, toBe || 0, 1);
   const rows = [
     { key: 'asis', label: t.bcAsIs, value: asIs, color: MID },
