@@ -1,3 +1,4 @@
+import ProcessCharter from './ProcessCharter.jsx';
 import { useState } from 'react';
 import RoundDisagreements from './RoundDisagreements.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
@@ -102,7 +103,7 @@ function StepsList({ steps, onChange }) {
   );
 }
 
-export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange, roundSnapshot, onResolveDisagreement }) {
+export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange, roundSnapshot, onResolveDisagreement, charter = null, onCharterChange }) {
   const { t } = useLang();
   const [approvingBpmn, setApprovingBpmn] = useState(false);
 
@@ -194,6 +195,7 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
           <textarea value={description.scope || ''} onChange={e => set('scope', e.target.value)} rows={2}
             className="mt-1 w-full text-sm border border-gray-200 rounded px-3 py-1.5 focus:outline-none focus:border-blue-400 resize-none" />
         </div>
+        {onCharterChange && <ProcessCharter inputs={charter || {}} onChange={onCharterChange} />}
         <div>
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.roles}</label>
           <div className="mt-1">

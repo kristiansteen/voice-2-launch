@@ -47,11 +47,13 @@ const DEMO_BUSINESS_CASE = {
   da: { volumePerMonth: 60, hourlyRate: 450, oneOffCost: 1500000, runCostPerYear: 120000, currency: 'DKK',
         sources: { volumePerMonth: 'stated', hourlyRate: 'stated', oneOffCost: 'estimated' },
         problem: 'Fakturaer betales for sent, og kreditorbogholderiet bruger mange timer på manuel kontrol og rykkere.',
-        target: '95 % af fakturaerne betalt til tiden; halvering af behandlingstiden pr. faktura.' },
+        target: '95 % af fakturaerne betalt til tiden; halvering af behandlingstiden pr. faktura.',
+        owner: 'Økonomichef', customer: 'Leverandører', kpiName: 'Dage fra faktura modtaget til betalt', kpiBaseline: 21, kpiTarget: 7 },
   en: { volumePerMonth: 60, hourlyRate: 60, oneOffCost: 200000, runCostPerYear: 16000, currency: 'EUR',
         sources: { volumePerMonth: 'stated', hourlyRate: 'stated', oneOffCost: 'estimated' },
         problem: 'Invoices are paid late, and accounts payable spends many hours on manual checks and reminders.',
-        target: '95 % of invoices paid on time; half the handling time per invoice.' },
+        target: '95 % of invoices paid on time; half the handling time per invoice.',
+        owner: 'Finance manager', customer: 'Suppliers', kpiName: 'Days from invoice received to paid', kpiBaseline: 21, kpiTarget: 7 },
 };
 const withDemoBusinessCase = isDa => prev => (prev && Object.keys(prev).length ? prev : DEMO_BUSINESS_CASE[isDa ? 'da' : 'en']);
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
@@ -1476,6 +1478,8 @@ export default function App() {
               onProcessContextChange={handleProcessContextChange}
               roundSnapshot={roundSnapshot}
               onResolveDisagreement={handleResolveDisagreement}
+              charter={businessCaseInputs}
+              onCharterChange={setBusinessCaseInputs}
             />
           </PanelShell>
           {activePanel !== 2 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}

@@ -9,6 +9,7 @@
 import { buildSteps } from './sopGenerator.js';
 import { toMinutes, formatMinutes } from '../lib/processMetrics.js';
 import { businessCaseSummary } from '../lib/businessCase.js';
+import { kpiLine } from '../lib/charter.js';
 
 export const APPROVAL = /approv|authori[sz]|godkend|review|gennemg|vurder|beslut|decide|decision|sign[- ]?off|accept|reject|afvis|kontroll/i;
 
@@ -26,7 +27,7 @@ const TXT = {
       'Test with the cases at the end before you publish the automation.',
     ],
     project: 'Project definition',
-    name: 'Name', purpose: 'Purpose', scope: 'Scope', business: 'Business case', problem: 'Problem', target: 'Target',
+    name: 'Name', purpose: 'Purpose', scope: 'Scope', business: 'Business case', problem: 'Problem', target: 'Target', owner: 'Process owner', customer: 'Customer',
     roles: 'People involved', connectors: 'Action connectors to set up',
     noSystems: 'No systems are mapped yet. Map a system to each task in the diagram, or list them here: [fill in: systems and APIs this process uses]',
     usedIn: 'used in step',
@@ -68,7 +69,7 @@ const TXT = {
       'Test med casene sidst i dokumentet, før du udgiver automatiseringen.',
     ],
     project: 'Projektdefinition',
-    name: 'Navn', purpose: 'Formål', scope: 'Omfang', business: 'Business case', problem: 'Problem', target: 'Mål',
+    name: 'Navn', purpose: 'Formål', scope: 'Omfang', business: 'Business case', problem: 'Problem', target: 'Mål', owner: 'Procesejer', customer: 'Kunde',
     roles: 'Involverede', connectors: 'Action connectors, der skal opsættes',
     noSystems: 'Der er ikke koblet systemer på endnu. Kobl et system på hver opgave i diagrammet, eller skriv dem her: [udfyld: systemer og API’er, processen bruger]',
     usedIn: 'bruges i trin',
@@ -134,8 +135,12 @@ export function buildQuickPlaybook({ parsed, processName, processDescription, me
   L.push(`- **${T.purpose}:** ${processDescription?.overview || fill(T.purpose.toLowerCase())}`);
   if (processDescription?.scope) L.push(`- **${T.scope}:** ${processDescription.scope}`);
   const oneLine = s => String(s).replace(/\s*\n+\s*/g, ' ').trim();
+  if (businessCaseInputs?.owner) L.push(`- **${T.owner}:** ${oneLine(businessCaseInputs.owner)}`);
+  if (businessCaseInputs?.customer) L.push(`- **${T.customer}:** ${oneLine(businessCaseInputs.customer)}`);
   if (businessCaseInputs?.problem) L.push(`- **${T.problem}:** ${oneLine(businessCaseInputs.problem)}`);
   if (businessCaseInputs?.target) L.push(`- **${T.target}:** ${oneLine(businessCaseInputs.target)}`);
+  const kpi = kpiLine(businessCaseInputs, lang);
+  if (kpi) L.push(`- **KPI:** ${oneLine(kpi)}`);
   L.push(`- **${T.business}:** ${businessCaseSummary(businessCase, lang) || fill(T.fillCase)}`);
   const roleNames = p.roles.map(r => r.name).filter(Boolean);
   if (roleNames.length) L.push(`- **${T.roles}:** ${roleNames.join(', ')}`);

@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
 import { CURRENCIES, FTE_HOURS_PER_YEAR, formatMoney } from '../lib/businessCase.js';
 import { formatMinutes } from '../lib/processMetrics.js';
+import { kpiLine } from '../lib/charter.js';
 
 // Braun palette: ink for the baseline, the one orange signal for the gain.
 const INK = '#151515';
@@ -217,6 +218,7 @@ export default function BusinessCase({ bc, inputs = {}, onChange, improvements =
           <p className="text-[52px] leading-none font-medium tracking-[-0.035em] text-ink mt-1">
             {hasMoney ? formatMoney(bc.netSavingPerYear, currency, lang, { compact: true }) : '—'}
           </p>
+          {kpiLine(inputs, lang) && <p className="text-sm text-ink mt-2"><span className="text-mid">KPI · </span>{kpiLine(inputs, lang)}</p>}
           <p className="text-xs text-mid mt-2">
             {hasMoney
               ? t.bcHeroNote.replace('{min}', formatMinutes(bc.minutesSavedPerCase)).replace('{n}', Number(inputs.volumePerMonth).toLocaleString(lang === 'da' ? 'da-DK' : 'en-GB'))
