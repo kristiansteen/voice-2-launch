@@ -1,7 +1,29 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
 
-const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementDblClick }, ref) {
+// Value view (B06): a labelled band under each classified task, as a diagram-js overlay
+const BAND_CLASS = { va: 'value-band--va', nnva: 'value-band--nnva', waste: 'value-band--waste' };
+function drawValueBands(modeler, valueMap, labels) {
+  if (!modeler) return;
+  try {
+    const overlays = modeler.get('overlays');
+    overlays.remove({ type: 'value-band' });
+    if (!valueMap) return;
+    modeler.get('elementRegistry').forEach(el => {
+      const cls = valueMap[el.id];
+      if (!cls || el.type === 'label' || !el.width) return;
+      const div = document.createElement('div');
+      div.className = `value-band ${BAND_CLASS[cls]}`;
+      div.style.width = `${el.width}px`;
+      div.textContent = labels?.[cls] || cls;
+      overlays.add(el.id, 'value-band', { position: { bottom: -4, left: 0 }, html: div });
+    });
+  } catch { /* not ready */ }
+}
+
+const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementDblClick, valueMap = null, valueLabels = null }, ref) {
+  const valueRef = useRef({ valueMap, valueLabels });
+  valueRef.current = { valueMap, valueLabels };
   const containerRef = useRef(null);
   const modelerRef = useRef(null);
   const lastXmlRef = useRef(null);
@@ -101,6 +123,11 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
         event.stopPropagation();
       });
 
+      // Redraw value bands after every import and edit (shapes move or are added)
+      const redraw = () => drawValueBands(modeler, valueRef.current.valueMap, valueRef.current.valueLabels);
+      modeler.get('eventBus').on('import.done', redraw);
+      modeler.get('eventBus').on('elements.changed', redraw);
+
       // Sync user edits back to parent without triggering re-import
       modeler.on('commandStack.changed', async () => {
         try {
@@ -131,6 +158,11 @@ const BpmnViewer = forwardRef(function BpmnViewer({ xml, onXmlChange, onElementD
       modelerRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Value bands follow the value map ─────────────────────────────
+  useEffect(() => {
+    drawValueBands(modelerRef.current, valueMap, valueLabels);
+  }, [valueMap, valueLabels]);
 
   // ── Import XML when it changes from outside ───────────────────────
   useEffect(() => {

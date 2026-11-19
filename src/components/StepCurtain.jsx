@@ -1,3 +1,4 @@
+import ValueSection from './ValueSection.jsx';
 import { useEffect, useState } from 'react';
 import { toEmbedUrl } from '../lib/videoEmbed.js';
 import { DURATION_UNITS, gatewayBranches } from '../lib/processMetrics.js';
@@ -112,7 +113,7 @@ function SourceSelect({ value, onChange }) {
   );
 }
 
-export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onUpdateGatewayBranch, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap, onAddSystem, videoMap = {}, onUpdateVideoMap }) {
+export default function StepCurtain({ element, parsed, processDescription, metrics, onUpdateMetric, onSetValue, onUpdateGatewayBranch, onClose, systemRepository = [], systemMap = {}, onUpdateSystemMap, onAddSystem, videoMap = {}, onUpdateVideoMap }) {
   const info = resolveElement(element, parsed, processDescription);
   const activityMetrics = metrics?.activities?.find(m => m.id === info?.id);
 
@@ -254,6 +255,11 @@ export default function StepCurtain({ element, parsed, processDescription, metri
               </button>
             </div>
           </Section>
+
+          {/* Value for the customer (B06) */}
+          {info?.activity && onSetValue && (
+            <ValueSection metric={activityMetrics} onSetValue={patch => onSetValue(info.id, patch)} />
+          )}
 
           {/* Metrics — editable, each with its source */}
           {info?.activity && (

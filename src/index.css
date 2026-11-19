@@ -427,3 +427,20 @@ body {
   font-size: 11px !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
 }
+
+/* ── Value view (B06): band under each task ─────────────────────── */
+.value-band {
+  box-sizing: border-box;
+  height: 14px;
+  border-radius: 3px;
+  font: 700 8.5px/14px 'Inter', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.value-band--va { background: #151515; color: #FFFFFF; }
+.value-band--nnva { background: repeating-linear-gradient(45deg, #EEEEEA 0 3px, #D0D0C9 3px 5px); color: #151515; border: 1px solid #151515; line-height: 12px; }
+.value-band--waste { background: #E8500A; color: #151515; }

@@ -332,18 +332,29 @@ export async function parseToBpmn(description, apiKey, processContext = {}, prox
   }
 }
 
-export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null, lang = 'en') {
-  const client = makeClient(apiKey, proxyAuth);
+// When the value view has classified the steps, improvements go after waste first
+const VALUE_HINT = `
 
+Some activities carry "value_class" (va = value-adding, nnva = necessary non-value-adding, waste) and maybe "waste_type".
+Prioritise: first remove or shrink waste steps and waiting, then make nnva steps cheaper (automate, simplify) without removing what law or control requires, and protect va steps. Mention the step names you target.`;
+
+export async function getStructuredImprovements(parsed, apiKey, proxyAuth = null, lang = 'en', valueByActivity = null) {
+  const client = makeClient(apiKey, proxyAuth);
+  const hasValue = valueByActivity && Object.keys(valueByActivity).length > 0;
+  const input = hasValue
+    ? { ...parsed, activities: (parsed.activities || []).map(a => (valueByActivity[a.id] ? { ...a, ...valueByActivity[a.id] } : a)) }
+    : parsed;
+
+  const base = hasValue ? IMPROVEMENTS_PROMPT + VALUE_HINT : IMPROVEMENTS_PROMPT;
   const system = lang === 'da'
-    ? IMPROVEMENTS_PROMPT + '\n\nIMPORTANT: Write all title, description, and benefit values in Danish. Keep category and effort values as the specified English enum strings.'
-    : IMPROVEMENTS_PROMPT;
+    ? base + '\n\nIMPORTANT: Write all title, description, and benefit values in Danish. Keep category and effort values as the specified English enum strings.'
+    : base;
 
   const message = await client.messages.create({
     model: MODEL_HAIKU,
     max_tokens: 3000,
     system,
-    messages: [{ role: 'user', content: JSON.stringify(parsed, null, 2) }],
+    messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
   });
 
   const text = message.content[0].text.trim();
@@ -559,6 +570,41 @@ export async function estimateToBeMetrics(asParsed, toBeParsed, asIsMetrics, imp
   const cleaned = stripFences(text);
   // A TO-BE process does not exist yet, so every TO-BE number is a projection
   try { return normaliseMetrics(JSON.parse(cleaned), { forceSource: 'estimated' }); } catch { return null; }
+}
+
+// ── Value view (B06): suggest value-adding / necessary / waste per step ───────
+const VALUE_PROMPT = `You are a Lean Six Sigma Black Belt. Classify every activity (task) of the process for the customer of the process:
+- "va": value-adding. The customer would pay for it; it changes the product or service in a way they care about, and it is done right the first time.
+- "nnva": necessary but non-value-adding. Required by law, audit, internal control or the current system, but adds no value for the customer.
+- "waste": neither. Rework, chasing, re-entering data, extra checks, hand-offs without purpose, approvals that never reject, searching, waiting steps.
+For "waste" also give waste_type, one of: overprocessing, defects, motion, transport, inventory, overproduction, skills, waiting.
+Give a reason in one short sentence a process owner understands, and say what to do (remove, automate, simplify) when it is not "va".
+Be honest: most administrative processes have few value-adding steps.
+Return ONLY JSON: {"steps":[{"id":"act_1","class":"va|nnva|waste","waste_type":"…","reason":"…"}]} with one entry per activity id given.`;
+
+export async function suggestValueClasses(parsed, processDescription, metrics, apiKey, proxyAuth = null, lang = 'en') {
+  const client = makeClient(apiKey, proxyAuth);
+  const system = withLang(VALUE_PROMPT, lang, 'Write every reason in Danish.');
+  const message = await client.messages.create({
+    model: MODEL_HAIKU,
+    max_tokens: 2000,
+    system,
+    messages: [{ role: 'user', content: JSON.stringify({
+      process_name: parsed?.process_name,
+      overview: processDescription?.overview || '',
+      activities: (parsed?.activities || []).map(a => ({
+        id: a.id, name: a.name,
+        performer: (parsed.roles || []).find(r => r.id === a.performer)?.name || null,
+        description: (processDescription?.steps || []).find(s => (s.name || '').trim().toLowerCase() === (a.name || '').trim().toLowerCase())?.description || '',
+        touch_time: (metrics?.activities || []).find(m => m.id === a.id)?.duration_value ?? null,
+        touch_unit: (metrics?.activities || []).find(m => m.id === a.id)?.duration_unit ?? null,
+      })),
+    }) }],
+  });
+  try {
+    const out = JSON.parse(stripFences(message.content[0].text.trim()));
+    return Array.isArray(out?.steps) ? out.steps : null;
+  } catch { return null; }
 }
 
 // ── Ailean Interview Follow-up ────────────────────────────────────────────────

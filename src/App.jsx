@@ -1050,7 +1050,11 @@ export default function App() {
       setActivePanel(4);
       return;
     }
-    const result = await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth(), lang);
+    // Value classes from the value view steer the improvements towards waste first
+    const valueByActivity = Object.fromEntries((asIsMetrics?.activities || [])
+      .filter(m => m.value_class)
+      .map(m => [m.id, { value_class: m.value_class, ...(m.waste_type ? { waste_type: m.waste_type } : {}) }]));
+    const result = await getStructuredImprovements(parsed, effectiveApiKey, getProxyAuth(), lang, valueByActivity);
     setImprovements(result);
     setSelectedImprovementIds([]);
     setActivePanel(4);

@@ -10,6 +10,8 @@ import { useLang } from '../i18n/LangContext.jsx';
 import { generateSop } from '../services/sopGenerator.js';
 import { compareProcesses } from '../services/processComparison.js';
 import { processTimes, formatMinutes, updateActivityMetric, updateGatewayBranch } from '../lib/processMetrics.js';
+import { valueSummary, valueMapFor, applySuggestions, setValueClass } from '../lib/valueAnalysis.js';
+import { suggestValueClasses } from '../services/anthropicService.js';
 
 // Minimal valid BPMN XML for a blank blueprint canvas
 const BLANK_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
@@ -55,6 +57,41 @@ export default function DiagramPanel({
     if (activeTab === 'tobe') onToBeMetricsChange?.(updater);
     else onAsIsMetricsChange?.(updater);
   }
+
+  // ── Value view (B06) ──────────────────────────────────────────────
+  const [valueMode, setValueMode] = useState(false);
+  const [valueLoading, setValueLoading] = useState(false);
+  const [valueError, setValueError] = useState(null);
+  const valueTab = activeTab === 'tobe' ? 'tobe' : 'asis';
+  const valueParsed = valueTab === 'tobe' ? toBeParsed : parsed;
+  const valueMetrics = valueTab === 'tobe' ? toBeMetrics : asIsMetrics;
+  const setValueMetrics = updater => (valueTab === 'tobe' ? onToBeMetricsChange : onAsIsMetricsChange)?.(updater);
+  const valueMap = valueMode && activeTab !== 'blueprint' ? valueMapFor(valueMetrics) : null;
+  const valueLabels = { va: t.valBand_va, nnva: t.valBand_nnva, waste: t.valBand_waste };
+  const vSummary = valueMode && activeTab !== 'blueprint' ? valueSummary(valueParsed, valueMetrics) : null;
+
+  function handleSetValue(id, patch) {
+    setValueMetrics(prev => setValueClass(prev, id, patch));
+  }
+  async function handleSuggestValue() {
+    if (!valueParsed?.activities?.length || valueLoading) return;
+    setValueLoading(true); setValueError(null);
+    try {
+      const steps = await suggestValueClasses(valueParsed, processDescription, valueMetrics, apiKey, proxyAuth, lang);
+      if (!steps) throw new Error('no answer');
+      setValueMetrics(prev => applySuggestions(prev, steps));
+    } catch {
+      setValueError(t.valSuggestFailed);
+    } finally {
+      setValueLoading(false);
+    }
+  }
+  // Opening the value view on a diagram with no classes asks Ailean once
+  useEffect(() => {
+    if (valueMode && activeTab !== 'blueprint' && valueParsed?.activities?.length && !Object.keys(valueMapFor(valueMetrics)).length) {
+      handleSuggestValue();
+    }
+  }, [valueMode, valueTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleUpdateGatewayBranch(gatewayId, condition, changes) {
     const model = activeTab === 'tobe' ? toBeParsed : parsed;
@@ -249,6 +286,12 @@ export default function DiagramPanel({
           busy={sopLoading}
           error={sopError}
         />
+        <div role="group" aria-label={t.valViewLabel} className="flex border border-ink rounded-full overflow-hidden text-xs font-medium shrink-0">
+          <button type="button" aria-pressed={!valueMode} onClick={() => setValueMode(false)}
+            className={`px-3 py-1.5 ${!valueMode ? 'bg-ink text-paper' : 'text-ink hover:bg-paper'}`}>{t.valViewFlow}</button>
+          <button type="button" aria-pressed={valueMode} onClick={() => setValueMode(true)} disabled={activeTab === 'blueprint' || !valueParsed}
+            className={`px-3 py-1.5 disabled:opacity-40 ${valueMode ? 'bg-signal text-ink' : 'text-ink hover:bg-paper'}`}>{t.valViewValue}</button>
+        </div>
         <div className="bpmn-zoom-divider" />
         <button onClick={() => activeRef?.undo()} className="bpmn-zoom-btn" title="Undo (Ctrl+Z)">↩</button>
         <button onClick={() => activeRef?.redo()} className="bpmn-zoom-btn" title="Redo (Ctrl+Shift+Z)">↪</button>
@@ -361,6 +404,8 @@ export default function DiagramPanel({
               xml={asIsXml || xml}
               onXmlChange={asIsXml ? undefined : onXmlChange}
               onElementDblClick={setCurtainElement}
+              valueMap={valueTab === 'asis' ? valueMap : null}
+              valueLabels={valueLabels}
             />
           </BpmnErrorBoundary>
         </div>
@@ -374,6 +419,8 @@ export default function DiagramPanel({
                 xml={toBeXml}
                 onXmlChange={onToBeXmlChange}
                 onElementDblClick={setCurtainElement}
+                valueMap={valueTab === 'tobe' ? valueMap : null}
+                valueLabels={valueLabels}
               />
             </BpmnErrorBoundary>
           </div>
@@ -426,8 +473,52 @@ export default function DiagramPanel({
           </div>
         )}
 
+        {/* Value view: shares, waste and legend */}
+        {valueMode && activeTab !== 'blueprint' && (
+          <div className="absolute bottom-3 left-3 z-10 max-w-[78%] bg-white/95 border border-line rounded-[10px] shadow-sm px-4 py-3 text-xs text-ink">
+            {vSummary ? (
+              <>
+                <dl className="flex flex-wrap gap-x-6 gap-y-2">
+                  {[
+                    [vSummary.vaTouchShare != null ? `${Math.round(vSummary.vaTouchShare * 100)} %` : '—', t.valShareTouch],
+                    [vSummary.vaLeadShare != null ? `${Math.round(vSummary.vaLeadShare * 100)} %` : '—', t.valShareLead],
+                    [`${vSummary.wasteSteps} / ${vSummary.steps}`, t.valWasteSteps],
+                    [vSummary.waitMin ? formatMinutes(vSummary.waitMin) : '—', t.valWaiting],
+                  ].map(([n, label], i) => (
+                    <div key={i}>
+                      <dt className="text-[11px] text-mid">{label}</dt>
+                      <dd className="text-xl font-medium tracking-[-0.02em] leading-tight tabular-nums">{n}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {vSummary.byType.length > 0 && (
+                  <p className="mt-2 text-[11px] text-mid">
+                    {t.valByType} {vSummary.byType.map(r => `${t[`valWaste_${r.type}`]} ${formatMinutes(r.minutes)}`).join(' · ')}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-mid">{valueLoading ? t.valSuggesting : t.valNone}</p>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-mid">
+              <span className="inline-flex items-center gap-1.5"><span className="value-band value-band--va" style={{ width: 22, height: 8 }} />{t.valLegend_va}</span>
+              <span className="inline-flex items-center gap-1.5"><span className="value-band value-band--nnva" style={{ width: 22, height: 8 }} />{t.valLegend_nnva}</span>
+              <span className="inline-flex items-center gap-1.5"><span className="value-band value-band--waste" style={{ width: 22, height: 8 }} />{t.valLegend_waste}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              {vSummary?.unconfirmed > 0 && <span className="text-[11px]">{t.valUnconfirmed.replace('{n}', vSummary.unconfirmed)}</span>}
+              {vSummary?.basedOnEstimates && <span className="text-[11px] border border-dashed border-mid rounded-full px-1.5 text-mid">{t.dashEffEst}</span>}
+              <button type="button" onClick={handleSuggestValue} disabled={valueLoading}
+                className="text-[11px] font-medium border border-ink rounded-full px-2.5 py-1 hover:bg-ink hover:text-paper disabled:opacity-50">
+                {valueLoading ? t.valSuggesting : t.valSuggestAgain}
+              </button>
+              {valueError && <span className="text-[11px] text-red-700">{valueError}</span>}
+            </div>
+          </div>
+        )}
+
         {/* Time per case for the visible diagram, with how much of it rests on estimates */}
-        {times && (
+        {times && !valueMode && (
           <div className="absolute bottom-3 left-3 z-10 max-w-[70%] bg-white/95 border border-gray-200 rounded-lg shadow-sm px-3 py-2 text-xs text-gray-600">
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
               <span className="text-[10px] uppercase tracking-wide font-medium text-gray-400">{t.metricsPerCase}</span>
@@ -472,6 +563,7 @@ export default function DiagramPanel({
             processDescription={processDescription}
             metrics={activeTab === 'tobe' ? toBeMetrics : asIsMetrics}
             onUpdateMetric={handleUpdateMetric}
+            onSetValue={handleSetValue}
             onUpdateGatewayBranch={handleUpdateGatewayBranch}
             onClose={() => setCurtainElement(null)}
             systemRepository={systemRepository}
