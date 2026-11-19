@@ -11,6 +11,9 @@ export const translations = {
     trustLocalOnly: 'Nothing leaves this computer. The AI runs here, and nothing is sent to vimpl, Anthropic or ElevenLabs.',
     trustDpa: 'Data Processing Agreement',
     trustPrivacy: 'Privacy notice',
+    exportCamundaFailed: 'The Camunda file could not be created from this diagram.',
+    exportCamunda: 'Camunda 8',
+    exportCamundaHint: 'Executable BPMN for Camunda Modeler: user and service tasks, decision conditions',
     // ── App / header ──────────────────────────────────────────────
     appTitle:       'Voice-to-Launch',
     poweredBy:      'Powered by',
@@ -626,6 +629,9 @@ export const translations = {
     trustLocalOnly: 'Intet forlader denne computer. AI kører her, og intet sendes til vimpl, Anthropic eller ElevenLabs.',
     trustDpa: 'Databehandleraftale',
     trustPrivacy: 'Privatlivspolitik',
+    exportCamundaFailed: 'Camunda-filen kunne ikke laves ud fra dette diagram.',
+    exportCamunda: 'Camunda 8',
+    exportCamundaHint: 'Kørbar BPMN til Camunda Modeler: bruger- og serviceopgaver, beslutningsbetingelser',
     // ── App / header ──────────────────────────────────────────────
     appTitle:       'Voice-to-Launch',
     poweredBy:      'Drevet af',

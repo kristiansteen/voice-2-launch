@@ -1,5 +1,6 @@
 import ExportMenu from './ExportMenu.jsx';
 import { buildN8nWorkflow, n8nFilename } from '../services/n8nExport.js';
+import { buildCamundaXml, camundaFilename } from '../services/camundaExport.js';
 import { businessCaseSummary } from '../lib/businessCase.js';
 import { buildQuickPlaybook, quickPlaybookFilename } from '../services/quickPlaybook.js';
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -257,6 +258,24 @@ export default function DiagramPanel({
     URL.revokeObjectURL(url);
   }
 
+  // ── Camunda 8 (no AI call — the current diagram made executable) ──
+  async function handleDownloadCamunda() {
+    if (!activeXml) return;
+    try {
+      const out = await buildCamundaXml({ xml: activeXml, systemMap });
+      const blob = new Blob([out], { type: 'application/xml' });
+      const url  = URL.createObjectURL(blob);
+      const el   = document.createElement('a');
+      el.href     = url;
+      el.download = camundaFilename(processName, activeVariant);
+      el.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Camunda export failed', e);
+      alert(t.exportCamundaFailed);
+    }
+  }
+
   const activeXml     = activeTab === 'tobe' ? toBeXml : activeTab === 'blueprint' ? blueprintXml : (asIsXml || xml);
   const activeRef     = activeTab === 'tobe' ? toBeViewerRef.current : activeTab === 'blueprint' ? blueprintRef.current : viewerRef.current;
   const activeVariant = activeTab === 'tobe' ? 'to-be' : activeTab === 'blueprint' ? 'blueprint' : 'as-is';
@@ -315,8 +334,8 @@ export default function DiagramPanel({
         <button onMouseDown={e => { e.preventDefault(); activeRef?.activateTool('task', e); }} className="bpmn-zoom-btn" title="Task">▭</button>
         <div className="bpmn-zoom-divider" />
         <ExportMenu
-          handlers={{ bpmn: () => setShowXmlModal(true), sop: handleDownloadSop, quick: handleDownloadQuick, n8n: handleDownloadN8n }}
-          disabled={{ sop: !parsed || sopLoading, quick: !parsed, n8n: !parsed }}
+          handlers={{ bpmn: () => setShowXmlModal(true), sop: handleDownloadSop, quick: handleDownloadQuick, n8n: handleDownloadN8n, camunda: handleDownloadCamunda }}
+          disabled={{ sop: !parsed || sopLoading, quick: !parsed, n8n: !parsed, camunda: !activeXml }}
           busy={sopLoading}
           error={sopError}
         />
