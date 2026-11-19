@@ -98,3 +98,20 @@ test('every bc text the business case screen uses exists in English and Danish',
   for (const k of ['bcSrc_stated', 'bcSrc_estimated', 'bcSrc_measured']) keys.push(k);
   for (const lang of ['en', 'da']) for (const k of keys) assert.ok(translations[lang][k], `${lang}.${k}`);
 });
+
+import { formatMoney } from '../src/lib/businessCase.js';
+
+test('an unknown saved currency falls back to DKK instead of crashing', () => {
+  assert.doesNotThrow(() => formatMoney(100, 'kr', 'en'));
+  assert.match(formatMoney(100, 'kr', 'en'), /DKK/);
+});
+
+test('Danish summary writes FTE with a decimal comma', () => {
+  const bc = { ...full(), fteFreed: 0.5 };
+  assert.match(businessCaseSummary(bc, 'da'), /0,5 årsværk/);
+});
+
+test('multi-line problem text stays on one playbook line', () => {
+  const md = buildQuickPlaybook({ parsed: tiny, businessCaseInputs: { problem: 'Late\npayments' }, lang: 'en' });
+  assert.match(md, /\*\*Problem:\*\* Late payments/);
+});

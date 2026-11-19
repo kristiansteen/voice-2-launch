@@ -24,8 +24,8 @@ export function computeBusinessCase({ asIsParsed, asIsMetrics, toBeParsed, toBeM
   const missing = missingInputs(inputs);
   const volume = num(inputs.volumePerMonth);
   const rate = num(inputs.hourlyRate);
-  const oneOff = num(inputs.oneOffCost) || 0;
-  const runCost = num(inputs.runCostPerYear) || 0;
+  const oneOff = Math.max(0, num(inputs.oneOffCost) || 0);
+  const runCost = Math.max(0, num(inputs.runCostPerYear) || 0);
 
   const hoursSavedPerYear = volume > 0 ? Math.round((minutesSavedPerCase * volume * 12) / 60) : null;
   const grossSavingPerYear = hoursSavedPerYear != null && rate > 0 ? Math.round(hoursSavedPerYear * rate) : null;
@@ -40,7 +40,7 @@ export function computeBusinessCase({ asIsParsed, asIsMetrics, toBeParsed, toBeM
 
   const inputEstimated = Object.values(inputs.sources || {}).includes('estimated');
   return {
-    currency: inputs.currency || 'DKK',
+    currency: CURRENCIES.includes(inputs.currency) ? inputs.currency : 'DKK',
     perCase: {
       asIs: { touchMin: cmp.asIs.touchMin, waitMin: cmp.asIs.waitMin },
       toBe: { touchMin: cmp.toBe.touchMin, waitMin: cmp.toBe.waitMin },
@@ -64,6 +64,7 @@ export function computeBusinessCase({ asIsParsed, asIsMetrics, toBeParsed, toBeM
 
 export function formatMoney(value, currency = 'DKK', lang = 'en', { compact = false } = {}) {
   if (value == null || !Number.isFinite(value)) return '—';
+  if (!CURRENCIES.includes(currency)) currency = 'DKK';
   const locale = lang === 'da' ? 'da-DK' : 'en-GB';
   return new Intl.NumberFormat(locale, {
     style: 'currency', currency, maximumFractionDigits: compact ? 1 : 0,
@@ -78,7 +79,7 @@ export function businessCaseSummary(bc, lang = 'en') {
   const money = formatMoney(bc.netSavingPerYear, bc.currency, lang);
   const parts = [
     da ? `${money} pr. år` : `${money} per year`,
-    da ? `${bc.hoursSavedPerYear.toLocaleString('da-DK')} timer frigjort (${bc.fteFreed} årsværk)` : `${bc.hoursSavedPerYear.toLocaleString('en-GB')} hours freed (${bc.fteFreed} FTE)`,
+    da ? `${bc.hoursSavedPerYear.toLocaleString('da-DK')} timer frigjort (${String(bc.fteFreed).replace('.', ',')} årsværk)` : `${bc.hoursSavedPerYear.toLocaleString('en-GB')} hours freed (${bc.fteFreed} FTE)`,
   ];
   if (bc.paybackMonths != null) parts.push(da ? `tilbagebetaling ${bc.paybackMonths} mdr.` : `payback ${bc.paybackMonths} months`);
   if (bc.basedOnEstimates) parts.push(da ? 'bygger på estimater' : 'based on estimates');

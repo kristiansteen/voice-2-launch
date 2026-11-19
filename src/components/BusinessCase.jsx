@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
 import { CURRENCIES, FTE_HOURS_PER_YEAR, formatMoney } from '../lib/businessCase.js';
 import { formatMinutes } from '../lib/processMetrics.js';
@@ -42,7 +42,7 @@ function BeforeAfter({ title, asIs, toBe, reduction, t, note }) {
               <div key={r.key} className="grid grid-cols-[52px_1fr] items-center gap-2" title={label}>
                 <span className="text-[11px] text-mid">{r.label}</span>
                 <div className="flex items-center gap-2 min-w-0" role="img" aria-label={label}>
-                  <div className="h-4 rounded-r-[4px]" style={{ width: `calc(${w}% - 56px)`, minWidth: w ? 3 : 0, background: r.color }} />
+                  <div className="h-4 rounded-r-[4px]" style={{ width: `calc((100% - 64px) * ${w / 100})`, minWidth: w ? 3 : 0, background: r.color }} />
                   <span className="text-[11px] text-ink tabular-nums whitespace-nowrap">{formatMinutes(r.value)}</span>
                 </div>
               </div>
@@ -58,6 +58,7 @@ function BeforeAfter({ title, asIs, toBe, reduction, t, note }) {
 function CumulativeChart({ points, currency, lang, payback, t }) {
   const [hover, setHover] = useState(null);
   const svgRef = useRef(null);
+  const uid = useId();
   const W = 520, H = 190, PAD = { l: 64, r: 16, t: 14, b: 26 };
   const vals = points.map(p => p.value);
   const yMin = Math.min(0, ...vals), yMax = Math.max(0, ...vals);
@@ -77,7 +78,7 @@ function CumulativeChart({ points, currency, lang, payback, t }) {
     setHover(points[Math.max(0, Math.min(points.length - 1, m))]);
   }
 
-  const be = payback != null && payback <= points.length - 1 ? payback : null;
+  const be = payback > 0 && payback <= points.length - 1 ? payback : null;
   return (
     <figure className="m-0 relative">
       <figcaption className="text-xs font-medium text-ink mb-1">{t.bcCumulative}</figcaption>
@@ -86,7 +87,7 @@ function CumulativeChart({ points, currency, lang, payback, t }) {
         viewBox={`0 0 ${W} ${H}`}
         className="w-full h-auto block"
         role="img"
-        aria-label={`${t.bcCumulative}: ${fmt(points[0].value)} → ${fmt(points.at(-1).value)}`}
+        aria-label={`${t.bcCumulative}: ${fmt(points[0].value)} → ${fmt(points.at(-1).value)}${be != null ? `. ${t.bcBreakEven.replace('{n}', be)}` : ''}`}
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
@@ -100,12 +101,12 @@ function CumulativeChart({ points, currency, lang, payback, t }) {
           <text key={m} x={x(m)} y={H - 8} textAnchor="middle" fontSize="10" fill={MID}>{m === 0 ? t.bcStart : `${m} ${t.bcMonthsShort}`}</text>
         ))}
         <defs>
-          <clipPath id="bc-above"><rect x="0" y="0" width={W} height={zeroY} /></clipPath>
-          <clipPath id="bc-below"><rect x="0" y={zeroY} width={W} height={H - zeroY} /></clipPath>
+          <clipPath id={`${uid}-above`}><rect x="0" y="0" width={W} height={zeroY} /></clipPath>
+          <clipPath id={`${uid}-below`}><rect x="0" y={zeroY} width={W} height={H - zeroY} /></clipPath>
         </defs>
         {/* Below zero is the investment still being earned back: grey wash; above is gain: orange wash */}
-        <path d={area} fill={MID} opacity="0.12" clipPath="url(#bc-below)" />
-        <path d={area} fill={SIGNAL} opacity="0.12" clipPath="url(#bc-above)" />
+        <path d={area} fill={MID} opacity="0.12" clipPath={`url(#${uid}-below)`} />
+        <path d={area} fill={SIGNAL} opacity="0.12" clipPath={`url(#${uid}-above)`} />
         <path d={path} fill="none" stroke={SIGNAL} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
         {be != null && (
           <g>
@@ -284,7 +285,7 @@ export default function BusinessCase({ bc, inputs = {}, onChange, improvements =
             <Field t={t} label={t.bcRate} value={inputs.hourlyRate} placeholder="450" suffix={`${currency}/${t.bcHourShort}`}
               onChange={v => set({ hourlyRate: v })} source={inputs.sources?.hourlyRate || 'stated'} onSource={s => setSource('hourlyRate', s)} />
             <Field t={t} label={t.bcOneOff} value={inputs.oneOffCost} placeholder="250000" suffix={currency}
-              onChange={v => set({ oneOffCost: v })} source={inputs.sources?.oneOffCost || 'estimated'} onSource={s => setSource('oneOffCost', s)} />
+              onChange={v => set({ oneOffCost: v })} source={inputs.sources?.oneOffCost || 'stated'} onSource={s => setSource('oneOffCost', s)} />
             <Field t={t} label={t.bcRunCost} value={inputs.runCostPerYear} placeholder="0" suffix={`${currency}/${t.bcYearShort}`}
               onChange={v => set({ runCostPerYear: v })} />
             <label className="block">

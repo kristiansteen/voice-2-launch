@@ -133,8 +133,9 @@ export function buildQuickPlaybook({ parsed, processName, processDescription, me
   L.push(`- **${T.name}:** ${name}`);
   L.push(`- **${T.purpose}:** ${processDescription?.overview || fill(T.purpose.toLowerCase())}`);
   if (processDescription?.scope) L.push(`- **${T.scope}:** ${processDescription.scope}`);
-  if (businessCaseInputs?.problem) L.push(`- **${T.problem}:** ${businessCaseInputs.problem}`);
-  if (businessCaseInputs?.target) L.push(`- **${T.target}:** ${businessCaseInputs.target}`);
+  const oneLine = s => String(s).replace(/\s*\n+\s*/g, ' ').trim();
+  if (businessCaseInputs?.problem) L.push(`- **${T.problem}:** ${oneLine(businessCaseInputs.problem)}`);
+  if (businessCaseInputs?.target) L.push(`- **${T.target}:** ${oneLine(businessCaseInputs.target)}`);
   L.push(`- **${T.business}:** ${businessCaseSummary(businessCase, lang) || fill(T.fillCase)}`);
   const roleNames = p.roles.map(r => r.name).filter(Boolean);
   if (roleNames.length) L.push(`- **${T.roles}:** ${roleNames.join(', ')}`);

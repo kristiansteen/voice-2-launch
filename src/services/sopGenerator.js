@@ -627,7 +627,7 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
     <p class="editable">${esc(content.purpose || '—')}</p>
     <h3>${T.scopeH}</h3>
     <p class="editable">${esc(content.scope || '—')}</p>
-    ${businessCaseLine ? `<h3>${da ? 'Business case' : 'Business case'}</h3>\n    <p class="editable">${esc(businessCaseLine)}</p>` : ''}
+    ${businessCaseLine ? `<h3>Business case</h3>\n    <p class="editable">${esc(businessCaseLine)}</p>` : ''}
   </div>
 
   <!-- Section 3: Roles & Responsibilities -->

@@ -39,6 +39,19 @@ import { onTokenRefreshed, listRounds } from './services/roundService.js';
 import { buildStructuredTranscript } from './lib/transcript.js';
 import { compareTimes } from './lib/processMetrics.js';
 import { computeBusinessCase } from './lib/businessCase.js';
+
+// Business case shown in the demo (inputs only; the money is computed from the demo times)
+const DEMO_BUSINESS_CASE = {
+  da: { volumePerMonth: 60, hourlyRate: 450, oneOffCost: 1500000, runCostPerYear: 120000, currency: 'DKK',
+        sources: { volumePerMonth: 'stated', hourlyRate: 'stated', oneOffCost: 'estimated' },
+        problem: 'Fakturaer betales for sent, og kreditorbogholderiet bruger mange timer på manuel kontrol og rykkere.',
+        target: '95 % af fakturaerne betalt til tiden; halvering af behandlingstiden pr. faktura.' },
+  en: { volumePerMonth: 60, hourlyRate: 60, oneOffCost: 200000, runCostPerYear: 16000, currency: 'EUR',
+        sources: { volumePerMonth: 'stated', hourlyRate: 'stated', oneOffCost: 'estimated' },
+        problem: 'Invoices are paid late, and accounts payable spends many hours on manual checks and reminders.',
+        target: '95 % of invoices paid on time; half the handling time per invoice.' },
+};
+const withDemoBusinessCase = isDa => prev => (prev && Object.keys(prev).length ? prev : DEMO_BUSINESS_CASE[isDa ? 'da' : 'en']);
 import { fetchFlows, upsertFlow, deleteFlow as apiDeleteFlow } from './services/flowService.js';
 import {
   DEMO_TRANSCRIPT, DEMO_PARSED, DEMO_XML, DEMO_DESCRIPTION,
@@ -764,7 +777,7 @@ export default function App() {
       setTranscript(''); setProcessDescription(null); setParsed(null); setXml(null);
       setImprovements(null); setSelectedImprovementIds([]); setCustomRisks([]);
       setProjectPlan(null); setAsIsXml(null); setAsIsParsed(null);
-      setToBeXml(null); setToBeParsed(null); setAsIsMetrics(null); setToBeMetrics(null);
+      setToBeXml(null); setToBeParsed(null); setAsIsMetrics(null); setToBeMetrics(null); setBusinessCaseInputs({});
       setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
       setBoardUrl(null); setBoardId(null);
       setActivePanel(1);
@@ -1053,6 +1066,7 @@ export default function App() {
       setToBeXml(isDa ? DA_DEMO_TO_BE_XML : DEMO_TO_BE_XML);
       setAsIsMetrics(isDa ? DA_DEMO_AS_IS_METRICS : DEMO_AS_IS_METRICS);
       setToBeMetrics(isDa ? DA_DEMO_TO_BE_METRICS : DEMO_TO_BE_METRICS);
+      setBusinessCaseInputs(withDemoBusinessCase(isDa));
       setActivePanel(5);
       return;
     }
@@ -1076,6 +1090,7 @@ export default function App() {
       setToBeXml(isDa ? DA_DEMO_TO_BE_XML : DEMO_TO_BE_XML);
       setToBeParsed(null);
       setToBeMetrics(isDa ? DA_DEMO_TO_BE_METRICS : DEMO_TO_BE_METRICS);
+      setBusinessCaseInputs(withDemoBusinessCase(isDa));
       setToBeApproved(false);
       return;
     }
