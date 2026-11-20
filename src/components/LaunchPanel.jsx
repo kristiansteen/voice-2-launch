@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PlanGantt from './PlanGantt.jsx';
 import { touchTimeFigure } from '../lib/processMetrics.js';
 import BusinessCase from './BusinessCase.jsx';
 import VimplExportModal from './VimplExportModal.jsx';
@@ -208,26 +209,8 @@ export default function LaunchPanel({ timeComparison = null, businessCase = null
 
         <BusinessCase bc={businessCase} inputs={businessCaseInputs} onChange={onBusinessCaseChange} improvements={improvements} selectedIds={selectedIds} />
 
-        {/* ── Tracks & tasks ───────────────────────────────────────── */}
-        {(projectPlan.tracks || []).map(track => {
-          const tasks = (projectPlan.tasks || []).filter(t2 => t2.track_id === track.id);
-          if (!tasks.length) return null;
-          return (
-            <div key={track.id} className="px-4 pt-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{track.name}</p>
-              {tasks.map(task => (
-                <div key={task.id} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
-                  <span className="text-gray-300 text-xs shrink-0">■</span>
-                  <span className="text-xs text-gray-700 flex-1 min-w-0">{task.title}</span>
-                  <span className="text-xs text-gray-400 shrink-0">{t.week} {task.week_start}–{task.week_end}</span>
-                  {task.owner && (
-                    <span className="text-xs text-gray-400 shrink-0 max-w-[80px] truncate">{task.owner}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          );
-        })}
+        {/* ── Tracks & tasks as a week Gantt chart ─────────────────── */}
+        <PlanGantt plan={projectPlan} t={t} />
 
         {/* ── Risks ────────────────────────────────────────────────── */}
         <div className="px-4 pt-3 pb-2 mt-2 border-t border-gray-100">
