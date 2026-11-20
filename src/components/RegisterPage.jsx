@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BACKEND_URL } from '../lib/api.js';
+import AuthLayout, { inputClass, primaryButtonClass, OrDivider, ErrorBox } from './AuthLayout.jsx';
 
 export default function RegisterPage({ onLogin, onSwitchToLogin }) {
   const [name, setName]         = useState('');
@@ -51,91 +52,41 @@ export default function RegisterPage({ onLogin, onSwitchToLogin }) {
   const strength = passwordStrength(password);
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <AuthLayout
+      headline="Tell the process. Get the diagram."
+      intro="Interview the people who do the work. Ailean turns it into BPMN, improvements and a plan with the business case."
+      points={['Free to get started', 'No credit card required', 'EU-hosted, not used for training']}
+    >
+          <h1 className="text-2xl font-semibold text-ink mb-1">Create account</h1>
+          <p className="text-mid text-sm mb-8">Get started with Ailean today.</p>
 
-      {/* ── Mobile compact header ── */}
-      <div
-        className="lg:hidden flex items-center justify-center py-6 px-6 text-white shrink-0"
-        style={{ background: 'linear-gradient(135deg, #0a0f0a 0%, #0d1f0d 100%)' }}
-      >
-        <div style={{ fontSize: '2.6rem', fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, background: 'linear-gradient(135deg, #65c434 0%, #0ea5e9 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-          AILEAN
-        </div>
-      </div>
-
-      {/* ── Left hero — desktop only ── */}
-      <div
-        className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 text-white relative overflow-hidden"
-        style={{ background: '#0a0f0a' }}
-      >
-        {/* Burst image background */}
-        <img
-          src="/assets/images/ailean-burst-vision.jpg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.45 }}
-        />
-        {/* Dark overlay */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,30,10,0.5) 100%)' }} />
-
-        <div className="max-w-sm text-center relative z-10">
-          <div className="mb-2" style={{ fontSize: '5rem', fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, background: 'linear-gradient(135deg, #65c434 0%, #0ea5e9 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            AILEAN
-          </div>
-          <div className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>fra Vimpl</div>
-          <h2 className="text-2xl font-bold mb-4 leading-snug">Start mapping your processes</h2>
-          <p className="text-white/70 leading-relaxed">
-            Create your account and let Ailean turn your conversations into structured BPMN diagrams.
-          </p>
-          <div className="mt-10 space-y-3 text-left text-sm text-white/70">
-            {['Free to get started', 'No credit card required', 'First diagram in minutes'].map(f => (
-              <div key={f} className="flex items-center gap-3">
-                <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: '#65c434', color: '#0a0f0a' }}>✓</span>
-                {f}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Form ── */}
-      <div className="flex-1 flex items-center justify-center px-6 py-8 bg-slate-50">
-        <div className="w-full max-w-sm">
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Create account</h1>
-          <p className="text-slate-500 text-sm mb-8">Get started with Ailean today.</p>
-
-          {error && (
-            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-              {error}
-            </div>
-          )}
+          {error && <ErrorBox>{error}</ErrorBox>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+              <label className="block text-sm font-medium text-ink mb-1">Name</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Your name"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition bg-white"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-ink mb-1">Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition bg-white"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-ink mb-1">Password</label>
               <input
                 type="password"
                 required
@@ -143,7 +94,7 @@ export default function RegisterPage({ onLogin, onSwitchToLogin }) {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition bg-white"
+                className={inputClass}
               />
               {strength && (
                 <p className={`mt-1 text-xs font-medium ${strength.color}`}>{strength.label} password</p>
@@ -152,23 +103,18 @@ export default function RegisterPage({ onLogin, onSwitchToLogin }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl font-semibold text-white text-sm transition disabled:opacity-60"
-              style={{ background: loading ? '#3d7a1f' : '#65c434', color: '#0a0f0a' }}
+              className={primaryButtonClass}
             >
               {loading ? 'Creating account…' : 'Create account'}
             </button>
           </form>
 
-          <div className="my-5 flex items-center gap-3">
-            <div className="flex-1 h-px bg-slate-200" />
-            <span className="text-xs text-slate-400">or</span>
-            <div className="flex-1 h-px bg-slate-200" />
-          </div>
+          <OrDivider />
 
           <button
             type="button"
             onClick={handleGoogle}
-            className="w-full py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center justify-center gap-3"
+            className="w-full py-3 rounded-full border border-line bg-white text-sm font-medium text-ink hover:border-ink transition flex items-center justify-center gap-3"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -179,7 +125,7 @@ export default function RegisterPage({ onLogin, onSwitchToLogin }) {
             Continue with Google
           </button>
 
-          <p className="mt-4 text-center text-xs text-slate-400">
+          <p className="mt-4 text-center text-xs text-mid">
             By creating an account you agree to our{' '}
             <a href="https://app.vimpl.com/terms.html" target="_blank" rel="noreferrer" className="underline">Terms</a>
             {' '}and{' '}
@@ -188,14 +134,12 @@ export default function RegisterPage({ onLogin, onSwitchToLogin }) {
             <a href="https://app.vimpl.com/privacy.html" target="_blank" rel="noreferrer" className="underline">Privacy Notice</a>.
           </p>
 
-          <p className="mt-4 text-center text-sm text-slate-500">
+          <p className="mt-4 text-center text-sm text-mid">
             Already have an account?{' '}
-            <button onClick={onSwitchToLogin} className="font-semibold" style={{ color: '#65c434' }}>
+            <button onClick={onSwitchToLogin} className="font-semibold text-ink underline underline-offset-2" >
               Sign in
             </button>
           </p>
-        </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }
