@@ -11,6 +11,8 @@ import Dashboard from './components/Dashboard.jsx';
 import TrustBadge from './components/TrustBadge.jsx';
 import RoundContribution from './components/RoundContribution.jsx';
 import RoundsPanel from './components/RoundsPanel.jsx';
+import ShareFlow from './components/ShareFlow.jsx';
+import { versionsForFlow } from './lib/shareRound.js';
 
 // AS-IS rounds need the online backend; the offline build hides them
 const ROUNDS_ENABLED = import.meta.env.VITE_OFFLINE !== 'true';
@@ -925,33 +927,35 @@ export default function App() {
   // ── AS-IS rounds: turn submissions into a flow (snapshot) ──────────
   // One version: its description as is. Several: the AI groups steps that are the same,
   // the rest (disagreements, majority draft) is computed in roundMerge.js.
+  // Several versions of one process: the AI groups steps that are the same, the rest
+  // (disagreements, majority draft) is computed in roundMerge.js. Null if it failed.
+  async function combineVersions(versions, processName, roundLang) {
+    if (versions.length === 1) return { description: { ...versions[0].description, process_name: processName }, disagreements: [] };
+    const refs = stepRefs(versions);
+    let raw;
+    try {
+      raw = await matchRoundSteps(refs, effectiveApiKey, getProxyAuth(), roundLang);
+    } catch (err) {
+      console.error('[matchRoundSteps] failed:', err);
+      return null;
+    }
+    const groups = validateGroups(raw, refs);
+    // A grouping that matched almost nothing would give an empty draft; treat it as a failure
+    if (groupingLooksBroken(groups, refs)) {
+      console.error('[matchRoundSteps] grouping matched almost nothing:', raw);
+      return null;
+    }
+    return combine(versions, groups, processName);
+  }
+
   async function handleUseSubmissions({ round, submissionIds, mode }) {
     setRoundUseError(null);
     const versions = versionsFromRound(round, submissionIds, vimplUser?.email);
     if (!versions.length) return;
     const roundLang = round.language === 'da' ? 'da' : 'en';
-    let description, disagreements = [];
-    if (versions.length === 1) {
-      description = { ...versions[0].description, process_name: round.processName };
-    } else {
-      const refs = stepRefs(versions);
-      let raw;
-      try {
-        raw = await matchRoundSteps(refs, effectiveApiKey, getProxyAuth(), roundLang);
-      } catch (err) {
-        console.error('[matchRoundSteps] failed:', err);
-        setRoundUseError(t.roundsUseFailed);
-        return;
-      }
-      const groups = validateGroups(raw, refs);
-      // A grouping that matched almost nothing would give an empty draft; treat it as a failure
-      if (groupingLooksBroken(groups, refs)) {
-        console.error('[matchRoundSteps] grouping matched almost nothing:', raw);
-        setRoundUseError(t.roundsUseFailed);
-        return;
-      }
-      ({ description, disagreements } = combine(versions, groups, round.processName));
-    }
+    const merged = await combineVersions(versions, round.processName, roundLang);
+    if (!merged) { setRoundUseError(t.roundsUseFailed); return; }
+    const { description, disagreements } = merged;
     const snapshot = {
       roundId: round.id,
       processName: round.processName,
@@ -974,6 +978,30 @@ export default function App() {
     if (mode === 'diagram') {
       await handleApproveToBpmn(false, { description, transcript: initial.transcript, processContext: initial.processContext });
     }
+  }
+
+  // Share in the Describe step: combine the owner's own description of this flow with the
+  // colleagues' answers, in this flow. Review then shows where they disagree.
+  async function handleCombineIntoFlow(round) {
+    setRoundUseError(null);
+    const processName = processDescription?.process_name || currentFlow?.process_name || currentFlow?.name || round.processName;
+    const versions = versionsForFlow(round, { description: processDescription, transcript }, { name: vimplUser?.name, email: vimplUser?.email });
+    if (!versions.some(v => !v.isOwner)) return false;
+    const merged = await combineVersions(versions, processName, round.language === 'da' ? 'da' : 'en');
+    if (!merged) { setRoundUseError(t.roundsUseFailed); return false; }
+    setProcessDescription(merged.description);
+    setTranscript(versions.length === 1 ? versions[0].transcript : combinedTranscript(versions));
+    setRoundSnapshot({
+      roundId: round.id,
+      processName,
+      createdAt: new Date().toISOString(),
+      versions: versions.map(v => ({ id: v.id, name: v.name, transcript: v.transcript })),
+      disagreements: merged.disagreements,
+      resolutions: {},
+    });
+    setLangConfirmed(true);
+    setActivePanel(2);
+    return true;
   }
 
   // The owner settles one disagreement in the Review pane
@@ -1432,6 +1460,21 @@ export default function App() {
               hasElevenLabsKey={!!vimplToken}
               langConfirmed={langConfirmed}
               onConfirmLang={handleConfirmLang}
+              toolbarExtra={ROUNDS_ENABLED && roundsAvailable && currentFlowId && !isDemoFlow ? (
+                <ShareFlow
+                  token={vimplToken}
+                  flowId={currentFlowId}
+                  processName={processDescription?.process_name || currentFlow?.process_name || currentFlow?.name}
+                  startTrigger={(asIsParsed || parsed)?.events?.find(e => e.type === 'start')?.name}
+                  endPoint={(asIsParsed || parsed)?.events?.find(e => e.type === 'end')?.name}
+                  lang={lang}
+                  t={t}
+                  owner={vimplUser}
+                  linkedRoundId={roundSnapshot?.roundId}
+                  hasOwnDescription={!!processDescription?.steps?.length}
+                  onCombine={handleCombineIntoFlow}
+                />
+              ) : null}
             />
           </PanelShell>
           {activePanel !== 1 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}

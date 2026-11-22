@@ -19,6 +19,7 @@ export default function VoicePanel({
   ailean,
   hasElevenLabsKey,
   langConfirmed, onConfirmLang,
+  toolbarExtra = null, // e.g. the Share button, shown at the end of the toolbar
 }) {
   const { t, lang, setLang } = useLang();
   const [showGuide, setShowGuide] = useState(false);
@@ -193,6 +194,7 @@ export default function VoicePanel({
             <span className="text-[9px] font-normal opacity-60">{t.voiceClearSub}</span>
           </span>
         </button>
+        {toolbarExtra}
       </div>
 
       {/* ── Language confirmation prompt ──────────────────────────── */}

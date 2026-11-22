@@ -35,6 +35,7 @@ async function call(token, path, { method = 'GET', body } = {}) {
     const err = new Error(data?.error || `Request failed (${res.status})`);
     err.status = res.status;
     err.code = data?.code || (res.status === 404 ? 'NOT_FOUND' : null);
+    err.data = data;
     throw err;
   }
   return data;
@@ -56,3 +57,12 @@ export const saveContribution = (token, inviteToken, { status, contribution }) =
   call(token, `/invite/${enc(inviteToken)}/contribution`, { method: 'PUT', body: { status, contribution } });
 export const withdrawContribution = (token, inviteToken) =>
   call(token, `/invite/${enc(inviteToken)}/contribution`, { method: 'DELETE' });
+
+// Sharing a flow: the round that collects descriptions of it, and email invitations
+export const getRoundForFlow = (token, flowId) => call(token, `/by-flow/${enc(flowId)}`);
+export const startRoundForFlow = (token, { flowId, processName, startTrigger, endPoint, language }) =>
+  call(token, '/from-flow', { method: 'POST', body: { flowId, processName, startTrigger, endPoint, language } });
+export const linkRoundToFlow = (token, id, flowId) => call(token, `/${enc(id)}/link`, { method: 'POST', body: { flowId } });
+export const sendInvites = (token, id, { emails, note }) => call(token, `/${enc(id)}/invites`, { method: 'POST', body: { emails, note } });
+export const remindInvites = (token, id) => call(token, `/${enc(id)}/remind`, { method: 'POST' });
+export const removeInvite = (token, id, inviteId) => call(token, `/${enc(id)}/invites/${enc(inviteId)}`, { method: 'DELETE' });
