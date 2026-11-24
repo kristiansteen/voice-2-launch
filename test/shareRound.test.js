@@ -41,3 +41,26 @@ test('versionsForFlow leaves the owner out when the flow has no description yet'
   const v = versionsForFlow(round, { description: null, transcript: '' }, { name: 'K', email: 'owner@firma.dk' });
   assert.deepEqual(v.map(x => x.name), ['Mette', 'Anna']);
 });
+
+import { planRoundAdoption } from '../src/lib/shareRound.js';
+
+test('planRoundAdoption: rounds without a flow attach to the flow made from them, or get a new flow', () => {
+  const rounds = [
+    { id: 'r1', flowId: 'f1', processName: 'Linked', status: 'open', counts: { opened: 1, started: 0, submitted: 0 } },
+    { id: 'r2', flowId: null, processName: 'Used before', status: 'open', counts: { opened: 0, started: 0, submitted: 2 } },
+    { id: 'r3', flowId: null, processName: 'Invoice approval', language: 'da', status: 'open', counts: { opened: 0, started: 0, submitted: 0 } },
+    { id: 'r4', flowId: null, processName: 'Dead', status: 'closed', counts: { opened: 0, started: 0, submitted: 0 } },
+    { id: 'r5', flowId: null, processName: 'Closed with answers', status: 'closed', counts: { opened: 0, started: 1, submitted: 1 } },
+  ];
+  const flows = [
+    { id: 'f1', process_name: 'Linked' },
+    { id: 'f2', process_name: 'From r2', roundSnapshot: { roundId: 'r2' } },
+    { id: 'demo', _demo: true, roundSnapshot: { roundId: 'r3' } },
+  ];
+  assert.deepEqual(planRoundAdoption(rounds, flows), [
+    { roundId: 'r2', linkTo: 'f2' },
+    { roundId: 'r3', create: { processName: 'Invoice approval' } },
+    { roundId: 'r5', create: { processName: 'Closed with answers' } },
+  ]);
+  assert.deepEqual(planRoundAdoption(null, flows), []);
+});

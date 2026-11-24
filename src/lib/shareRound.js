@@ -63,3 +63,21 @@ export function versionsForFlow(round, own, owner) {
   }
   return versions.sort((a, b) => (b.isOwner - a.isOwner) || String(a.submittedAt).localeCompare(String(b.submittedAt)));
 }
+
+/**
+ * Rounds from before sharing lived in flows: each one without a flow is attached to the flow
+ * that was made from it, or gets a new flow. A closed round nobody ever opened is left alone.
+ */
+export function planRoundAdoption(rounds, flows) {
+  const plan = [];
+  for (const r of rounds || []) {
+    if (r.flowId) continue;
+    const made = (flows || []).find(f => !f._demo && f.roundSnapshot?.roundId === r.id);
+    if (made) { plan.push({ roundId: r.id, linkTo: made.id }); continue; }
+    const c = r.counts || {};
+    const activity = (c.opened || 0) + (c.started || 0) + (c.submitted || 0);
+    if (r.status === 'closed' && activity === 0) continue;
+    plan.push({ roundId: r.id, create: { processName: r.processName } });
+  }
+  return plan;
+}

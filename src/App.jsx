@@ -10,9 +10,8 @@ import LaunchPanel from './components/LaunchPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import TrustBadge from './components/TrustBadge.jsx';
 import RoundContribution from './components/RoundContribution.jsx';
-import RoundsPanel from './components/RoundsPanel.jsx';
 import ShareFlow from './components/ShareFlow.jsx';
-import { versionsForFlow } from './lib/shareRound.js';
+import { versionsForFlow, planRoundAdoption } from './lib/shareRound.js';
 
 // AS-IS rounds need the online backend; the offline build hides them
 const ROUNDS_ENABLED = import.meta.env.VITE_OFFLINE !== 'true';
@@ -30,7 +29,7 @@ import {
   matchRoundSteps,
 } from './services/anthropicService.js';
 import {
-  versionsFromRound, stepRefs, validateGroups, combine, combinedTranscript, groupingLooksBroken, resolveDisagreement,
+  stepRefs, validateGroups, combine, combinedTranscript, groupingLooksBroken, resolveDisagreement,
 } from './lib/roundMerge.js';
 import { generateBpmnXml } from './services/xmlGenerator.js';
 import { comparisonToImprovements } from './services/processComparison.js';
@@ -38,7 +37,7 @@ import { useAileanInterviewer } from './hooks/useAileanInterviewer.js';
 import {
   INVITE_PARAM, readInviteFromSearch, rememberInvite, takePendingInvite, holdInvite, heldInvite, releaseInvite,
 } from './lib/roundInvite.js';
-import { onTokenRefreshed, listRounds } from './services/roundService.js';
+import { onTokenRefreshed, listRounds, linkRoundToFlow } from './services/roundService.js';
 import { buildStructuredTranscript } from './lib/transcript.js';
 import { compareTimes } from './lib/processMetrics.js';
 import { computeBusinessCase } from './lib/businessCase.js';
@@ -215,7 +214,6 @@ export default function App() {
   const [vimplUser, setVimplUser] = useState(null);
   // Invite token of an AS-IS round the user opened; shows the contribution screen once logged in
   const [pendingInvite, setPendingInvite] = useState(null);
-  const [showRounds, setShowRounds] = useState(false);
   // Rounds appear only once the backend serves them (its tables are created by hand with prisma db push)
   const [roundsAvailable, setRoundsAvailable] = useState(false);
   useEffect(() => {
@@ -320,6 +318,8 @@ export default function App() {
     return localStorage.getItem(activeKey(storedUserId)) || null;
   });
   const [flowsLoading, setFlowsLoading] = useState(false);
+  // True once this session's flows came back from the server (not just from this device)
+  const [flowsSynced, setFlowsSynced] = useState(false);
 
   // ── Load flows from API on login ───────────────────────────────────
   useEffect(() => {
@@ -341,6 +341,7 @@ export default function App() {
         try { localStorage.setItem(flowsKey(userId), JSON.stringify(merged)); } catch {}
         return merged;
       });
+      setFlowsSynced(true);
     }).catch(() => {}).finally(() => setFlowsLoading(false));
   }, [vimplToken]); // eslint-disable-line
 
@@ -948,37 +949,38 @@ export default function App() {
     return combine(versions, groups, processName);
   }
 
-  async function handleUseSubmissions({ round, submissionIds, mode }) {
-    setRoundUseError(null);
-    const versions = versionsFromRound(round, submissionIds, vimplUser?.email);
-    if (!versions.length) return;
-    const roundLang = round.language === 'da' ? 'da' : 'en';
-    const merged = await combineVersions(versions, round.processName, roundLang);
-    if (!merged) { setRoundUseError(t.roundsUseFailed); return; }
-    const { description, disagreements } = merged;
-    const snapshot = {
-      roundId: round.id,
-      processName: round.processName,
-      createdAt: new Date().toISOString(),
-      versions: versions.map(v => ({ id: v.id, name: v.name, transcript: v.transcript })),
-      disagreements,
-      resolutions: {},
-    };
-    const initial = {
-      process_name: round.processName,
-      transcript: versions.length === 1 ? versions[0].transcript : combinedTranscript(versions),
-      processDescription: description,
-      processContext: { apqcNodeId: null, apqcNodeName: null, isCustom: true, customLabel: round.processName },
-      roundSnapshot: snapshot,
-    };
-    createFlowWith(initial);
-    setShowRounds(false);
-    setLangConfirmed(true);
-    setActivePanel(2);
-    if (mode === 'diagram') {
-      await handleApproveToBpmn(false, { description, transcript: initial.transcript, processContext: initial.processContext });
-    }
-  }
+  // Rounds from before Share lived in flows: attach each to its flow, or give it a new one,
+  // so every collection of answers is reached through Share in a flow. Runs once per session.
+  const adoptedRounds = useRef(false);
+  useEffect(() => {
+    if (!roundsAvailable || !vimplToken || !flowsSynced || adoptedRounds.current) return;
+    adoptedRounds.current = true;
+    (async () => {
+      try {
+        const plan = planRoundAdoption(await listRounds(vimplToken), flows);
+        for (const step of plan) {
+          let flowId = step.linkTo;
+          if (step.create) {
+            const now = new Date().toISOString();
+            const flow = {
+              id: crypto.randomUUID(), created_at: now, updated_at: now, board_id: null, board_url: null,
+              ...blankFlowState(), process_name: step.create.processName,
+            };
+            await upsertFlow(vimplToken, flow);
+            setFlows(prev => {
+              const updated = [flow, ...prev];
+              try { localStorage.setItem(flowsKey(userId), JSON.stringify(updated)); } catch {}
+              return updated;
+            });
+            flowId = flow.id;
+          }
+          await linkRoundToFlow(vimplToken, step.roundId, flowId);
+        }
+      } catch (err) {
+        console.error('[rounds] moving rounds into flows failed:', err);
+      }
+    })();
+  }, [roundsAvailable, vimplToken, flowsSynced, flows, userId]);
 
   // Share in the Describe step: combine the owner's own description of this flow with the
   // colleagues' answers, in this flow. Review then shows where they disagree.
@@ -1265,19 +1267,6 @@ export default function App() {
   }
 
   // ── AS-IS rounds (owner) ───────────────────────────────────────────
-  if (ROUNDS_ENABLED && showRounds && !currentFlowId) {
-    return (
-      <RoundsPanel
-        vimplToken={vimplToken}
-        vimplUser={vimplUser}
-        onBack={() => setShowRounds(false)}
-        onContribute={token => setPendingInvite(token)}
-        onUseSubmissions={handleUseSubmissions}
-        useError={roundUseError}
-      />
-    );
-  }
-
   // ── Dashboard ──────────────────────────────────────────────────────
   if (!currentFlowId) {
     return (
@@ -1295,7 +1284,6 @@ export default function App() {
           onLogout={logoutVimpl}
           onDemo={handleLoadDemo}
           onBurger={() => setShowBurger(true)}
-          onOpenRounds={roundsAvailable ? () => setShowRounds(true) : undefined}
         />
         <BurgerMenu
           open={showBurger}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   getRoundForFlow, startRoundForFlow, linkRoundToFlow, sendInvites, remindInvites, removeInvite,
+  closeRound, reopenRound, renewRoundLink,
 } from '../services/roundService.js';
 import { inviteUrl } from '../lib/roundInvite.js';
 import { splitEmails, shareSummary } from '../lib/shareRound.js';
@@ -109,6 +110,16 @@ export default function ShareFlow({
     try { setRound(await removeInvite(token, round.id, inviteId)); } catch (err) { setMessage({ kind: 'error', text: errorText(err) }); }
   }
 
+  async function handleStatus(action) {
+    if (action === 'renew' && !window.confirm(t.shareNewLinkConfirm)) return;
+    setBusy(action); setMessage(null);
+    try {
+      const fn = action === 'close' ? closeRound : action === 'reopen' ? reopenRound : renewRoundLink;
+      setRound(await fn(token, round.id));
+      if (action === 'renew') setMessage({ kind: 'ok', text: t.shareNewLinkDone });
+    } catch (err) { setMessage({ kind: 'error', text: errorText(err) }); } finally { setBusy(null); }
+  }
+
   async function handleCombine() {
     setBusy('combine'); setMessage(null);
     try {
@@ -127,6 +138,7 @@ export default function ShareFlow({
   });
   const answers = summary.described;
   const canCombine = answers >= 1 && (hasOwnDescription || answers >= 2);
+  const closed = round?.status === 'closed';
 
   return (
     <>
@@ -157,6 +169,9 @@ export default function ShareFlow({
             <button onClick={() => setOpen(false)} className="text-xs text-mid hover:text-ink" aria-label={t.shareClose}>✕</button>
           </div>
           <p className="text-sm text-mid leading-relaxed mb-4">{t.shareIntro}</p>
+          {closed && (
+            <p className="mb-4 px-3 py-2 rounded-lg bg-gray-50 border border-line text-xs text-ink">{t.shareClosedNote}</p>
+          )}
 
           <label className="block text-xs font-medium mb-1" htmlFor="share-emails">{t.shareEmailsLabel}</label>
           <textarea
@@ -171,7 +186,7 @@ export default function ShareFlow({
           />
           <div className="flex items-center gap-2">
             <button
-              onClick={handleSend} disabled={busy === 'send' || !emails.trim()}
+              onClick={handleSend} disabled={closed || busy === 'send' || !emails.trim()}
               className="px-4 py-2 rounded-full bg-ink text-white text-sm font-semibold hover:bg-ink-hover disabled:opacity-50 transition"
             >{busy === 'send' ? t.shareSending : t.shareSend}</button>
             <button onClick={handleCopy} className="px-4 py-2 rounded-full border border-line text-sm font-medium hover:border-ink transition">
@@ -187,7 +202,7 @@ export default function ShareFlow({
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold">{fill(t.sharePeople, { described: summary.described, people: summary.people })}</p>
                 <button
-                  onClick={handleRemind} disabled={busy === 'remind' || summary.remindable === 0}
+                  onClick={handleRemind} disabled={closed || busy === 'remind' || summary.remindable === 0}
                   title={summary.remindable === 0 ? t.shareRemindNone : undefined}
                   className="text-xs font-medium underline underline-offset-2 disabled:no-underline disabled:text-gray-400"
                 >{fill(t.shareRemind, { n: summary.remindable })}</button>
@@ -219,6 +234,17 @@ export default function ShareFlow({
                 className="w-full py-2.5 rounded-full bg-signal text-white text-sm font-semibold hover:bg-signal-600 disabled:opacity-50 transition"
               >{busy === 'combine' ? t.shareCombining : fill(t.shareCombine, { n: answers + (hasOwnDescription ? 1 : 0) })}</button>
               <p className="mt-2 text-[11px] text-mid text-center">{t.shareCombineNote}</p>
+            </div>
+          )}
+
+          {round && (
+            <div className="mt-5 pt-3 border-t border-line flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-mid">
+              {closed ? (
+                <button onClick={() => handleStatus('reopen')} disabled={!!busy} className="underline underline-offset-2 hover:text-ink">{t.shareReopen}</button>
+              ) : (
+                <button onClick={() => handleStatus('close')} disabled={!!busy} className="underline underline-offset-2 hover:text-ink">{t.shareStop}</button>
+              )}
+              <button onClick={() => handleStatus('renew')} disabled={!!busy} className="underline underline-offset-2 hover:text-ink">{t.shareNewLink}</button>
             </div>
           )}
         </div>

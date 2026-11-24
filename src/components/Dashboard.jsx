@@ -48,7 +48,7 @@ function DeleteModal({ flow, onConfirm, onCancel }) {
   );
 }
 
-export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate, onDelete, onUpdateRag, onClassify, canCreate, onLogout, onDemo, onBurger, onOpenRounds }) {
+export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate, onDelete, onUpdateRag, onClassify, canCreate, onLogout, onDemo, onBurger }) {
   const { t } = useLang();
   const [deletingFlow, setDeletingFlow] = useState(null);
 
@@ -113,11 +113,6 @@ export default function Dashboard({ flows, loading, vimplUser, onOpen, onCreate,
             {isTrial && <p className="text-xs text-mid mt-1">{t.dashTrialIncluded}</p>}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {onOpenRounds && (
-              <button onClick={onOpenRounds} className="text-sm font-medium text-ink border border-ink rounded-full px-4 py-2 hover:bg-ink hover:text-paper transition-colors">
-                {t.dashRounds}
-              </button>
-            )}
             {canCreate ? (
               <button onClick={onCreate} className="flex items-center gap-1.5 bg-ink text-paper text-sm font-semibold px-4 py-2 rounded-full hover:bg-ink-hover transition-colors">
                 {t.dashNewFlow}
