@@ -43,13 +43,12 @@ test('A/R counts as both responsible and accountable in the step line', () => {
   assert.match(html, /Accountable: Clerk/);
 });
 
-test('Danish SOP uses Danish RACI wording', () => {
+test('Danish SOP keeps the international RACI terms', () => {
   const html = buildSopHtml({ parsed: parsedWithStep, processName: 'P', lang: 'da', raci: raciStep });
-  assert.match(html, /Udfører: Clerk/);
-  assert.match(html, /Godkender: CFO/);
-  assert.match(html, /Konsulteres: AP/);
-  assert.match(html, /Informeres: Supplier/);
-  assert.doesNotMatch(html, /R = Responsible/);
+  assert.match(html, /Responsible: Clerk/);
+  assert.match(html, /Accountable: CFO/);
+  assert.match(html, /R = Responsible · A = Accountable · C = Consulted · I = Informed/);
+  assert.doesNotMatch(html, /(Udfører|Godkender|Konsulteres|Informeres): /);
 });
 
 test('steps without a RACI row show no RACI line', () => {
