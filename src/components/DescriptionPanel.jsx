@@ -61,9 +61,77 @@ function RolesList({ roles, onChange }) {
   );
 }
 
+const UNITS = ['min', 'hr', 'day', 'week'];
+
+// Touch time, waiting time, decision rule and rework loop of one step. All optional:
+// empty means nobody said it, and Ailean never guesses a value.
+function StepFacts({ step, onChange }) {
+  const { t } = useLang();
+  const setTime = (field, value, unit) => {
+    const v = Number(value);
+    const prev = step[field];
+    onChange(field, value === '' || !(v > 0)
+      ? undefined
+      : { value: v, unit: unit || prev?.unit || 'min', source: prev?.source || 'estimated' });
+  };
+  const timeInput = (field, label) => {
+    const tv = step[field];
+    return (
+      <label className="flex items-center gap-1 text-[11px] text-gray-500">
+        <span>{label}</span>
+        <input
+          type="number" min="0" step="any" value={tv?.value ?? ''}
+          onChange={e => setTime(field, e.target.value, tv?.unit)}
+          placeholder="?"
+          className="w-12 text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:border-blue-400"
+        />
+        <select
+          value={tv?.unit || 'min'} onChange={e => tv && setTime(field, tv.value, e.target.value)} disabled={!tv}
+          className="text-xs border border-gray-200 rounded px-0.5 py-0.5 bg-white disabled:opacity-50"
+          aria-label={`${label} ${t.factUnit}`}
+        >
+          {UNITS.map(u => <option key={u} value={u}>{t.factUnits[u]}</option>)}
+        </select>
+        {tv?.source === 'measured' && <span className="text-[10px] text-mid">{t.factMeasured}</span>}
+      </label>
+    );
+  };
+  return (
+    <div className="space-y-1">
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {timeInput('touch_time', t.factTouch)}
+        {timeInput('wait_time', t.factWait)}
+      </div>
+      {step.decision && (
+        <p className="flex items-start gap-1 text-[11px] text-gray-600">
+          <span aria-hidden="true">◇</span>
+          <span className="flex-1">
+            <span className="font-medium">{step.decision.question}</span>{' '}
+            {step.decision.outcomes.map(o => `${o.condition}${o.next ? ` → ${o.next}` : ''}`).join(' · ')}
+          </span>
+          <button onClick={() => onChange('decision', undefined)} className="text-gray-300 hover:text-red-400" aria-label={`${t.factRemove} ${t.factDecision}`}>✕</button>
+        </p>
+      )}
+      {step.rework && (
+        <p className="flex items-start gap-1 text-[11px] text-gray-600">
+          <span aria-hidden="true">↺</span>
+          <span className="flex-1">{t.factReworkTo} <span className="font-medium">{step.rework.back_to}</span>{step.rework.when ? ` — ${step.rework.when}` : ''}</span>
+          <button onClick={() => onChange('rework', undefined)} className="text-gray-300 hover:text-red-400" aria-label={`${t.factRemove} ${t.factRework}`}>✕</button>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function StepsList({ steps, onChange }) {
   const { t } = useLang();
-  function update(i, field, val) { const n = [...steps]; n[i] = { ...n[i], [field]: val }; onChange(n); }
+  function update(i, field, val) {
+    const n = [...steps];
+    const next = { ...n[i], [field]: val };
+    if (val === undefined) delete next[field];
+    n[i] = next;
+    onChange(n);
+  }
   function remove(i) { onChange(steps.filter((_, idx) => idx !== i)); }
   function add() {
     const order = steps.length ? Math.max(...steps.map(s => s.order)) + 1 : 1;
@@ -96,6 +164,7 @@ function StepsList({ steps, onChange }) {
             rows={2}
             className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400 resize-none"
           />
+          <StepFacts step={step} onChange={(field, val) => update(i, field, val)} />
         </div>
       ))}
       <button onClick={add} className="text-xs text-blue-500 hover:text-blue-700">{t.addStep}</button>

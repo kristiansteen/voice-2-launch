@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { MODEL_SONNET, MODEL_HAIKU } from '../config/models.js';
 import { normaliseMetrics } from '../lib/processMetrics.js';
 import { withoutValueFields } from '../lib/valueAnalysis.js';
+import { cleanDescription } from '../lib/stepFacts.js';
 
 // ── Client factory ────────────────────────────────────────────────────────────
 // Returns either a real Anthropic client (BYOK, dev only) or a proxy shim (vimpl auth).
@@ -113,10 +114,24 @@ The JSON must follow this exact schema:
   "overview": "paragraph describing the overall process",
   "scope": "paragraph describing what is in and out of scope",
   "roles": [{ "name": "string", "responsibilities": "string" }],
-  "steps": [{ "order": 1, "name": "string", "performer": "string", "description": "string" }],
+  "steps": [{
+    "order": 1, "name": "string", "performer": "string", "description": "string",
+    "touch_time": { "value": 10, "unit": "min|hr|day|week", "source": "estimated|measured" },
+    "wait_time":  { "value": 2,  "unit": "min|hr|day|week", "source": "estimated|measured" },
+    "decision": { "question": "string", "outcomes": [{ "condition": "string", "next": "step name, or empty if the process ends" }] },
+    "rework": { "back_to": "name of an earlier step", "when": "string" }
+  }],
   "exceptions": ["string"],
   "known_issues": ["string"]
-}${SAFETY_SUFFIX}`;
+}
+
+Rules for touch_time, wait_time, decision and rework on a step:
+- Include them ONLY when the speaker actually said it for that step. Otherwise set them to null. Never estimate or fill in a typical value.
+- touch_time is hands-on work on one case in this step; wait_time is how long a case waits before this step starts.
+- If the speaker gives a range, use the middle. "source" is "measured" only when they say it is measured or from data; otherwise "estimated".
+- If the speaker says they don't know a time, set it to null.
+- decision: only when the step ends in a choice the speaker describes, with its rule (for example an amount limit) and at least two outcomes.
+- rework: only when the speaker says cases are sent back to an earlier step; give that step's name and when it happens.${SAFETY_SUFFIX}`;
 
 const IMPROVEMENTS_PROMPT = `You are a business process improvement expert. Analyse the following process description and BPMN JSON.
 Return ONLY a valid JSON array of improvement objects — no explanation, no markdown, no preamble.
@@ -267,7 +282,7 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
   const client = makeClient(apiKey, proxyAuth);
 
   let system = withLang(DESCRIPTION_PROMPT, lang,
-    'Write all text values (process_name, overview, scope, role names, responsibilities, step names, descriptions, exceptions, known_issues) in Danish.');
+    'Write all text values (process_name, overview, scope, role names, responsibilities, step names, descriptions, decision questions, conditions, rework reasons, exceptions, known_issues) in Danish.');
   if (!processContext.isCustom && processContext.apqcNodeId) {
     system =
       `This process belongs to APQC PCF category ${processContext.apqcNodeId} — "${processContext.apqcNodeName}". ` +
@@ -294,7 +309,7 @@ export async function parseVoiceToDescription(transcript, apiKey, processContext
   const cleaned = stripFences(text);
 
   try {
-    return JSON.parse(cleaned);
+    return cleanDescription(JSON.parse(cleaned));
   } catch {
     const err = new Error('Failed to parse description as JSON');
     err.rawResponse = text;

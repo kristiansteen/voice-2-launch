@@ -281,3 +281,19 @@ test('resolveDisagreement', async (t) => {
     assert.equal(r.snapshot, snapshot);
   });
 });
+
+test('combine carries the preferred version\'s times, decision and rework onto the step', () => {
+  const facts = {
+    touch_time: { value: 10, unit: 'min', source: 'estimated' },
+    decision: { question: 'Over 50k?', outcomes: [{ condition: 'Yes', next: 'CFO' }, { condition: 'No', next: '' }] },
+  };
+  const versions = [
+    { id: 'a', name: 'A', isOwner: true, description: desc([{ ...step(1, 'Approve', 'Manager'), ...facts }]), transcript: '' },
+    { id: 'b', name: 'B', isOwner: false, description: desc([{ ...step(1, 'Approve', 'Manager'), touch_time: { value: 2, unit: 'hr', source: 'estimated' } }]), transcript: '' },
+  ];
+  const groups = validateGroups([{ name: 'Approve', refs: ['v0s0', 'v1s0'] }], stepRefs(versions));
+  const { description } = combine(versions, groups, 'P');
+  assert.deepEqual(description.steps[0].touch_time, facts.touch_time);
+  assert.deepEqual(description.steps[0].decision, facts.decision);
+  assert.equal(description.steps[0].rework, undefined);
+});

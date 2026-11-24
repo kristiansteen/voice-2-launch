@@ -126,6 +126,9 @@ function unionBy(lists, keyOf) {
   return out;
 }
 
+// Times, decision rule and rework loop a step can carry (see stepFacts.js)
+const FACT_KEYS = ['touch_time', 'wait_time', 'decision', 'rework'];
+
 export function combine(versions, groups, processName) {
   const n = versions.length;
   const refs = stepRefs(versions);
@@ -187,7 +190,9 @@ export function combine(versions, groups, processName) {
       .map((o, i) => ({ key: `p${i}`, ...o }));
     const performer = performerOptions[0]?.label || '';
 
-    const step = { order: 0, name: g.name, performer, description: own.description, _key: g.key };
+    const ownStep = pref.description?.steps?.[own.index] || {};
+    const facts = Object.fromEntries(FACT_KEYS.filter(k => ownStep[k]).map(k => [k, ownStep[k]]));
+    const step = { order: 0, name: g.name, performer, description: own.description, ...facts, _key: g.key };
 
     // Present in a majority, or exactly half including the preferred version
     const include = g.present.length * 2 > n || (g.present.length * 2 === n && g.perVersion.has(versions[0].id));
@@ -200,7 +205,7 @@ export function combine(versions, groups, processName) {
         type: 'missing',
         key: g.key,
         stepName: g.name,
-        step: { name: g.name, performer, description: own.description },
+        step: { name: g.name, performer, description: own.description, ...facts },
         afterKeys: before,
         options: [
           { key: 'include', label: 'include', versionIds: g.present },
