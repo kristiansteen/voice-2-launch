@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { BACKEND_URL as API_BASE } from './lib/api.js';
 import HelpModal from './components/HelpModal.jsx';
 import BurgerMenu from './components/BurgerMenu.jsx';
 import { useLang } from './i18n/LangContext.jsx';
@@ -75,7 +76,7 @@ import ResizeHandle from './components/ResizeHandle.jsx';
 import { useCompanyLogo } from './hooks/useCompanyLogo.js';
 import { useSystemRepository } from './hooks/useSystemRepository.js';
 
-const BACKEND_URL    = 'https://backend-eight-rho-46.vercel.app';
+const BACKEND_URL    = API_BASE;
 const VIMPL_LOGIN_URL = 'https://app.vimpl.com/login.html';
 
 // One step's working area. The step bar above names the step, so the panel has no header of its own.

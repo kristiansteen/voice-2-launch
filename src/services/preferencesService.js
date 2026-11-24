@@ -2,7 +2,7 @@
 // The app keeps reading them from localStorage as before; this file copies the
 // account's saved values into localStorage after login, and saves changes back.
 
-const BACKEND_URL = import.meta.env?.DEV ? 'http://localhost:3001' : 'https://backend-eight-rho-46.vercel.app';
+import { BACKEND_URL } from '../lib/api.js';
 const URL_PREFS = `${BACKEND_URL}/api/v1/auth/me/preferences`;
 
 export const KEYS = {

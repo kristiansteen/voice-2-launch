@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { BACKEND_URL as API_BASE } from '../lib/api.js';
 import { exportToVimpl, updateVimplBoard } from '../services/vimplService.js';
 
 const VIMPL_LOGIN_URL = 'https://app.vimpl.com/login.html';
-const VIMPL_BASE_URL = 'https://backend-eight-rho-46.vercel.app';
+const VIMPL_BASE_URL = API_BASE;
 
 export default function VimplExportModal({ projectPlan, processName, selectedImprovements = [], processDescription = null, invitees = [], onClose, onExported, vimplToken: propToken, boardId, boardVersion = 1 }) {
   const [token, setToken] = useState(propToken || '');
