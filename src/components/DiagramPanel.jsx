@@ -37,6 +37,7 @@ const BLANK_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
 </definitions>`;
 
 export default function DiagramPanel({
+  raciTable = null,
   xml, onXmlChange, bpmnLoading, processName, parsed, toBeParsed, processDescription,
   onGetImprovements, apiKey, proxyAuth, companyLogo,
   asIsXml, toBeXml, onToBeXmlChange, toBeLoading,
@@ -206,6 +207,7 @@ export default function DiagramPanel({
         parsed, processDescription, processName,
         companyLogo, apiKey, proxyAuth, lang, diagramSvg,
         businessCaseLine: businessCaseSummary(businessCase, lang),
+        raci: raciTable,
       });
       const blob = new Blob([html], { type: 'text/html' });
       const url  = URL.createObjectURL(blob);

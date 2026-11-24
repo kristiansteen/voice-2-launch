@@ -726,3 +726,40 @@ export async function matchRoundSteps(refs, apiKey, proxyAuth = null, lang = 'en
   if (!Array.isArray(groups)) throw new Error('Step matching returned an unexpected format');
   return groups;
 }
+
+// ── RACI suggestion (B18) ─────────────────────────────────────────────────────
+const RACI_PROMPT = `You are a process analyst building a RACI chart.
+You get the roles and the steps of one process. For each step, decide who is
+Responsible (does the work), Accountable (owns the outcome; exactly one per step),
+Consulted (asked before or during, two-way) and Informed (told afterwards, one-way).
+
+Rules:
+- Use ONLY the role names given, spelled exactly as given, and ONLY the step names given.
+- The step's performer must be "R" or "A/R".
+- Exactly one "A" or "A/R" per step.
+- Leave a role out of a step when it is not involved. Do not involve every role.
+- Base C and I on the step descriptions; do not invent involvement nobody described.
+
+Return ONLY JSON: {"steps":[{"step":"step name","cells":{"Role name":"R|A|A/R|C|I"}}]}`;
+
+export async function suggestRaci(processDescription, roles, apiKey, proxyAuth = null) {
+  const client = makeClient(apiKey, proxyAuth);
+  const input = {
+    roles,
+    steps: (processDescription?.steps || []).map(s => ({ name: s.name, performer: s.performer, description: s.description })),
+  };
+  const message = await client.messages.create({
+    model: MODEL_HAIKU,
+    max_tokens: 3000,
+    system: RACI_PROMPT,
+    messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
+  });
+  const text = message.content[0].text.trim();
+  try {
+    return JSON.parse(stripFences(text));
+  } catch {
+    const err = new Error('Failed to parse RACI suggestion as JSON');
+    err.rawResponse = text;
+    throw err;
+  }
+}

@@ -208,7 +208,7 @@ function esc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-export function buildSopHtml({ content = {}, parsed, processName, companyLogo, diagramSvg, lang, businessCaseLine = null }) {
+export function buildSopHtml({ content = {}, parsed, processName, companyLogo, diagramSvg, lang, businessCaseLine = null, raci = null }) {
   const steps = buildSteps(parsed);
   const roles = parsed.roles || [];
   const da = isDa(lang);
@@ -427,6 +427,8 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
   li { margin-bottom: 4px; color: #2d2d45; }
 
   /* ── Roles table ── */
+  .raci-table td.raci { text-align: center; font-weight: 600; }
+  .raci-legend { font-size: 11px; color: #6B6B66; margin-top: 6px; }
   .roles-table {
     width: 100%;
     border-collapse: collapse;
@@ -640,6 +642,12 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
       <thead><tr><th>${T.responsible}</th><th>${T.description}</th></tr></thead>
       <tbody>${rolesRows || '<tr><td colspan="2">—</td></tr>'}</tbody>
     </table>
+    ${raci?.rows?.length && raci.roles?.length ? `<h3>RACI</h3>
+    <table class="roles-table raci-table">
+      <thead><tr><th></th>${raci.roles.map(r => `<th>${esc(r)}</th>`).join('')}</tr></thead>
+      <tbody>${raci.rows.map(row => `<tr><td>${esc(row.step)}</td>${raci.roles.map(r => `<td class="raci">${esc(row.cells[r] || '')}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+    <p class="raci-legend">R = Responsible · A = Accountable · C = Consulted · I = Informed</p>` : ''}
   </div>
 
   <!-- Section 4: Prerequisites & Equipment -->
@@ -741,7 +749,7 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-export async function generateSop({ parsed, processDescription, processName, companyLogo, apiKey, proxyAuth, lang, diagramSvg, businessCaseLine = null }) {
+export async function generateSop({ parsed, processDescription, processName, companyLogo, apiKey, proxyAuth, lang, diagramSvg, businessCaseLine = null, raci = null }) {
   const content = await fetchNarrativeSections(parsed, processDescription, processName, apiKey, proxyAuth, lang);
-  return buildSopHtml({ content, parsed, processName, companyLogo, diagramSvg, lang, businessCaseLine });
+  return buildSopHtml({ content, parsed, processName, companyLogo, diagramSvg, lang, businessCaseLine, raci });
 }

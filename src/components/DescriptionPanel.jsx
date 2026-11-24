@@ -3,6 +3,7 @@ import { useState } from 'react';
 import RoundDisagreements from './RoundDisagreements.jsx';
 import { useLang } from '../i18n/LangContext.jsx';
 import TaxonomySourceSelector from './TaxonomySourceSelector.jsx';
+import RaciTable from './RaciTable.jsx';
 
 function EditableList({ items, onChange, itemKey }) {
   const { t } = useLang();
@@ -172,7 +173,7 @@ function StepsList({ steps, onChange }) {
   );
 }
 
-export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange, roundSnapshot, onResolveDisagreement, charter = null, onCharterChange }) {
+export default function DescriptionPanel({ description, onDescriptionChange, onApprove, loading, canApprove, processContext, onProcessContextChange, roundSnapshot, onResolveDisagreement, charter = null, onCharterChange, raci = null, onRaciChange = null, onSuggestRaci = null }) {
   const { t } = useLang();
   const [approvingBpmn, setApprovingBpmn] = useState(false);
 
@@ -277,6 +278,14 @@ export default function DescriptionPanel({ description, onDescriptionChange, onA
             <StepsList steps={description.steps || []} onChange={val => set('steps', val)} />
           </div>
         </div>
+        {onRaciChange && (
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.raciTitle}</label>
+            <div className="mt-1">
+              <RaciTable description={description} overrides={raci || {}} onChange={onRaciChange} onSuggest={onSuggestRaci} />
+            </div>
+          </div>
+        )}
         <div>
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.exceptions}</label>
           <div className="mt-1">

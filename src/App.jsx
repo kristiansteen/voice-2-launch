@@ -12,6 +12,7 @@ import TrustBadge from './components/TrustBadge.jsx';
 import RoundContribution from './components/RoundContribution.jsx';
 import ShareFlow from './components/ShareFlow.jsx';
 import { versionsForFlow, planRoundAdoption } from './lib/shareRound.js';
+import { suggestionToOverrides, buildRaci } from './lib/raci.js';
 
 // AS-IS rounds need the online backend; the offline build hides them
 const ROUNDS_ENABLED = import.meta.env.VITE_OFFLINE !== 'true';
@@ -19,6 +20,7 @@ import LoginPage from './components/LoginPage.jsx';
 import RegisterPage from './components/RegisterPage.jsx';
 import {
   parseVoiceToDescription,
+  suggestRaci,
   parseToBpmn,
   getStructuredImprovements,
   generateProjectPlan,
@@ -122,6 +124,7 @@ function blankFlowState() {
     toBeMetrics: null,
     businessCase: {},
     systemMap: {},
+    raci: {},
     videoMap: {},
     comparisonResult: null,
     roundSnapshot: null,
@@ -444,6 +447,8 @@ export default function App() {
   const [toBeMetrics, setToBeMetrics] = useState(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [systemMap, setSystemMap] = useState({});
+  // RACI choices by step and role name (B18); the performer's A/R is the default
+  const [raci, setRaci] = useState({});
   const [videoMap, setVideoMap] = useState({});
   const [comparisonResult, setComparisonResult] = useState(null);
   // Set when the flow was created from AS-IS round submissions: versions, disagreements, resolutions
@@ -566,6 +571,7 @@ export default function App() {
     setToBeMetrics(flow.toBeMetrics || null);
     setBusinessCaseInputs(flow.businessCase || {});
     setSystemMap(flow.systemMap || {});
+    setRaci(flow.raci || {});
     setVideoMap(flow.videoMap || {});
     setComparisonResult(flow.comparisonResult || null);
     setRoundSnapshot(flow.roundSnapshot || null);
@@ -598,7 +604,7 @@ export default function App() {
       updated_at: new Date().toISOString(),
       transcript, processDescription, parsed, xml,
       improvements, selectedImprovementIds, customRisks, projectPlan, processContext,
-      asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult,
+      asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, raci, videoMap, comparisonResult,
       roundSnapshot, businessCase: businessCaseInputs,
     };
     setFlows(prev => {
@@ -641,7 +647,7 @@ export default function App() {
           });
       }, 2000);
     }
-  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, videoMap, comparisonResult, roundSnapshot, businessCaseInputs]); // eslint-disable-line
+  }, [currentFlowId, transcript, processDescription, parsed, xml, improvements, selectedImprovementIds, customRisks, projectPlan, processContext, asIsXml, asIsParsed, toBeXml, toBeParsed, blueprintXml, asIsMetrics, toBeMetrics, systemMap, raci, videoMap, comparisonResult, roundSnapshot, businessCaseInputs]); // eslint-disable-line
 
   // ── Flow navigation ────────────────────────────────────────────────
   function handleConfirmLang() {
@@ -707,7 +713,7 @@ export default function App() {
     setBlueprintXml(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
-    setBusinessCaseInputs({});
+    setBusinessCaseInputs({}); setRaci({});
     setProcessContext(initial?.processContext || { apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setBoardUrl(null);
     setBoardId(null);
@@ -737,7 +743,7 @@ export default function App() {
     setBlueprintXml(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
-    setBusinessCaseInputs({});
+    setBusinessCaseInputs({}); setRaci({});
     setSystemMap({});
     setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
     setBoardUrl(null);
@@ -816,7 +822,7 @@ export default function App() {
       setTranscript(''); setProcessDescription(null); setParsed(null); setXml(null);
       setImprovements(null); setSelectedImprovementIds([]); setCustomRisks([]);
       setProjectPlan(null); setAsIsXml(null); setAsIsParsed(null);
-      setToBeXml(null); setToBeParsed(null); setAsIsMetrics(null); setToBeMetrics(null); setBusinessCaseInputs({});
+      setToBeXml(null); setToBeParsed(null); setAsIsMetrics(null); setToBeMetrics(null); setBusinessCaseInputs({}); setRaci({});
       setProcessContext({ apqcNodeId: null, apqcNodeName: null, isCustom: false, customLabel: null });
       setBoardUrl(null); setBoardId(null);
       setActivePanel(1);
@@ -872,7 +878,7 @@ export default function App() {
     setToBeParsed(null);
     setAsIsMetrics(null);
     setToBeMetrics(null);
-    setBusinessCaseInputs({});
+    setBusinessCaseInputs({}); setRaci({});
     setProcessContext(demoContext);
     setBoardUrl(null);
     setBoardId(null);
@@ -981,6 +987,26 @@ export default function App() {
       }
     })();
   }, [roundsAvailable, vimplToken, flowsSynced, flows, userId]);
+
+  // RACI (B18): the AI suggests A, C and I per step; each step it answers is replaced as a whole
+  async function handleSuggestRaci(table) {
+    try {
+      const res = await suggestRaci(processDescription, table.roles, effectiveApiKey, getProxyAuth());
+      const suggested = suggestionToOverrides(res, table);
+      if (!Object.keys(suggested).length) return false;
+      setRaci(prev => {
+        const next = { ...prev };
+        for (const [step, cells] of Object.entries(suggested)) {
+          next[step] = Object.fromEntries(table.roles.map(r => [r.toLowerCase(), cells[r.toLowerCase()] || '']));
+        }
+        return next;
+      });
+      return true;
+    } catch (err) {
+      console.error('[suggestRaci] failed:', err, err.rawResponse);
+      return false;
+    }
+  }
 
   // Share in the Describe step: combine the owner's own description of this flow with the
   // colleagues' answers, in this flow. Review then shows where they disagree.
@@ -1513,6 +1539,9 @@ export default function App() {
               onResolveDisagreement={handleResolveDisagreement}
               charter={businessCaseInputs}
               onCharterChange={setBusinessCaseInputs}
+              raci={raci}
+              onRaciChange={setRaci}
+              onSuggestRaci={handleSuggestRaci}
             />
           </PanelShell>
           {activePanel !== 2 && <div className="absolute inset-0 bg-slate-100/20 pointer-events-none" />}
@@ -1522,6 +1551,7 @@ export default function App() {
         <div style={getCarouselStyle(3)} onClick={activePanel !== 3 ? () => setActivePanel(3) : undefined}>
           <PanelShell wide>
             <DiagramPanel
+              raciTable={processDescription?.steps?.length ? buildRaci(processDescription, raci) : null}
               flowId={currentFlowId}
               isDemo={isDemoFlow}
               xml={xml}
