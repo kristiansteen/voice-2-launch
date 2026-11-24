@@ -163,7 +163,28 @@ function docId(name) {
   return 'SOP-' + name.replace(/[^a-zA-Z0-9]/g, '-').toUpperCase().slice(0, 20) + '-001';
 }
 
-function renderStep(step) {
+const RACI_WORDS = {
+  en: { R: 'Responsible', A: 'Accountable', C: 'Consulted', I: 'Informed' },
+  da: { R: 'Udfører', A: 'Godkender', C: 'Konsulteres', I: 'Informeres' },
+};
+
+// One line per step: "Responsible: X · Accountable: Y · …" from the RACI row
+// whose step name matches the activity (case-insensitive).
+function raciLine(label, raci, da) {
+  const row = (raci?.rows || []).find(r => (r.step || '').trim().toLowerCase() === (label || '').trim().toLowerCase());
+  if (!row) return '';
+  const words = da ? RACI_WORDS.da : RACI_WORDS.en;
+  const who = { R: [], A: [], C: [], I: [] };
+  for (const role of raci.roles || []) {
+    const v = row.cells?.[role] || '';
+    if (v === 'A/R') { who.R.push(role); who.A.push(role); }
+    else if (who[v]) who[v].push(role);
+  }
+  const parts = ['R', 'A', 'C', 'I'].filter(k => who[k].length).map(k => `${words[k]}: ${who[k].map(esc).join(', ')}`);
+  return parts.length ? `<div class="step-raci editable">${parts.join(' · ')}</div>` : '';
+}
+
+function renderStep(step, raci = null, da = false) {
   if (step.type === 'start') {
     return `<div class="step step-event step-start">
       <div class="step-num">▶</div>
@@ -200,6 +221,7 @@ function renderStep(step) {
     <div class="step-body">
       <strong class="editable">${step.label}</strong>
       ${step.role ? `<span class="role-badge editable">${step.role}</span>` : ''}
+      ${raciLine(step.label, raci, da)}
     </div>
   </div>`;
 }
@@ -268,7 +290,7 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
     ? (content.references || []).map(r => `<li class="editable">${esc(r)}</li>`).join('')
     : `<li class="editable">${T.noRefs}</li>`;
 
-  const stepsHtml = steps.map(renderStep).join('\n');
+  const stepsHtml = steps.map(st => renderStep(st, raci, da)).join('\n');
 
   const logoHtml = companyLogo
     ? `<img src="${companyLogo}" alt="Company logo" class="company-logo" />`
@@ -428,6 +450,7 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
 
   /* ── Roles table ── */
   .raci-table td.raci { text-align: center; font-weight: 600; }
+  .step-raci { font-size: 9pt; color: #4a4a5e; margin-top: 4px; }
   .raci-legend { font-size: 11px; color: #6B6B66; margin-top: 6px; }
   .roles-table {
     width: 100%;
@@ -647,7 +670,7 @@ export function buildSopHtml({ content = {}, parsed, processName, companyLogo, d
       <thead><tr><th></th>${raci.roles.map(r => `<th>${esc(r)}</th>`).join('')}</tr></thead>
       <tbody>${raci.rows.map(row => `<tr><td>${esc(row.step)}</td>${raci.roles.map(r => `<td class="raci">${esc(row.cells[r] || '')}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>
-    <p class="raci-legend">R = Responsible · A = Accountable · C = Consulted · I = Informed</p>` : ''}
+    <p class="raci-legend">${da ? 'R = Udfører · A = Godkender · C = Konsulteres · I = Informeres' : 'R = Responsible · A = Accountable · C = Consulted · I = Informed'}</p>` : ''}
   </div>
 
   <!-- Section 4: Prerequisites & Equipment -->
