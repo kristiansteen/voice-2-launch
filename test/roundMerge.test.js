@@ -297,3 +297,65 @@ test('combine carries the preferred version\'s times, decision and rework onto t
   assert.deepEqual(description.steps[0].decision, facts.decision);
   assert.equal(description.steps[0].rework, undefined);
 });
+
+// ── Times, decisions and rework (B15) ────────────────────────────────────────
+function twoOrThree(stepsByVersion) {
+  const versions = stepsByVersion.map((s, i) => ({
+    id: `v${i}`, name: `P${i}`, isOwner: i === 0, transcript: '',
+    description: desc([step(1, 'Receive', 'Clerk'), { ...step(2, 'Approve', 'Manager'), ...s }, step(3, 'Pay', 'Clerk')]),
+  }));
+  const groups = validateGroups([
+    { name: 'Receive', refs: versions.map((_, i) => `v${i}s0`) },
+    { name: 'Approve', refs: versions.map((_, i) => `v${i}s1`) },
+    { name: 'Pay', refs: versions.map((_, i) => `v${i}s2`) },
+  ], stepRefs(versions));
+  return combine(versions, groups, 'P');
+}
+const T = (value, unit) => ({ value, unit, source: 'estimated' });
+const ofType = (r, type) => r.disagreements.filter(d => d.type === type);
+
+test('touch time: a disagreement when two people differ by more than double and at least 15 minutes', () => {
+  const r = twoOrThree([{ touch_time: T(10, 'min') }, { touch_time: T(2, 'hr') }, {}]);
+  const [d] = ofType(r, 'touch_time');
+  assert.equal(d.stepName, 'Approve');
+  assert.deepEqual(d.options.map(o => [o.value, o.versionIds]), [[T(10, 'min'), ['v0']], [T(2, 'hr'), ['v1']]]);
+  assert.equal(d.chosen, d.options[0].key);
+});
+
+test('touch time: no disagreement for close values, small gaps or a single answer', () => {
+  assert.equal(ofType(twoOrThree([{ touch_time: T(10, 'min') }, { touch_time: T(15, 'min') }]), 'touch_time').length, 0);
+  assert.equal(ofType(twoOrThree([{ touch_time: T(5, 'min') }, { touch_time: T(12, 'min') }]), 'touch_time').length, 0);
+  assert.equal(ofType(twoOrThree([{ touch_time: T(5, 'min') }, {}]), 'touch_time').length, 0);
+});
+
+test('waiting time uses a one-hour minimum gap', () => {
+  assert.equal(ofType(twoOrThree([{ wait_time: T(1, 'hr') }, { wait_time: T(2, 'day') }]), 'wait_time').length, 1);
+  assert.equal(ofType(twoOrThree([{ wait_time: T(10, 'min') }, { wait_time: T(40, 'min') }]), 'wait_time').length, 0);
+});
+
+test('decision: different amounts disagree, the same rule in other words does not', () => {
+  const dec = (q, ...conds) => ({ decision: { question: q, outcomes: conds.map(c => ({ condition: c, next: '' })) } });
+  assert.equal(ofType(twoOrThree([dec('Over DKK 50,000?', 'Yes', 'No'), dec('Over 100k?', 'Yes', 'No')]), 'decision').length, 1);
+  assert.equal(ofType(twoOrThree([dec('Over 50.000 kr?', 'Yes', 'No'), dec('Above DKK 50k?', 'yes', 'no')]), 'decision').length, 0);
+  assert.equal(ofType(twoOrThree([dec('Approved?', 'Yes', 'No'), dec('Approved?', 'Yes', 'No', 'Need more info')]), 'decision').length, 1);
+});
+
+test('rework: some describe a loop back and others do not', () => {
+  const r = twoOrThree([{ rework: { back_to: 'Receive', when: 'wrong PO' } }, {}]);
+  const [d] = ofType(r, 'rework');
+  assert.deepEqual(d.options.map(o => [o.key, o.versionIds]), [['loop0', ['v0']], ['none', ['v1']]]);
+  assert.equal(d.chosen, 'loop0');
+  assert.equal(ofType(twoOrThree([{ rework: { back_to: 'Receive' } }, { rework: { back_to: 'receive', when: 'x' } }]), 'rework').length, 0);
+  assert.equal(ofType(twoOrThree([{}, {}]), 'rework').length, 0);
+});
+
+test('applyResolution sets or removes the chosen fact on the step', () => {
+  const r = twoOrThree([{ touch_time: T(10, 'min'), rework: { back_to: 'Receive', when: '' } }, { touch_time: T(2, 'hr') }]);
+  const [t] = ofType(r, 'touch_time');
+  const withTime = applyResolution(r.description, t, t.options[1].key);
+  assert.deepEqual(withTime.steps[1].touch_time, T(2, 'hr'));
+  const [rw] = ofType(r, 'rework');
+  const noLoop = applyResolution(r.description, rw, 'none');
+  assert.equal('rework' in noLoop.steps[1], false);
+  assert.deepEqual(applyResolution(noLoop, rw, 'loop0').steps[1].rework, { back_to: 'Receive', when: '' });
+});

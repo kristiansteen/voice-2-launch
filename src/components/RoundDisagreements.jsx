@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLang } from '../i18n/LangContext.jsx';
+import { formatTime } from '../lib/stepFacts.js';
 
 /**
  * Where the selected AS-IS round submissions disagree, shown at the top of the Review pane.
@@ -7,7 +8,7 @@ import { useLang } from '../i18n/LangContext.jsx';
  * that person's transcript, or their own step text) and to the full transcript.
  */
 export default function RoundDisagreements({ snapshot, onResolve }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [showResolved, setShowResolved] = useState(false);
   const [transcriptOf, setTranscriptOf] = useState(null);
   if (!snapshot) return null;
@@ -44,7 +45,7 @@ export default function RoundDisagreements({ snapshot, onResolve }) {
           </button>
           {showResolved && resolved.map(d => (
             <p key={d.id} className="text-[11px] text-gray-600 mt-1">
-              {title(d, t)} → <b>{resolutions[d.id].option === 'kept' ? t.roundDisKept : optionLabel(d, d.options.find(o => o.key === resolutions[d.id].option), t)}</b>
+              {title(d, t)} → <b>{resolutions[d.id].option === 'kept' ? t.roundDisKept : optionLabel(d, d.options.find(o => o.key === resolutions[d.id].option), t, lang)}</b>
             </p>
           ))}
         </div>
@@ -65,14 +66,20 @@ export default function RoundDisagreements({ snapshot, onResolve }) {
   );
 }
 
+const FACT_TITLE = { touch_time: 'roundDisTouch', wait_time: 'roundDisWait', decision: 'roundDisDecision', rework: 'roundDisRework' };
+
 function title(d, t) {
   if (d.type === 'missing') return t.roundDisMissing.replace('{step}', d.stepName);
   if (d.type === 'performer') return t.roundDisPerformer.replace('{step}', d.stepName);
+  if (FACT_TITLE[d.type]) return t[FACT_TITLE[d.type]].replace('{step}', d.stepName);
   return t.roundDisOrder.replace('{a}', d.otherStepName).replace('{b}', d.stepName);
 }
 
-function optionLabel(d, o, t) {
+function optionLabel(d, o, t, lang) {
   if (!o) return '';
+  if (d.type === 'touch_time' || d.type === 'wait_time') return formatTime(o.value, lang);
+  if (d.type === 'decision') return o.label;
+  if (d.type === 'rework') return o.value ? t.roundDisReworkTo.replace('{step}', o.label) + (o.value.when ? ` — ${o.value.when}` : '') : t.roundDisNoRework;
   if (d.type === 'missing') return o.key === 'include' ? t.roundDisInclude : t.roundDisExclude;
   if (d.type === 'performer') return o.label || t.roundDisNobody;
   return o.key === 'ab'
@@ -81,6 +88,7 @@ function optionLabel(d, o, t) {
 }
 
 function Item({ d, names, t, onResolve, onTranscript }) {
+  const { lang } = useLang();
   const [showSources, setShowSources] = useState(false);
   return (
     <div className="bg-white border border-amber-100 rounded-lg p-2.5">
@@ -93,7 +101,7 @@ function Item({ d, names, t, onResolve, onTranscript }) {
               className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded border ${o.key === d.chosen ? 'border-violet-300 bg-violet-50 text-violet-800' : 'border-gray-200 text-gray-700 hover:border-violet-300'}`}
               title={t.roundDisUseThis}
             >
-              {optionLabel(d, o, t)}
+              {optionLabel(d, o, t, lang)}
             </button>
             <span className="text-[11px] text-gray-500 pt-0.5">
               {o.versionIds.length ? o.versionIds.map(id => names[id]).join(', ') : '—'}

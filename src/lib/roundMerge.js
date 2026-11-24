@@ -12,6 +12,8 @@
 
 // ── Versions and step references ─────────────────────────────────────────────
 
+import { toMinutes } from './stepFacts.js';
+
 export function versionsFromRound(round, submissionIds, ownerEmail) {
   const wanted = new Set(submissionIds);
   const owner = (ownerEmail || '').trim().toLowerCase();
@@ -128,6 +130,27 @@ function unionBy(lists, keyOf) {
 
 // Times, decision rule and rework loop a step can carry (see stepFacts.js)
 const FACT_KEYS = ['touch_time', 'wait_time', 'decision', 'rework'];
+// A time disagreement needs one value more than double the other and a real gap
+const MIN_GAP = { touch_time: 15, wait_time: 60 };
+
+/** Amounts in a decision rule: "DKK 50,000", "50.000 kr", "50k" and "50 000" are all 50000. */
+export function numbersIn(text) {
+  const out = new Set();
+  for (const m of String(text || '').matchAll(/(\d{1,3}(?:[.,\s]\d{3})+|\d+(?:[.,]\d+)?)\s*(k|mio|m)?(?![a-z])/gi)) {
+    const raw = m[1];
+    let n = /^\d{1,3}(?:[.,\s]\d{3})+$/.test(raw) ? Number(raw.replace(/[.,\s]/g, '')) : Number(raw.replace(',', '.'));
+    const suffix = (m[2] || '').toLowerCase();
+    if (suffix === 'k') n *= 1e3;
+    else if (suffix === 'm' || suffix === 'mio') n *= 1e6;
+    if (Number.isFinite(n)) out.add(n);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+// Two decision rules are the same when they name the same amounts and have as many outcomes.
+// Wording alone never makes a disagreement: a missed one is better than a false alarm.
+const decisionKey = d => `${numbersIn([d.question, ...d.outcomes.map(o => o.condition)].join(' ')).join(',')}|${d.outcomes.length}`;
+const decisionLabel = d => `${d.question} ${d.outcomes.map(o => `${o.condition}${o.next ? ` → ${o.next}` : ''}`).join(' · ')}`;
 
 export function combine(versions, groups, processName) {
   const n = versions.length;
@@ -190,8 +213,14 @@ export function combine(versions, groups, processName) {
       .map((o, i) => ({ key: `p${i}`, ...o }));
     const performer = performerOptions[0]?.label || '';
 
-    const ownStep = pref.description?.steps?.[own.index] || {};
-    const facts = Object.fromEntries(FACT_KEYS.filter(k => ownStep[k]).map(k => [k, ownStep[k]]));
+    const stepOf = id => versions[vIndex.get(id)].description?.steps?.[g.perVersion.get(id).index] || {};
+    // Times and the decision come from the first version that gives them; rework follows the preferred version
+    const facts = {};
+    for (const k of ['touch_time', 'wait_time', 'decision']) {
+      const from = g.present.find(id => stepOf(id)[k]);
+      if (from) facts[k] = stepOf(from)[k];
+    }
+    if (stepOf(pref.id).rework) facts.rework = stepOf(pref.id).rework;
     const step = { order: 0, name: g.name, performer, description: own.description, ...facts, _key: g.key };
 
     // Present in a majority, or exactly half including the preferred version
@@ -226,6 +255,74 @@ export function combine(versions, groups, processName) {
         chosen: 'p0',
         sources: sourcesFor(g, g.present),
       });
+    }
+
+    // Touch and waiting time: only between people who gave a time
+    for (const field of ['touch_time', 'wait_time']) {
+      const given = g.present.filter(id => stepOf(id)[field]);
+      const mins = given.map(id => toMinutes(stepOf(id)[field]));
+      if (given.length < 2) continue;
+      const lo = Math.min(...mins), hi = Math.max(...mins);
+      if (hi < lo * 2 || hi - lo < MIN_GAP[field]) continue;
+      const options = [];
+      given.forEach((id, i) => {
+        const same = options.find(o => toMinutes(o.value) === mins[i]);
+        if (same) same.versionIds.push(id);
+        else options.push({ key: `t${options.length}`, value: stepOf(id)[field], versionIds: [id] });
+      });
+      disagreements.push({
+        id: `${field}:${g.key}`, type: field, key: g.key, stepName: g.name,
+        options, chosen: 't0', sources: sourcesFor(g, given),
+      });
+    }
+
+    // Decision rule: only between people who described one
+    const deciders = g.present.filter(id => stepOf(id).decision);
+    if (deciders.length >= 2) {
+      const options = [];
+      for (const id of deciders) {
+        const d = stepOf(id).decision;
+        const same = options.find(o => o._k === decisionKey(d));
+        if (same) same.versionIds.push(id);
+        else options.push({ key: `d${options.length}`, _k: decisionKey(d), value: d, label: decisionLabel(d), versionIds: [id] });
+      }
+      if (options.length > 1) {
+        disagreements.push({
+          id: `decision:${g.key}`, type: 'decision', key: g.key, stepName: g.name,
+          options: options.map(({ _k, ...o }) => o), chosen: 'd0', sources: sourcesFor(g, deciders),
+        });
+      }
+    }
+
+    // Rework: who describes a loop back from this step, and to which step
+    const target = id => {
+      const r = stepOf(id).rework;
+      if (!r) return 'none';
+      const v = versions[vIndex.get(id)];
+      const j = (v.description?.steps || []).findIndex(st => norm(st.name) === norm(r.back_to));
+      const grp = j < 0 ? null : info.find(x => x.perVersion.get(id)?.index === j);
+      return grp ? `g:${grp.key}` : `t:${norm(r.back_to)}`;
+    };
+    if (g.present.some(id => stepOf(id).rework)) {
+      const options = [];
+      for (const id of g.present) {
+        const k = target(id);
+        const same = options.find(o => o._k === k);
+        if (same) { same.versionIds.push(id); continue; }
+        const r = stepOf(id).rework;
+        options.push(k === 'none'
+          ? { key: 'none', _k: k, value: null, versionIds: [id] }
+          : { key: `loop${options.filter(o => o.key !== 'none').length}`, _k: k, value: r, label: r.back_to, versionIds: [id] });
+      }
+      options.sort((a, b) => (a.key === 'none') - (b.key === 'none'));
+      if (options.length > 1) {
+        disagreements.push({
+          id: `rework:${g.key}`, type: 'rework', key: g.key, stepName: g.name,
+          options: options.map(({ _k, ...o }) => o),
+          chosen: options.find(o => o.versionIds.includes(pref.id))?.key ?? options[0].key,
+          sources: sourcesFor(g, g.present),
+        });
+      }
     }
   }
 
@@ -331,6 +428,17 @@ export function applyResolution(description, d, optionKey) {
       return description;
     }
     return { ...description, steps: renumber(steps) };
+  }
+
+  if (FACT_KEYS.includes(d.type)) {
+    const i = at(d.key);
+    const opt = d.options.find(o => o.key === optionKey);
+    if (i < 0 || !opt) return description;
+    const next = { ...steps[i] };
+    if (opt.value) next[d.type] = opt.value;
+    else delete next[d.type];
+    steps[i] = next;
+    return { ...description, steps };
   }
   return description;
 }
